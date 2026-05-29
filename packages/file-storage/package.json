@@ -1,0 +1,26 @@
+{
+  "name": "@certtrace/file-storage",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"test: not configured yet\"",
+    "lint": "echo \"lint: not configured yet\""
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.32",
+    "typescript": "~5.8.3"
+  }
+}

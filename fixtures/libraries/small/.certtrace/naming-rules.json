@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "strategies": [
+    {
+      "id": "material-animal-number",
+      "label": "Material + Animal + Number",
+      "template": "{material}-{word:animals}-{number}",
+      "numberPad": 3,
+      "case": "lower"
+    }
+  ],
+  "activeStrategyId": "material-animal-number"
+}
