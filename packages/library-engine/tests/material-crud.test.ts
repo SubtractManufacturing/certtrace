@@ -16,10 +16,11 @@ import {
 describe("material CRUD", () => {
   it("creates, reads, and updates material metadata on disk", async () => {
     const fs = createNodeFileSystem();
-    const root = await mkdtemp(join(tmpdir(), "certtrace-material-"));
+    const parentDir = await mkdtemp(join(tmpdir(), "certtrace-material-"));
 
     try {
-      const library = await createLibrary(fs, root, "Main Shop Materials");
+      const library = await createLibrary(fs, parentDir, "Main Shop Materials");
+      const root = library.paths.root;
       const created = await createMaterial(library, {
         materialCode: "AL",
         material: "6061-T6",
@@ -51,23 +52,24 @@ describe("material CRUD", () => {
       expect(updated.notes).toBe("Moved after QA sign-off");
       expect(updated.updatedAt).not.toBe(created.updatedAt);
     } finally {
-      await rm(root, { recursive: true, force: true });
+      await rm(parentDir, { recursive: true, force: true });
     }
   });
 
   it("generates unique ids for successive materials", async () => {
     const fs = createNodeFileSystem();
-    const root = await mkdtemp(join(tmpdir(), "certtrace-material-"));
+    const parentDir = await mkdtemp(join(tmpdir(), "certtrace-material-"));
 
     try {
-      const library = await createLibrary(fs, root, "Sandbox");
+      const library = await createLibrary(fs, parentDir, "Sandbox");
+      const root = library.paths.root;
       const first = await createMaterial(library, { materialCode: "AL" });
       const second = await createMaterial(await openLibrary(fs, root), { materialCode: "AL" });
 
       expect(first.id).not.toBe(second.id);
       expect(await listMaterials(await openLibrary(fs, root))).toHaveLength(2);
     } finally {
-      await rm(root, { recursive: true, force: true });
+      await rm(parentDir, { recursive: true, force: true });
     }
   });
 });

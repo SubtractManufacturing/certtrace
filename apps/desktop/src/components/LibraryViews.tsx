@@ -6,7 +6,7 @@ import {
   createLibraryAtPath,
   fetchMaterials,
   openLibraryAtPath,
-  pickLibraryFolder,
+  pickParentFolder,
 } from "../lib/library-client";
 
 interface MaterialsViewProps {
@@ -199,7 +199,7 @@ export function WelcomeView({ onLibraryReady }: WelcomeViewProps) {
     setBusy(true);
     setError(null);
     try {
-      const root = await pickLibraryFolder("Open CertTrace library folder");
+      const root = await pickParentFolder("Open CertTrace library folder");
       if (!root) {
         return;
       }
@@ -216,12 +216,18 @@ export function WelcomeView({ onLibraryReady }: WelcomeViewProps) {
     setBusy(true);
     setError(null);
     try {
-      const root = await pickLibraryFolder("Choose folder for new library");
-      if (!root) {
+      const name = libraryName.trim();
+      if (!name) {
+        setError("Enter a library name.");
         return;
       }
-      const library = await createLibraryAtPath(root, libraryName.trim() || "New Library");
-      onLibraryReady(root, library);
+
+      const parentDir = await pickParentFolder("Choose where to create the library");
+      if (!parentDir) {
+        return;
+      }
+      const library = await createLibraryAtPath(parentDir, name);
+      onLibraryReady(library.paths.root, library);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -237,11 +243,12 @@ export function WelcomeView({ onLibraryReady }: WelcomeViewProps) {
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">CertTrace</h1>
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          Open an existing library folder or create a new one on disk.
+          Open an existing library folder, or create a new one in the location you choose.
+          CertTrace creates a folder named after your library and writes a README inside.
         </p>
 
         <label className="mt-6 flex flex-col gap-1 text-sm">
-          <span className="font-medium text-slate-700">New library name</span>
+          <span className="font-medium text-slate-700">Library name</span>
           <input
             className="rounded-md border border-slate-200 px-3 py-2"
             value={libraryName}

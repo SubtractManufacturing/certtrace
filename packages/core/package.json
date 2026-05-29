@@ -1,0 +1,34 @@
+{
+  "name": "@certtrace/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "echo \"lint: not configured yet\""
+  },
+  "dependencies": {
+    "@certtrace/file-storage": "workspace:*",
+    "@certtrace/types": "workspace:*",
+    "pdf-lib": "^1.17.1",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.32",
+    "@types/qrcode": "^1.5.5",
+    "typescript": "~5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

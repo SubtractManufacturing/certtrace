@@ -12,7 +12,7 @@ import { createTauriFileSystem } from "./tauri-fs";
 
 const fs = createTauriFileSystem();
 
-export async function pickLibraryFolder(title: string): Promise<string | null> {
+export async function pickParentFolder(title: string): Promise<string | null> {
   const selected = await open({
     title,
     directory: true,
@@ -31,10 +31,10 @@ export async function openLibraryAtPath(root: string): Promise<OpenLibraryResult
 }
 
 export async function createLibraryAtPath(
-  root: string,
+  parentDir: string,
   name: string,
 ): Promise<OpenLibraryResult> {
-  return createLibrary(fs, root, name);
+  return createLibrary(fs, parentDir, name);
 }
 
 export async function fetchMaterials(

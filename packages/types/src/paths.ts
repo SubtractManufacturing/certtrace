@@ -8,6 +8,8 @@ export const LIBRARY_JSON = `${CERTTRACE_DIR}/library.json`;
 export const NAMING_RULES_JSON = `${CERTTRACE_DIR}/naming-rules.json`;
 export const WORD_LISTS_JSON = `${CERTTRACE_DIR}/word-lists.json`;
 
+export const LIBRARY_README = "README.md";
+
 export const materialDir = (materialId: string) => `${MATERIALS_DIR}/${materialId}`;
 export const materialMetadataPath = (materialId: string) =>
   `${materialDir(materialId)}/metadata.json`;
@@ -25,6 +27,25 @@ export function joinPath(base: string, ...parts: string[]): string {
   }
 
   return result;
+}
+
+/** Folder name for a new library (same as display name, minus invalid path characters). */
+export function libraryFolderName(displayName: string): string {
+  const trimmed = displayName.trim();
+  if (!trimmed) {
+    throw new Error("Library name cannot be empty");
+  }
+
+  const sanitized = trimmed
+    .replace(/[\\/:*?"<>|]/g, "")
+    .replace(/[.\s]+$/g, "")
+    .trim();
+
+  if (!sanitized) {
+    throw new Error("Library name cannot be empty");
+  }
+
+  return sanitized;
 }
 
 /** Filesystem-safe material IDs (folder names). */

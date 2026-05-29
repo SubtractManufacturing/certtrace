@@ -5,30 +5,32 @@ import {
   LABELS_DIR,
   LIBRARY_JSON,
   LIBRARY_PATHS,
+  LIBRARY_README,
   MATERIALS_DIR,
   NAMING_RULES_JSON,
   joinPath,
+  libraryFolderName,
   materialMetadataPath,
-  materialMetadataV1Schema,
   WORD_LISTS_JSON,
   createDefaultLibraryConfigV1,
   defaultNamingRulesV1,
   defaultWordListsV1,
-  libraryConfigV1Schema,
-  namingRulesV1Schema,
-  wordListsV1Schema,
+  materialMetadataV1Schema,
   type LibraryConfigV1,
   type MaterialMetadataV1,
   type NamingRulesV1,
   type WordListsV1,
 } from "@certtrace/types";
+import { createLibraryReadme } from "./readme.js";
+import {
+  migrateLibraryConfig,
+  migrateMaterialMetadata,
+  migrateNamingRules,
+  migrateWordLists,
+} from "./migrations/index.js";
+import { LibraryError } from "./errors.js";
 
-export class LibraryError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "LibraryError";
-  }
-}
+export { LibraryError };
 
 export interface LibraryPaths {
   root: string;
@@ -85,18 +87,47 @@ async function writeJson(fs: FileSystem, path: string, value: unknown): Promise<
   await fs.writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+async function assertNewLibraryRoot(fs: FileSystem, root: string): Promise<void> {
+  try {
+    const entries = await fs.readdir(root);
+    const hasCerttrace = entries.some(
+      (entry) => entry.name === CERTTRACE_DIR && entry.isDirectory,
+    );
+    if (hasCerttrace) {
+      throw new LibraryError(`A CertTrace library already exists at ${root}`);
+    }
+  } catch (error) {
+    if (error instanceof LibraryError) {
+      throw error;
+    }
+    // Root does not exist yet — createLibrary will create it.
+  }
+}
+
 export async function createLibrary(
   fs: FileSystem,
-  root: string,
+  parentDir: string,
   name: string,
 ): Promise<OpenLibraryResult> {
+  let folderName: string;
+  try {
+    folderName = libraryFolderName(name);
+  } catch {
+    throw new LibraryError("Library name cannot be empty");
+  }
+
+  const root = joinPath(parentDir, folderName);
+  await assertNewLibraryRoot(fs, root);
+  await fs.mkdir(root, { recursive: true });
+  await fs.writeFile(joinPath(root, LIBRARY_README), createLibraryReadme(name.trim()));
+
   const paths = getLibraryPaths(root);
 
   await fs.mkdir(paths.certtrace, { recursive: true });
   await fs.mkdir(paths.materials, { recursive: true });
   await fs.mkdir(paths.labels, { recursive: true });
 
-  const config = createDefaultLibraryConfigV1(name);
+  const config = createDefaultLibraryConfigV1(name.trim());
   const namingRules = defaultNamingRulesV1;
   const wordLists = defaultWordListsV1;
 
@@ -107,10 +138,10 @@ export async function createLibrary(
   return { fs, paths, config, namingRules, wordLists };
 }
 
-async function readValidatedJson<T>(
+async function readMigratedJson<T>(
   fs: FileSystem,
   path: string,
-  schema: { parse: (value: unknown) => T },
+  migrate: (doc: unknown) => T,
   label: string,
 ): Promise<T> {
   let raw: string;
@@ -128,8 +159,11 @@ async function readValidatedJson<T>(
   }
 
   try {
-    return schema.parse(parsed);
+    return migrate(parsed);
   } catch (error) {
+    if (error instanceof LibraryError) {
+      throw error;
+    }
     throw new LibraryError(`Invalid ${label} at ${path}: ${String(error)}`);
   }
 }
@@ -137,22 +171,22 @@ async function readValidatedJson<T>(
 export async function openLibrary(fs: FileSystem, root: string): Promise<OpenLibraryResult> {
   const paths = getLibraryPaths(root);
 
-  const config = await readValidatedJson(
+  const config = await readMigratedJson(
     fs,
     paths.libraryJson,
-    libraryConfigV1Schema,
+    migrateLibraryConfig,
     "library.json",
   );
-  const namingRules = await readValidatedJson(
+  const namingRules = await readMigratedJson(
     fs,
     paths.namingRulesJson,
-    namingRulesV1Schema,
+    migrateNamingRules,
     "naming-rules.json",
   );
-  const wordLists = await readValidatedJson(
+  const wordLists = await readMigratedJson(
     fs,
     paths.wordListsJson,
-    wordListsV1Schema,
+    migrateWordLists,
     "word-lists.json",
   );
 
@@ -194,7 +228,7 @@ export async function getMaterial(
   materialId: string,
 ): Promise<MaterialMetadataV1> {
   const metadataPath = joinPath(library.paths.root, materialMetadataPath(materialId));
-  return readValidatedJson(library.fs, metadataPath, materialMetadataV1Schema, "metadata.json");
+  return readMigratedJson(library.fs, metadataPath, migrateMaterialMetadata, "metadata.json");
 }
 
 export async function createMaterial(
