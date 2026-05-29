@@ -1,4 +1,4 @@
-import { mkdir, readDir, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import { copyFile, mkdir, readDir, readFile, readTextFile, remove, writeFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import type { FileSystem } from "@certtrace/file-storage";
 
 export function createTauriFileSystem(): FileSystem {
@@ -11,6 +11,18 @@ export function createTauriFileSystem(): FileSystem {
     },
     writeFile(path, content) {
       return writeTextFile(path, content);
+    },
+    async readBinary(path) {
+      return readFile(path);
+    },
+    async writeBinary(path, data) {
+      await writeFile(path, data);
+    },
+    remove(path) {
+      return remove(path);
+    },
+    copyFile(from, to) {
+      return copyFile(from, to);
     },
     async readdir(path) {
       const entries = await readDir(path);

@@ -8,5 +8,9 @@ export interface FileSystem {
   mkdir(path: string, options?: { recursive?: boolean }): Promise<void>;
   readFile(path: string): Promise<string>;
   writeFile(path: string, content: string): Promise<void>;
+  readBinary(path: string): Promise<Uint8Array>;
+  writeBinary(path: string, data: Uint8Array): Promise<void>;
+  remove(path: string): Promise<void>;
+  copyFile(from: string, to: string): Promise<void>;
   readdir(path: string): Promise<DirectoryEntry[]>;
 }
