@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CertTrace — Warm Craft</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: #f5f0e8;
+      color: #3d3429;
+      min-height: 100vh;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+    .rail {
+      background: #2c2419;
+      color: #d4c9b8;
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    .rail-brand {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 26px;
+      color: #f5f0e8;
+      margin-bottom: 4px;
+    }
+    .rail-sub { font-size: 12px; color: #8a7d6b; margin-bottom: 32px; }
+    .rail-section { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #6b5f4f; margin-bottom: 12px; }
+    .rail-item {
+      padding: 10px 14px;
+      border-radius: 10px;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+    .rail-item.active { background: #3d3429; color: #f5f0e8; }
+    .rail-spacer { flex: 1; }
+    .rail-footer {
+      padding: 16px;
+      background: #3d3429;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    .rail-footer strong { display: block; color: #f5f0e8; margin-bottom: 4px; }
+    .main-area { padding: 32px 40px; overflow-y: auto; }
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 36px;
+      color: #2c2419;
+      font-weight: 400;
+      margin-bottom: 6px;
+    }
+    .page-header p { color: #8a7d6b; font-size: 15px; }
+    .startup-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+    .lib-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(44,36,25,0.06);
+      border: 2px solid transparent;
+    }
+    .lib-card:hover { border-color: #c4956a; }
+    .lib-card.primary { border-color: #a67c52; background: #fffbf5; }
+    .lib-icon {
+      width: 40px; height: 40px;
+      background: #ede4d6;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 14px;
+    }
+    .lib-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .lib-card .count { font-size: 13px; color: #8a7d6b; }
+    .lib-card .path { font-size: 11px; color: #b5a894; margin-top: 8px; font-family: monospace; }
+    .search-strip {
+      background: #fff;
+      border-radius: 14px;
+      padding: 6px 6px 6px 20px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 2px 12px rgba(44,36,25,0.08);
+      margin-bottom: 28px;
+    }
+    .search-strip input {
+      flex: 1;
+      border: none;
+      padding: 14px 0;
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      color: #3d3429;
+    }
+    .search-strip input::placeholder { color: #b5a894; }
+    .search-strip button {
+      background: #a67c52;
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+    }
+    .two-col { display: grid; grid-template-columns: 1fr 360px; gap: 24px; }
+    .material-list {
+      background: #fff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(44,36,25,0.06);
+    }
+    .list-item {
+      padding: 18px 24px;
+      border-bottom: 1px solid #f0e9de;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+    .list-item:last-child { border-bottom: none; }
+    .list-item.selected { background: #faf6f0; border-left: 4px solid #a67c52; }
+    .list-item .id { font-weight: 600; font-size: 15px; color: #2c2419; }
+    .list-item .sub { font-size: 13px; color: #8a7d6b; margin-top: 2px; }
+    .list-item .loc {
+      font-size: 12px;
+      padding: 4px 10px;
+      background: #ede4d6;
+      border-radius: 6px;
+      color: #6b5f4f;
+    }
+    .detail-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(44,36,25,0.06);
+      overflow: hidden;
+    }
+    .detail-card header {
+      background: linear-gradient(135deg, #a67c52, #8b6544);
+      color: #fff;
+      padding: 24px;
+    }
+    .detail-card header h2 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 24px;
+      font-weight: 400;
+    }
+    .detail-card header p { opacity: 0.85; font-size: 14px; margin-top: 4px; }
+    .detail-body { padding: 20px 24px; }
+    .prop { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0e9de; font-size: 14px; }
+    .prop:last-of-type { border-bottom: none; }
+    .prop .label { color: #8a7d6b; }
+    .files-block { padding: 0 24px 20px; }
+    .files-block h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #8a7d6b; margin-bottom: 10px; }
+    .file-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: #faf6f0;
+      border-radius: 8px;
+      font-size: 13px;
+      margin: 0 6px 6px 0;
+    }
+    .label-strip {
+      margin: 0 24px 24px;
+      padding: 20px;
+      background: #faf6f0;
+      border-radius: 12px;
+      text-align: center;
+      border: 1px dashed #d4c9b8;
+    }
+    .label-strip .qr {
+      width: 70px; height: 70px;
+      margin: 0 auto 12px;
+      background:
+        linear-gradient(90deg, #2c2419 50%, transparent 50%) 0 0 / 7px 7px,
+        linear-gradient(90deg, #2c2419 50%, transparent 50%) 3.5px 3.5px / 7px 7px;
+      border-radius: 4px;
+    }
+    .label-strip .lid { font-weight: 600; font-family: monospace; }
+    .label-strip .lsub { font-size: 12px; color: #8a7d6b; margin-top: 4px; }
+    .actions-row {
+      display: flex;
+      gap: 8px;
+      padding: 0 24px 24px;
+    }
+    .act-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #d4c9b8;
+      background: #fff;
+      font-size: 12px;
+      font-weight: 500;
+      color: #3d3429;
+      font-family: inherit;
+    }
+    .act-btn.primary { background: #a67c52; color: #fff; border-color: #a67c52; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="rail">
+      <div class="rail-brand">CertTrace</div>
+      <div class="rail-sub">Material certification tracking</div>
+
+      <div class="rail-section">Navigation</div>
+      <div class="rail-item active">Materials</div>
+      <div class="rail-item">Libraries</div>
+      <div class="rail-item">Labels</div>
+      <div class="rail-item">Settings</div>
+
+      <div class="rail-spacer"></div>
+
+      <div class="rail-footer">
+        <strong>Main Shop Materials</strong>
+        Watching · 1,247 materials<br>
+        <span style="color:#8a7d6b">/Volumes/Shop/Main Shop</span>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="page-header">
+        <h1>Open a library</h1>
+        <p>Pick up where you left off, or create a new material library</p>
+      </header>
+
+      <div class="startup-grid">
+        <div class="lib-card primary">
+          <div class="lib-icon">📦</div>
+          <h3>Main Shop Materials</h3>
+          <div class="count">1,247 materials</div>
+          <div class="path">/Volumes/Shop/Main Shop</div>
+        </div>
+        <div class="lib-card">
+          <div class="lib-icon">📋</div>
+          <h3>QA Archive</h3>
+          <div class="count">892 materials</div>
+          <div class="path">~/Documents/QA Archive</div>
+        </div>
+        <div class="lib-card">
+          <div class="lib-icon">🧪</div>
+          <h3>Sandbox</h3>
+          <div class="count">14 materials</div>
+          <div class="path">~/Desktop/Sandbox</div>
+        </div>
+      </div>
+
+      <div class="search-strip">
+        <input type="text" placeholder="Scan barcode or search by ID, material, heat, supplier…">
+        <button>Search</button>
+      </div>
+
+      <div class="two-col">
+        <div class="material-list">
+          <div class="list-item selected">
+            <div>
+              <div class="id">AL-falcon-104</div>
+              <div class="sub">6061-T6 · McMaster · Heat A4921</div>
+            </div>
+            <span class="loc">Rack B2</span>
+          </div>
+          <div class="list-item">
+            <div>
+              <div class="id">AL-hawk-337</div>
+              <div class="sub">6061-T6 · McMaster · Heat A5102</div>
+            </div>
+            <span class="loc">Rack B3</span>
+          </div>
+          <div class="list-item">
+            <div>
+              <div class="id">AL-bear-221</div>
+              <div class="sub">7075-T651 · Online Metals · Heat H8834</div>
+            </div>
+            <span class="loc">Rack A1</span>
+          </div>
+          <div class="list-item">
+            <div>
+              <div class="id">SS-wolf-089</div>
+              <div class="sub">304 SS · Metal Supermarkets · SS-4421</div>
+            </div>
+            <span class="loc">Bin C4</span>
+          </div>
+        </div>
+
+        <div class="detail-card">
+          <header>
+            <h2>AL-falcon-104</h2>
+            <p>6061-T6 Aluminum</p>
+          </header>
+          <div class="detail-body">
+            <div class="prop"><span class="label">Supplier</span><span>McMaster</span></div>
+            <div class="prop"><span class="label">Heat number</span><span>A4921</span></div>
+            <div class="prop"><span class="label">Location</span><span>Rack B2</span></div>
+            <div class="prop"><span class="label">Tags</span><span>aluminum</span></div>
+            <div class="prop"><span class="label">Barcode</span><span>AL-falcon-104</span></div>
+          </div>
+          <div class="files-block">
+            <h4>Certifications</h4>
+            <span class="file-pill">📄 cert.pdf</span>
+            <span class="file-pill">📄 mill-test-report.pdf</span>
+            <span class="file-pill">🖼 photo.png</span>
+          </div>
+          <div class="label-strip">
+            <div class="qr"></div>
+            <div class="lid">AL-falcon-104</div>
+            <div class="lsub">6061-T6 · Rack B2</div>
+          </div>
+          <div class="actions-row">
+            <button class="act-btn">Edit</button>
+            <button class="act-btn">Add files</button>
+            <button class="act-btn primary">Print label</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

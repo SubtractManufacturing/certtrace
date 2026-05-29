@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CertTrace — Clean Light Cards</title>
+<style>
+  :root {
+    --bg: #f4f6fa;
+    --card: #ffffff;
+    --ink: #1b2430;
+    --muted: #7a8699;
+    --line: #e7ebf2;
+    --teal: #11a3a3;
+    --teal-soft: #e2f5f4;
+    --coral: #ff6b5e;
+    --violet: #6c5ce7;
+    --amber: #f4a62a;
+    --shadow: 0 1px 2px rgba(27,36,48,.04), 0 8px 24px rgba(27,36,48,.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Inter", system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--ink); }
+  .shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+
+  /* Sidebar */
+  .side { background: var(--card); border-right: 1px solid var(--line); padding: 24px 18px; display: flex; flex-direction: column; }
+  .brand { display: flex; align-items: center; gap: 11px; font-weight: 800; font-size: 18px; margin-bottom: 28px; }
+  .brand .logo { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, var(--teal), var(--violet)); display: grid; place-items: center; color: #fff; font-weight: 900; font-size: 14px; }
+  .side label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin: 18px 4px 8px; display: block; }
+  .nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 11px; color: var(--muted); text-decoration: none; font-weight: 500; font-size: 14px; margin-bottom: 2px; }
+  .nav a:hover { background: var(--bg); color: var(--ink); }
+  .nav a.active { background: var(--teal-soft); color: var(--teal); font-weight: 700; }
+  .nav a .b { margin-left: auto; background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 1px 8px; font-size: 11px; }
+  .nav a.active .b { background: var(--teal); color: #fff; border: none; }
+  .lib-card { margin-top: auto; background: var(--bg); border-radius: 14px; padding: 14px; }
+  .lib-card .lc-top { font-size: 12px; color: var(--muted); }
+  .lib-card .lc-name { font-weight: 700; margin: 3px 0 6px; }
+  .lib-card .lc-path { font-size: 11px; color: var(--muted); font-family: ui-monospace, monospace; }
+  .lib-card .lc-bar { height: 6px; border-radius: 6px; background: #dfe5ee; margin-top: 10px; overflow: hidden; }
+  .lib-card .lc-bar span { display: block; height: 100%; width: 64%; background: var(--teal); }
+
+  /* Main */
+  .main { padding: 28px 36px; }
+  .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+  .head h1 { font-size: 26px; font-weight: 800; letter-spacing: -.5px; }
+  .head p { color: var(--muted); margin-top: 4px; font-size: 14px; }
+  .head .btns { display: flex; gap: 10px; }
+  .btn { border: none; border-radius: 11px; padding: 11px 16px; font-weight: 600; font-size: 14px; cursor: pointer; }
+  .btn.ghost { background: var(--card); border: 1px solid var(--line); color: var(--ink); }
+  .btn.primary { background: var(--teal); color: #fff; box-shadow: 0 6px 16px rgba(17,163,163,.3); }
+
+  .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 22px; }
+  .searchbox { flex: 1; display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; box-shadow: var(--shadow); }
+  .searchbox input { border: none; outline: none; flex: 1; font-size: 15px; color: var(--ink); }
+  .segmented { display: flex; background: var(--card); border: 1px solid var(--line); border-radius: 11px; padding: 4px; }
+  .segmented button { border: none; background: none; padding: 7px 14px; border-radius: 8px; font-size: 13px; color: var(--muted); cursor: pointer; font-weight: 600; }
+  .segmented button.on { background: var(--ink); color: #fff; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 26px; }
+  .stat { background: var(--card); border-radius: 16px; padding: 18px; box-shadow: var(--shadow); }
+  .stat .num { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+  .stat .lbl { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .stat .ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; margin-bottom: 12px; }
+
+  /* Card grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+  .mcard { background: var(--card); border-radius: 18px; padding: 18px; box-shadow: var(--shadow); border: 1px solid transparent; transition: .15s; cursor: pointer; }
+  .mcard:hover { border-color: var(--teal); transform: translateY(-2px); }
+  .mcard .top { display: flex; align-items: flex-start; justify-content: space-between; }
+  .mcard .qr { width: 50px; height: 50px; border-radius: 10px; background:
+    conic-gradient(#1b2430 0 25%, #fff 0 50%, #1b2430 0 75%, #fff 0 100%);
+    background-size: 8px 8px; border: 4px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+  .mcard .mid { font-family: ui-monospace, monospace; font-size: 16px; font-weight: 700; color: var(--ink); margin: 14px 0 2px; }
+  .mcard .mname { color: var(--muted); font-size: 13px; }
+  .mcard .row { display: flex; justify-content: space-between; font-size: 12px; padding: 8px 0; border-top: 1px solid var(--line); margin-top: 12px; }
+  .mcard .row span:first-child { color: var(--muted); }
+  .mcard .foot { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .chip { font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+  .c-al { background: #eef1f6; color: #5b6678; }
+  .c-st { background: #ffe9e6; color: #d6493c; }
+  .c-ti { background: #e9f7ee; color: #1f9d57; }
+  .files { margin-left: auto; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="brand"><span class="logo">CT</span> CertTrace</div>
+    <label>Workspace</label>
+    <nav class="nav">
+      <a class="active" href="#">📦 Materials <span class="b">1,284</span></a>
+      <a href="#">🕑 Recent</a>
+      <a href="#">🏷️ Labels</a>
+      <a href="#">⚠️ Issues <span class="b">3</span></a>
+    </nav>
+    <label>Libraries</label>
+    <nav class="nav">
+      <a href="#">Main Shop</a>
+      <a href="#">QA Archive</a>
+      <a href="#">Customer Stock</a>
+      <a href="#">Sandbox</a>
+    </nav>
+    <div class="lib-card">
+      <div class="lc-top">Active library</div>
+      <div class="lc-name">Main Shop Materials</div>
+      <div class="lc-path">/Volumes/Shop</div>
+      <div class="lc-bar"><span></span></div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="head">
+      <div>
+        <h1>Materials</h1>
+        <p>1,284 certified materials in Main Shop Materials</p>
+      </div>
+      <div class="btns">
+        <button class="btn ghost">Open Folder</button>
+        <button class="btn primary">+ Add Material</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="searchbox">
+        <span>🔍</span>
+        <input placeholder="Scan or search by ID, material, supplier, heat, tag…" />
+      </div>
+      <div class="segmented">
+        <button class="on">Cards</button>
+        <button>Table</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="ic" style="background:var(--teal-soft);color:var(--teal)">📦</div><div class="num">1,284</div><div class="lbl">Total materials</div></div>
+      <div class="stat"><div class="ic" style="background:#fff0e3;color:var(--amber)">📄</div><div class="num">3,102</div><div class="lbl">Cert files</div></div>
+      <div class="stat"><div class="ic" style="background:#eee9ff;color:var(--violet)">🏷️</div><div class="num">1,180</div><div class="lbl">Labels printed</div></div>
+      <div class="stat"><div class="ic" style="background:#ffe9e6;color:var(--coral)">⚠️</div><div class="num">3</div><div class="lbl">Missing files</div></div>
+    </div>
+
+    <div class="grid">
+      <div class="mcard">
+        <div class="top"><div><span class="chip c-al">aluminum</span></div><div class="qr"></div></div>
+        <div class="mid">AL-falcon-104</div><div class="mname">6061-T6 · McMaster</div>
+        <div class="row"><span>Heat</span><span>A4921</span></div>
+        <div class="row"><span>Location</span><span>Rack B2</span></div>
+        <div class="foot"><span class="chip c-al">6061</span><span class="files">📄 2 · 🖼 1</span></div>
+      </div>
+      <div class="mcard">
+        <div class="top"><div><span class="chip c-al">aluminum</span></div><div class="qr"></div></div>
+        <div class="mid">AL-otter-221</div><div class="mname">7075-T651 · Online Metals</div>
+        <div class="row"><span>Heat</span><span>B1180</span></div>
+        <div class="row"><span>Location</span><span>Rack A4</span></div>
+        <div class="foot"><span class="chip c-al">7075</span><span class="files">📄 1</span></div>
+      </div>
+      <div class="mcard">
+        <div class="top"><div><span class="chip c-st">steel</span></div><div class="qr"></div></div>
+        <div class="mid">ST-raven-087</div><div class="mname">4140 PH · Ryerson</div>
+        <div class="row"><span>Heat</span><span>H9032</span></div>
+        <div class="row"><span>Location</span><span>Rack C1</span></div>
+        <div class="foot"><span class="chip c-st">4140</span><span class="files">📄 3 · 🖼 2</span></div>
+      </div>
+      <div class="mcard">
+        <div class="top"><div><span class="chip c-ti">titanium</span></div><div class="qr"></div></div>
+        <div class="mid">TI-lynx-045</div><div class="mname">Ti-6Al-4V · TMS Titanium</div>
+        <div class="row"><span>Heat</span><span>T5567</span></div>
+        <div class="row"><span>Location</span><span>Cage 2</span></div>
+        <div class="foot"><span class="chip c-ti">Ti</span><span class="files">📄 2</span></div>
+      </div>
+      <div class="mcard">
+        <div class="top"><div><span class="chip c-st">stainless</span></div><div class="qr"></div></div>
+        <div class="mid">SS-marlin-072</div><div class="mname">304 SS · Ryerson</div>
+        <div class="row"><span>Heat</span><span>S3309</span></div>
+        <div class="row"><span>Location</span><span>Rack D2</span></div>
+        <div class="foot"><span class="chip c-st">304</span><span class="files">📄 2</span></div>
+      </div>
+      <div class="mcard">
+        <div class="top"><div><span class="chip c-al">aluminum</span></div><div class="qr"></div></div>
+        <div class="mid">AL-heron-198</div><div class="mname">2024-T3 · McMaster</div>
+        <div class="row"><span>Heat</span><span>A8841</span></div>
+        <div class="row"><span>Location</span><span>Rack B5</span></div>
+        <div class="foot"><span class="chip c-al">2024</span><span class="files">📄 1 · 🖼 1</span></div>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

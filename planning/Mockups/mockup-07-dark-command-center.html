@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CertTrace Mockup 02 - Dark Command Center</title>
+  <style>
+    :root {
+      --bg: #080d14;
+      --panel: rgba(17, 26, 39, 0.86);
+      --panel-solid: #111a27;
+      --line: rgba(151, 171, 200, 0.18);
+      --text: #edf6ff;
+      --muted: #8fa1ba;
+      --cyan: #36d6ff;
+      --violet: #9b7cff;
+      --lime: #a4f74f;
+      --amber: #ffc857;
+      --danger: #ff6b6b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 16% 10%, rgba(54, 214, 255, 0.18), transparent 32%),
+        radial-gradient(circle at 90% 18%, rgba(155, 124, 255, 0.22), transparent 30%),
+        radial-gradient(circle at 58% 110%, rgba(164, 247, 79, 0.11), transparent 34%),
+        var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+      padding: 22px;
+      gap: 18px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 18px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(9, 15, 24, 0.78);
+      padding: 16px 18px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(18px);
+    }
+
+    .mark {
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      color: #08101a;
+      font-weight: 1000;
+      letter-spacing: -0.08em;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      font-size: 20px;
+      letter-spacing: -0.03em;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .global-search {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 52px;
+      border: 1px solid rgba(54, 214, 255, 0.28);
+      border-radius: 18px;
+      background: rgba(7, 13, 21, 0.82);
+      padding: 0 18px;
+      color: #d8f8ff;
+      box-shadow: inset 0 0 34px rgba(54, 214, 255, 0.04);
+    }
+
+    .global-search strong {
+      color: var(--cyan);
+      font-size: 15px;
+    }
+
+    .status {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid rgba(164, 247, 79, 0.28);
+      border-radius: 16px;
+      background: rgba(164, 247, 79, 0.08);
+      padding: 12px 14px;
+      color: #dfffba;
+      font-weight: 800;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--lime);
+      box-shadow: 0 0 18px var(--lime);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 250px 1.05fr 0.95fr;
+      gap: 18px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: 0 20px 70px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    .panel.pad {
+      padding: 18px;
+    }
+
+    .side-section {
+      padding: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .side-section h2 {
+      margin-bottom: 12px;
+      color: #b9c9dc;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .library-card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .library-card.active {
+      border-color: rgba(54, 214, 255, 0.6);
+      background: linear-gradient(135deg, rgba(54, 214, 255, 0.14), rgba(155, 124, 255, 0.08));
+    }
+
+    .library-card strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      color: #c9d8ec;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .hero h2 {
+      font-size: 36px;
+      letter-spacing: -0.06em;
+    }
+
+    .button {
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      color: #07101a;
+      padding: 14px 18px;
+      font-weight: 1000;
+      box-shadow: 0 15px 30px rgba(54, 214, 255, 0.22);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 16px;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 30px;
+      letter-spacing: -0.05em;
+    }
+
+    .result {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 14px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.035);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .result.active {
+      border-color: rgba(255, 200, 87, 0.7);
+      background: rgba(255, 200, 87, 0.1);
+    }
+
+    .icon {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: rgba(54, 214, 255, 0.13);
+      color: var(--cyan);
+      font-weight: 1000;
+    }
+
+    .mono {
+      color: #f6fbff;
+      font-family: "SF Mono", Consolas, monospace;
+      font-weight: 900;
+    }
+
+    .tag {
+      width: fit-content;
+      border-radius: 999px;
+      background: rgba(164, 247, 79, 0.12);
+      color: var(--lime);
+      padding: 6px 9px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .workspace-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 16px;
+    }
+
+    .preview {
+      border: 1px solid rgba(54, 214, 255, 0.22);
+      border-radius: 22px;
+      min-height: 320px;
+      background:
+        linear-gradient(120deg, rgba(255,255,255,0.08), transparent 22%),
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.03), rgba(255,255,255,0.03) 1px, transparent 1px, transparent 22px),
+        #0c1522;
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview::after {
+      content: "PDF";
+      position: absolute;
+      right: 28px;
+      bottom: 18px;
+      color: rgba(54, 214, 255, 0.08);
+      font-size: 96px;
+      font-weight: 1000;
+    }
+
+    .cert-line {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(237, 246, 255, 0.13);
+      margin: 16px 0;
+    }
+
+    .cert-line.short { width: 56%; }
+    .cert-line.med { width: 74%; }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .detail-box {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.045);
+      padding: 13px;
+    }
+
+    .detail-box span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .detail-box strong {
+      display: block;
+      margin-top: 6px;
+    }
+
+    .timeline {
+      margin-top: 16px;
+      border-left: 2px solid rgba(54, 214, 255, 0.28);
+      padding-left: 16px;
+    }
+
+    .event {
+      position: relative;
+      margin-bottom: 16px;
+      color: #cbd8e8;
+    }
+
+    .event::before {
+      content: "";
+      position: absolute;
+      left: -22px;
+      top: 4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 16px var(--cyan);
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="mark">CT</div>
+      <div class="global-search">
+        <strong>Command search</strong>
+        <span class="muted">Scan barcode, type heat number, supplier, folder path, or material ID...</span>
+      </div>
+      <div class="status"><span class="dot"></span> Offline ready</div>
+    </header>
+
+    <div class="grid">
+      <aside class="panel">
+        <section class="side-section">
+          <h2>Libraries</h2>
+          <div class="library-card active">
+            <strong>Main Shop Materials</strong>
+            <p class="muted">1,248 materials - shared drive</p>
+          </div>
+          <div class="library-card">
+            <strong>QA Archive</strong>
+            <p class="muted">8,912 materials - NAS</p>
+          </div>
+          <div class="library-card">
+            <strong>Customer Stock</strong>
+            <p class="muted">312 materials - local</p>
+          </div>
+        </section>
+        <section class="side-section">
+          <h2>Filters</h2>
+          <div class="chips">
+            <span class="chip">Aluminum</span>
+            <span class="chip">Has PDF</span>
+            <span class="chip">Rack B</span>
+            <span class="chip">Updated today</span>
+            <span class="chip">Warnings</span>
+          </div>
+        </section>
+        <section class="side-section">
+          <h2>Sync Monitor</h2>
+          <p class="muted">File watcher active. 2 external changes detected from OneDrive in the last hour.</p>
+        </section>
+      </aside>
+
+      <main class="panel pad">
+        <section class="hero">
+          <div>
+            <p class="muted">Main Shop Materials</p>
+            <h2>Certification command center</h2>
+          </div>
+          <div class="button">New material</div>
+        </section>
+
+        <section class="metrics">
+          <div class="metric"><span>Search latency</span><strong>38ms</strong></div>
+          <div class="metric"><span>Labels queued</span><strong>7</strong></div>
+          <div class="metric"><span>Needs repair</span><strong>4</strong></div>
+        </section>
+
+        <section>
+          <div class="result active">
+            <div class="icon">AL</div>
+            <div>
+              <div class="mono">AL-falcon-104</div>
+              <p class="muted">6061-T6 - Heat A4921 - McMaster - Rack B2</p>
+            </div>
+            <div class="tag">open</div>
+          </div>
+          <div class="result">
+            <div class="icon">SS</div>
+            <div>
+              <div class="mono">SS-raven-108</div>
+              <p class="muted">304 sheet - Heat SS883 - Ryerson - Rack A1</p>
+            </div>
+            <div class="tag">ready</div>
+          </div>
+          <div class="result">
+            <div class="icon">TI</div>
+            <div>
+              <div class="mono">TI-fox-015</div>
+              <p class="muted">Grade 5 tube - Heat T15X - missing PDF warning</p>
+            </div>
+            <div class="tag" style="color: var(--amber); background: rgba(255, 200, 87, 0.12);">repair</div>
+          </div>
+          <div class="result">
+            <div class="icon">BR</div>
+            <div>
+              <div class="mono">BR-hawk-332</div>
+              <p class="muted">C360 rod - Online Metals - Rack C3</p>
+            </div>
+            <div class="tag">ready</div>
+          </div>
+        </section>
+      </main>
+
+      <section class="panel pad">
+        <div class="workspace-title">
+          <div>
+            <p class="muted">Selected material</p>
+            <h2 class="mono">AL-falcon-104</h2>
+          </div>
+          <div class="tag">USB scan match</div>
+        </div>
+        <div class="preview">
+          <div class="cert-line med"></div>
+          <div class="cert-line"></div>
+          <div class="cert-line short"></div>
+          <div class="cert-line med"></div>
+          <div class="cert-line"></div>
+          <div class="cert-line short"></div>
+        </div>
+        <div class="detail-grid">
+          <div class="detail-box"><span>Material</span><strong>6061-T6 bar stock</strong></div>
+          <div class="detail-box"><span>Heat</span><strong>A4921</strong></div>
+          <div class="detail-box"><span>Attachments</span><strong>cert.pdf, photo.png</strong></div>
+          <div class="detail-box"><span>Label</span><strong>standard-qr ready</strong></div>
+        </div>
+        <div class="timeline">
+          <div class="event"><strong>2:41 PM</strong><br><span class="muted">Metadata refreshed by file watcher.</span></div>
+          <div class="event"><strong>2:37 PM</strong><br><span class="muted">Label printed to shop Zebra printer.</span></div>
+          <div class="event"><strong>Yesterday</strong><br><span class="muted">Certification PDF attached.</span></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CertTrace Mockup 05 - Minimal Desktop</title>
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --chrome: #eceef2;
+      --panel: #ffffff;
+      --ink: #1f2328;
+      --muted: #6b7280;
+      --line: #d8dde6;
+      --accent: #4f46e5;
+      --accent-2: #06b6d4;
+      --green: #16a34a;
+      --amber: #d97706;
+      --shadow: 0 18px 42px rgba(31, 35, 40, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(79, 70, 229, 0.12), transparent 34%),
+        radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.12), transparent 32%),
+        var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+    }
+
+    .window {
+      width: min(1440px, calc(100vw - 48px));
+      height: min(900px, calc(100vh - 48px));
+      display: grid;
+      grid-template-rows: 48px 1fr;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.7);
+      border-radius: 22px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .titlebar {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 16px;
+      background: rgba(236, 238, 242, 0.9);
+      border-bottom: 1px solid var(--line);
+      padding: 0 16px;
+    }
+
+    .lights {
+      display: flex;
+      gap: 8px;
+    }
+
+    .light {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .red { background: #ff5f57; }
+    .yellow { background: #ffbd2e; }
+    .green { background: #28c840; }
+
+    .title {
+      text-align: center;
+      color: #5f6875;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .mode {
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #166534;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .body {
+      display: grid;
+      grid-template-columns: 230px 1fr 360px;
+      min-height: 0;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: #f8f9fb;
+      padding: 18px 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 10px 18px;
+    }
+
+    .logo {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      font-weight: 900;
+      letter-spacing: -0.08em;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    .brand h1 {
+      font-size: 16px;
+      letter-spacing: -0.03em;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .section-label {
+      margin: 16px 10px 8px;
+      color: #8a93a3;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 10px;
+      padding: 9px 10px;
+      color: #444c59;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .nav.active {
+      background: #ebeafd;
+      color: var(--accent);
+    }
+
+    .count {
+      color: #8a93a3;
+      font-size: 12px;
+    }
+
+    .main {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      min-width: 0;
+      background: white;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      padding: 16px 20px;
+    }
+
+    .search {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f7f8fa;
+      padding: 12px 14px;
+      color: #89919e;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .ghost,
+    .primary {
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .ghost {
+      border: 1px solid var(--line);
+      background: white;
+      color: #3d4450;
+    }
+
+    .primary {
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: white;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1px;
+      border-bottom: 1px solid var(--line);
+      background: var(--line);
+    }
+
+    .summary div {
+      background: #fbfcfe;
+      padding: 14px 18px;
+    }
+
+    .summary span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .summary strong {
+      display: block;
+      margin-top: 5px;
+      font-size: 22px;
+      letter-spacing: -0.04em;
+    }
+
+    .list {
+      overflow: hidden;
+    }
+
+    .list-head,
+    .row {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr 0.75fr 0.8fr 0.75fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .list-head {
+      border-bottom: 1px solid var(--line);
+      padding: 11px 20px;
+      color: #89919e;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .row {
+      border-bottom: 1px solid #edf0f4;
+      padding: 14px 20px;
+      font-size: 14px;
+    }
+
+    .row.active {
+      background: #f5f7ff;
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    .mono {
+      font-family: "SF Mono", Consolas, monospace;
+      font-weight: 800;
+      color: #303642;
+    }
+
+    .status {
+      width: fit-content;
+      border-radius: 999px;
+      background: #ecfdf5;
+      color: var(--green);
+      padding: 5px 8px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .status.warn {
+      background: #fff7ed;
+      color: var(--amber);
+    }
+
+    .detail {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 0;
+      border-left: 1px solid var(--line);
+      background: #fbfcfe;
+    }
+
+    .detail-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .detail-header h2 {
+      margin-top: 5px;
+      font-size: 25px;
+      letter-spacing: -0.05em;
+    }
+
+    .preview {
+      margin: 20px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background:
+        linear-gradient(#f1f4f8, #f1f4f8) 26px 34px / 72% 10px no-repeat,
+        linear-gradient(#f1f4f8, #f1f4f8) 26px 58px / 82% 10px no-repeat,
+        linear-gradient(#f1f4f8, #f1f4f8) 26px 82px / 60% 10px no-repeat,
+        linear-gradient(#f1f4f8, #f1f4f8) 26px 130px / 76% 10px no-repeat,
+        linear-gradient(#f1f4f8, #f1f4f8) 26px 154px / 86% 10px no-repeat,
+        white;
+      min-height: 230px;
+      position: relative;
+    }
+
+    .preview::before {
+      content: "cert.pdf";
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: var(--accent);
+      padding: 5px 8px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .detail-content {
+      padding: 0 20px 20px;
+      overflow: auto;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .field {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: white;
+      padding: 12px;
+    }
+
+    .field span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .field strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+
+    .label {
+      margin-top: 12px;
+      border: 1px solid #111827;
+      border-radius: 12px;
+      background: white;
+      padding: 12px;
+      font-family: "SF Mono", Consolas, monospace;
+      font-size: 13px;
+    }
+
+    .qr {
+      float: left;
+      width: 58px;
+      height: 58px;
+      margin-right: 10px;
+      border: 6px solid #111827;
+      background:
+        linear-gradient(90deg, #111827 8px, transparent 8px) 0 0 / 16px 16px,
+        linear-gradient(#111827 8px, transparent 8px) 0 0 / 16px 16px,
+        white;
+    }
+
+    .detail-actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      border-top: 1px solid var(--line);
+      padding: 14px;
+      background: white;
+    }
+
+    .detail-actions div {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 800;
+    }
+  </style>
+</head>
+<body>
+  <div class="window">
+    <div class="titlebar">
+      <div class="lights"><span class="light red"></span><span class="light yellow"></span><span class="light green"></span></div>
+      <div class="title">Main Shop Materials - CertTrace</div>
+      <div class="mode">Local library</div>
+    </div>
+
+    <div class="body">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="logo">CT</div>
+          <div>
+            <h1>CertTrace</h1>
+            <p class="muted">Desktop library</p>
+          </div>
+        </div>
+
+        <div class="section-label">Recent Libraries</div>
+        <div class="nav active">Main Shop <span class="count">1,248</span></div>
+        <div class="nav">QA Archive <span class="count">8,912</span></div>
+        <div class="nav">Sandbox <span class="count">12</span></div>
+
+        <div class="section-label">Browse</div>
+        <div class="nav">All materials</div>
+        <div class="nav">Aluminum</div>
+        <div class="nav">Steel</div>
+        <div class="nav">Needs repair <span class="count">4</span></div>
+
+        <div class="section-label">Settings</div>
+        <div class="nav">Naming rules</div>
+        <div class="nav">Labels</div>
+        <div class="nav">Scanner</div>
+      </aside>
+
+      <main class="main">
+        <div class="toolbar">
+          <div class="search">Search by ID, material, supplier, heat, tags, or notes...</div>
+          <div class="ghost">Open library</div>
+          <div class="primary">Add cert</div>
+        </div>
+
+        <div class="summary">
+          <div><span>Materials</span><strong>1,248</strong></div>
+          <div><span>Attachments</span><strong>2,914</strong></div>
+          <div><span>Search</span><strong>Instant</strong></div>
+          <div><span>Watcher</span><strong>Active</strong></div>
+          <div><span>Warnings</span><strong>4</strong></div>
+        </div>
+
+        <section class="list">
+          <div class="list-head"><div>ID</div><div>Material</div><div>Supplier</div><div>Heat</div><div>Status</div></div>
+          <div class="row active">
+            <div class="mono">AL-falcon-104</div><div>6061-T6 bar stock</div><div>McMaster</div><div>A4921</div><div><span class="status">ready</span></div>
+          </div>
+          <div class="row">
+            <div class="mono">SS-raven-108</div><div>304 sheet</div><div>Ryerson</div><div>SS883</div><div><span class="status">ready</span></div>
+          </div>
+          <div class="row">
+            <div class="mono">TI-fox-015</div><div>Grade 5 tube</div><div>Titanium Joe</div><div>T15X</div><div><span class="status warn">missing</span></div>
+          </div>
+          <div class="row">
+            <div class="mono">BR-hawk-332</div><div>C360 rod</div><div>Online Metals</div><div>B73</div><div><span class="status">ready</span></div>
+          </div>
+          <div class="row">
+            <div class="mono">AL-20260528-001</div><div>7075 plate</div><div>Howard Precision</div><div>HP551</div><div><span class="status">ready</span></div>
+          </div>
+          <div class="row">
+            <div class="mono">CU-otter-014</div><div>Copper round bar</div><div>Rotax</div><div>C221</div><div><span class="status">ready</span></div>
+          </div>
+          <div class="row">
+            <div class="mono">PL-river-221</div><div>Delrin sheet</div><div>Local Plastics</div><div>D019</div><div><span class="status">ready</span></div>
+          </div>
+        </section>
+      </main>
+
+      <aside class="detail">
+        <div class="detail-header">
+          <p class="muted">Selected material</p>
+          <h2 class="mono">AL-falcon-104</h2>
+          <p class="muted">Main Shop/materials/AL-falcon-104</p>
+        </div>
+
+        <div class="preview"></div>
+
+        <div class="detail-content">
+          <div class="field-grid">
+            <div class="field"><span>Material</span><strong>6061-T6</strong></div>
+            <div class="field"><span>Location</span><strong>Rack B2</strong></div>
+            <div class="field"><span>Supplier</span><strong>McMaster</strong></div>
+            <div class="field"><span>Heat</span><strong>A4921</strong></div>
+          </div>
+          <div class="label">
+            <div class="qr"></div>
+            <strong>AL-falcon-104</strong><br>
+            6061-T6<br>
+            Rack B2<br>
+            standard-qr
+          </div>
+        </div>
+
+        <div class="detail-actions">
+          <div>Print</div>
+          <div>Edit</div>
+          <div>Folder</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</body>
+</html>

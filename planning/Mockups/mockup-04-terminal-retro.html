@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CertTrace — Terminal</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+      background: #0a0e0a;
+      color: #33ff66;
+      min-height: 100vh;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .scanlines {
+      min-height: 100vh;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.15) 2px,
+        rgba(0,0,0,0.15) 4px
+      );
+    }
+    .frame { max-width: 1200px; margin: 0 auto; padding: 16px; }
+    .titlebar {
+      border: 1px solid #1a5c2a;
+      background: #0d140d;
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+    .titlebar .prompt { color: #1a5c2a; }
+    .titlebar .prompt span { color: #33ff66; }
+    .screen {
+      border: 1px solid #1a5c2a;
+      background: #050805;
+      min-height: calc(100vh - 50px);
+      padding: 20px;
+    }
+    .ascii-logo {
+      color: #33ff66;
+      font-size: 11px;
+      line-height: 1.2;
+      margin-bottom: 24px;
+      white-space: pre;
+    }
+    .cmd-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .cmd-line .gt { color: #ffaa00; }
+    .cmd-line input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid #1a5c2a;
+      color: #33ff66;
+      font-family: inherit;
+      font-size: 13px;
+      padding: 4px 0;
+      outline: none;
+    }
+    .cmd-line input::placeholder { color: #1a5c2a; }
+    .section-title {
+      color: #ffaa00;
+      margin: 24px 0 8px;
+      font-size: 12px;
+    }
+    .section-title::before { content: '## '; color: #1a5c2a; }
+    .lib-list { list-style: none; margin-bottom: 24px; }
+    .lib-list li { padding: 4px 0; }
+    .lib-list li::before { content: '[*] '; color: #1a5c2a; }
+    .lib-list li.active { color: #fff; }
+    .lib-list li.active::before { content: '[>] '; color: #33ff66; }
+    .lib-list .path { color: #1a5c2a; font-size: 11px; margin-left: 28px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    th {
+      text-align: left;
+      color: #ffaa00;
+      border-bottom: 1px dashed #1a5c2a;
+      padding: 6px 12px 6px 0;
+      font-weight: normal;
+    }
+    td { padding: 5px 12px 5px 0; border-bottom: 1px dotted #0d1a0d; }
+    tr.selected td { background: #0d1a0d; color: #fff; }
+    tr.selected td:first-child { color: #33ff66; }
+    .dim { color: #1a5c2a; }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 8px; }
+    .box { border: 1px dashed #1a5c2a; padding: 16px; }
+    .box h4 { color: #ffaa00; margin-bottom: 12px; font-weight: normal; font-size: 12px; }
+    .box h4::before { content: '// '; color: #1a5c2a; }
+    .meta-line { padding: 2px 0; }
+    .meta-line .key { color: #1a5c2a; }
+    .meta-line .key::after { content: ': '; }
+    .file-line::before { content: '  └─ '; color: #1a5c2a; }
+    .label-ascii {
+      color: #33ff66;
+      font-size: 10px;
+      line-height: 1.1;
+      white-space: pre;
+      margin-top: 8px;
+    }
+    .statusbar {
+      margin-top: 24px;
+      padding-top: 12px;
+      border-top: 1px solid #1a5c2a;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #1a5c2a;
+    }
+    .blink { animation: blink 1s step-end infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .hotkeys { color: #1a5c2a; font-size: 11px; margin-top: 16px; }
+    .hotkeys kbd { border: 1px solid #1a5c2a; padding: 1px 5px; margin: 0 2px; color: #33ff66; }
+  </style>
+</head>
+<body>
+  <div class="scanlines">
+    <div class="frame">
+      <div class="titlebar">
+        <div class="prompt">user@shop:<span>~/certtrace</span>$</div>
+        <div class="dim">Main Shop Materials · v0.1</div>
+      </div>
+      <div class="screen">
+        <pre class="ascii-logo"> ██████╗███████╗██████╗ ████████╗███████╗██████╗  █████╗ ██████╗███████╗
+██╔════╝██╔════╝██╔══██╗╚══██╔══╝██╔════╝██╔══██╗██╔══██╗██╔════╝██╔════╝
+██║     █████╗  ██████╔╝   ██║   █████╗  ██████╔╝███████║██║     █████╗
+██║     ██╔══╝  ██╔══██╗   ██║   ██╔══╝  ██╔══██╗██╔══██║██║     ██╔══╝
+╚██████╗███████╗██║  ██║   ██║   ███████╗██║  ██║██║  ██║╚██████╗███████╗
+ ╚═════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚══════╝</pre>
+
+        <div class="cmd-line">
+          <span class="gt">&gt;</span>
+          <input type="text" placeholder="scan barcode or /search AL-falcon-104 material:6061 heat:A4921">
+          <span class="blink">█</span>
+        </div>
+
+        <div class="section-title">RECENT_LIBRARIES</div>
+        <ul class="lib-list">
+          <li class="active">Main Shop Materials <span class="dim">(1247 entries)</span>
+            <div class="path">/Volumes/Shop/Main Shop</div>
+          </li>
+          <li>QA Archive <span class="dim">(892 entries)</span>
+            <div class="path">~/Documents/QA Archive</div>
+          </li>
+          <li>Sandbox <span class="dim">(14 entries)</span>
+            <div class="path">~/Desktop/Sandbox</div>
+          </li>
+        </ul>
+
+        <div class="section-title">MATERIALS [filter: none · sorted: updated desc]</div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>MATERIAL</th>
+              <th>SUPPLIER</th>
+              <th>HEAT</th>
+              <th>LOC</th>
+              <th>FILES</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="selected">
+              <td>AL-falcon-104</td>
+              <td>6061-T6</td>
+              <td>McMaster</td>
+              <td>A4921</td>
+              <td>Rack B2</td>
+              <td>3</td>
+            </tr>
+            <tr>
+              <td>AL-hawk-337</td>
+              <td>6061-T6</td>
+              <td>McMaster</td>
+              <td>A5102</td>
+              <td>Rack B3</td>
+              <td>2</td>
+            </tr>
+            <tr>
+              <td>AL-bear-221</td>
+              <td>7075-T651</td>
+              <td>Online Metals</td>
+              <td>H8834</td>
+              <td>Rack A1</td>
+              <td>1</td>
+            </tr>
+            <tr>
+              <td>SS-wolf-089</td>
+              <td>304 SS</td>
+              <td>Metal Supermarkets</td>
+              <td>SS-4421</td>
+              <td>Bin C4</td>
+              <td>2</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="section-title">DETAIL :: AL-falcon-104</div>
+        <div class="split">
+          <div class="box">
+            <h4>metadata.json</h4>
+            <div class="meta-line"><span class="key">id</span>AL-falcon-104</div>
+            <div class="meta-line"><span class="key">material</span>6061-T6</div>
+            <div class="meta-line"><span class="key">supplier</span>McMaster</div>
+            <div class="meta-line"><span class="key">heat</span>A4921</div>
+            <div class="meta-line"><span class="key">location</span>Rack B2</div>
+            <div class="meta-line"><span class="key">tags</span>[aluminum]</div>
+            <div class="meta-line"><span class="key">barcode</span>AL-falcon-104</div>
+          </div>
+          <div class="box">
+            <h4>attachments + label</h4>
+            <div class="file-line">cert.pdf</div>
+            <div class="file-line">mill-test-report.pdf</div>
+            <div class="file-line">photo.png</div>
+            <pre class="label-ascii">┌──────────────┐
+│ ▓▓░░▓▓░░▓▓  │
+│ ░░▓▓░░▓▓░░  │
+│ ▓▓░░▓▓░░▓▓  │
+└──────────────┘
+ AL-falcon-104
+ 6061-T6
+ Rack B2</pre>
+          </div>
+        </div>
+
+        <div class="hotkeys">
+          <kbd>F2</kbd> edit · <kbd>F5</kbd> refresh · <kbd>F7</kbd> print label · <kbd>F10</kbd> open folder · <kbd>Esc</kbd> back
+        </div>
+
+        <div class="statusbar">
+          <span>WATCH: active · sync 2s ago</span>
+          <span>1247 materials · 3 libraries · offline mode</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

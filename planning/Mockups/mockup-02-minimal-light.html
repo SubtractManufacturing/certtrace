@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CertTrace — Minimal Light</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      background: #fafafa;
+      color: #1d1d1f;
+      min-height: 100vh;
+    }
+    .header {
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid #e8e8ed;
+      padding: 14px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .brand { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+    .brand small { font-weight: 400; color: #86868b; margin-left: 8px; font-size: 13px; }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .pill {
+      padding: 6px 14px;
+      border-radius: 980px;
+      font-size: 13px;
+      background: #f5f5f7;
+      color: #1d1d1f;
+      border: none;
+    }
+    .pill-accent { background: #0071e3; color: #fff; }
+    .hero-search {
+      max-width: 720px;
+      margin: 48px auto 32px;
+      padding: 0 40px;
+      text-align: center;
+    }
+    .hero-search h1 {
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+    .hero-search p { color: #86868b; font-size: 15px; margin-bottom: 24px; }
+    .search-box {
+      display: flex;
+      background: #fff;
+      border: 1px solid #d2d2d7;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+    .search-box input {
+      flex: 1;
+      border: none;
+      padding: 16px 20px;
+      font-size: 16px;
+      outline: none;
+    }
+    .search-box button {
+      padding: 16px 24px;
+      background: #0071e3;
+      color: #fff;
+      border: none;
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 40px 60px; }
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #86868b;
+      margin-bottom: 16px;
+    }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 48px; }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid #e8e8ed;
+      cursor: default;
+      transition: box-shadow 0.2s;
+    }
+    .card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+    .card.featured { border-color: #0071e3; box-shadow: 0 0 0 1px #0071e3; }
+    .card-id { font-size: 18px; font-weight: 600; margin-bottom: 4px; letter-spacing: -0.2px; }
+    .card-meta { font-size: 14px; color: #86868b; line-height: 1.5; }
+    .card-tags { margin-top: 12px; display: flex; gap: 6px; }
+    .chip {
+      font-size: 11px;
+      padding: 4px 10px;
+      background: #f5f5f7;
+      border-radius: 980px;
+      color: #515154;
+    }
+    .detail-layout { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+    .detail-main {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #e8e8ed;
+      overflow: hidden;
+    }
+    .detail-main header {
+      padding: 28px 32px;
+      border-bottom: 1px solid #e8e8ed;
+    }
+    .detail-main header h2 { font-size: 24px; font-weight: 600; letter-spacing: -0.3px; }
+    .detail-main header p { color: #86868b; margin-top: 4px; font-size: 15px; }
+    .fields {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0;
+    }
+    .field {
+      padding: 20px 32px;
+      border-bottom: 1px solid #f5f5f7;
+      border-right: 1px solid #f5f5f7;
+    }
+    .field:nth-child(even) { border-right: none; }
+    .field label { display: block; font-size: 12px; color: #86868b; margin-bottom: 4px; }
+    .field span { font-size: 15px; }
+    .attachments { padding: 24px 32px; }
+    .attachment-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid #f5f5f7;
+      font-size: 14px;
+    }
+    .attachment-row:last-child { border-bottom: none; }
+    .side-stack { display: flex; flex-direction: column; gap: 16px; }
+    .side-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #e8e8ed;
+      padding: 24px;
+    }
+    .side-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+    .label-mock {
+      border: 2px dashed #d2d2d7;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+    .label-mock .qr {
+      width: 72px; height: 72px;
+      margin: 0 auto 12px;
+      background: repeating-conic-gradient(#1d1d1f 0% 25%, #fff 0% 50%) 50% / 8px 8px;
+      border-radius: 4px;
+    }
+    .label-mock .id { font-weight: 600; font-size: 14px; }
+    .label-mock .sub { font-size: 12px; color: #86868b; margin-top: 4px; }
+    .action-list { list-style: none; }
+    .action-list li {
+      padding: 10px 0;
+      font-size: 14px;
+      color: #0071e3;
+      border-bottom: 1px solid #f5f5f7;
+    }
+    .action-list li:last-child { border-bottom: none; }
+    .recent-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .recent-item {
+      flex: 1;
+      background: #fff;
+      border: 1px solid #e8e8ed;
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-size: 14px;
+    }
+    .recent-item strong { display: block; margin-bottom: 2px; }
+    .recent-item span { color: #86868b; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="brand">CertTrace <small>Main Shop Materials</small></div>
+    <div class="header-actions">
+      <button class="pill">Open Library</button>
+      <button class="pill pill-accent">+ New Material</button>
+    </div>
+  </header>
+
+  <section class="hero-search">
+    <h1>Find any certification</h1>
+    <p>Scan a barcode or search by ID, material, supplier, or heat number</p>
+    <div class="search-box">
+      <input type="text" placeholder="AL-falcon-104 or 6061-T6…">
+      <button>Search</button>
+    </div>
+  </section>
+
+  <div class="container">
+    <div class="section-label">Recent Libraries</div>
+    <div class="recent-row">
+      <div class="recent-item"><strong>Main Shop Materials</strong><span>1,247 materials · active</span></div>
+      <div class="recent-item"><strong>QA Archive</strong><span>892 materials</span></div>
+      <div class="recent-item"><strong>Sandbox</strong><span>14 materials</span></div>
+    </div>
+
+    <div class="section-label">Search Results</div>
+    <div class="cards">
+      <div class="card featured">
+        <div class="card-id">AL-falcon-104</div>
+        <div class="card-meta">6061-T6 · McMaster<br>Heat A4921 · Rack B2</div>
+        <div class="card-tags"><span class="chip">aluminum</span></div>
+      </div>
+      <div class="card">
+        <div class="card-id">AL-hawk-337</div>
+        <div class="card-meta">6061-T6 · McMaster<br>Heat A5102 · Rack B3</div>
+        <div class="card-tags"><span class="chip">aluminum</span></div>
+      </div>
+      <div class="card">
+        <div class="card-id">AL-bear-221</div>
+        <div class="card-meta">7075-T651 · Online Metals<br>Heat H8834 · Rack A1</div>
+        <div class="card-tags"><span class="chip">aluminum</span></div>
+      </div>
+    </div>
+
+    <div class="section-label">Material Detail</div>
+    <div class="detail-layout">
+      <div class="detail-main">
+        <header>
+          <h2>AL-falcon-104</h2>
+          <p>6061-T6 Aluminum · Received May 12, 2026</p>
+        </header>
+        <div class="fields">
+          <div class="field"><label>Material</label><span>6061-T6</span></div>
+          <div class="field"><label>Supplier</label><span>McMaster</span></div>
+          <div class="field"><label>Heat Number</label><span>A4921</span></div>
+          <div class="field"><label>Location</label><span>Rack B2</span></div>
+          <div class="field"><label>Barcode</label><span>AL-falcon-104</span></div>
+          <div class="field"><label>Tags</label><span>aluminum</span></div>
+        </div>
+        <div class="attachments">
+          <div class="section-label" style="margin-bottom:12px">Attachments</div>
+          <div class="attachment-row"><span>📄 cert.pdf</span><span style="color:#86868b">2.1 MB</span></div>
+          <div class="attachment-row"><span>📄 mill-test-report.pdf</span><span style="color:#86868b">840 KB</span></div>
+          <div class="attachment-row"><span>🖼 photo.png</span><span style="color:#86868b">1.4 MB</span></div>
+        </div>
+      </div>
+      <div class="side-stack">
+        <div class="side-card">
+          <h3>Label Preview</h3>
+          <div class="label-mock">
+            <div class="qr"></div>
+            <div class="id">AL-falcon-104</div>
+            <div class="sub">6061-T6 · Rack B2</div>
+          </div>
+        </div>
+        <div class="side-card">
+          <h3>Actions</h3>
+          <ul class="action-list">
+            <li>Edit metadata</li>
+            <li>Add files</li>
+            <li>Regenerate label</li>
+            <li>Print label</li>
+            <li>Open in Finder</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

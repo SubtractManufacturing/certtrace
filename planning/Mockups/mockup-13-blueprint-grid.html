@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CertTrace — Blueprint</title>
+<style>
+  :root {
+    --navy: #0a2540;
+    --navy-2: #0d2e4d;
+    --cyan: #7fdbff;
+    --cyan-bright: #b3ecff;
+    --line: rgba(127,219,255,.28);
+    --line-soft: rgba(127,219,255,.12);
+    --paper: #08203a;
+    --amber: #ffd166;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "IBM Plex Mono", "Courier New", monospace;
+    background: var(--navy);
+    color: var(--cyan-bright);
+    min-height: 100vh;
+    background-image:
+      linear-gradient(var(--line-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-soft) 1px, transparent 1px),
+      linear-gradient(var(--line-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  }
+  .frame { margin: 18px; border: 2px solid var(--cyan); position: relative; min-height: calc(100vh - 36px); }
+  .frame::before, .frame::after {
+    content: ""; position: absolute; width: 14px; height: 14px; border: 2px solid var(--cyan);
+  }
+  .frame::before { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+  .frame::after { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+
+  /* Title block header */
+  .titleblock { display: grid; grid-template-columns: auto 1fr auto auto auto; border-bottom: 2px solid var(--cyan); }
+  .tb { padding: 10px 16px; border-right: 1px solid var(--line); }
+  .tb .lab { font-size: 9px; letter-spacing: 2px; color: var(--cyan); opacity: .7; text-transform: uppercase; }
+  .tb .val { font-size: 14px; margin-top: 3px; color: var(--cyan-bright); }
+  .tb.logo { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; letter-spacing: 2px; }
+  .tb.logo .sq { width: 28px; height: 28px; border: 2px solid var(--cyan); display: grid; place-items: center; font-size: 12px; }
+  .tb:last-child { border-right: none; }
+
+  /* Search strip */
+  .strip { display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+  .strip .prompt { color: var(--cyan); }
+  .strip input { flex: 1; background: transparent; border: none; border-bottom: 1px dashed var(--line); color: var(--cyan-bright); font-family: inherit; font-size: 14px; padding: 6px 4px; outline: none; }
+  .strip input::placeholder { color: rgba(127,219,255,.45); }
+  .strip .btn { border: 1px solid var(--cyan); background: transparent; color: var(--cyan-bright); padding: 7px 14px; font-family: inherit; font-size: 12px; letter-spacing: 1px; cursor: pointer; text-transform: uppercase; }
+  .strip .btn.fill { background: var(--cyan); color: var(--navy); font-weight: 700; }
+
+  .body { display: grid; grid-template-columns: 1.4fr 1fr; }
+  .col { padding: 16px 18px; }
+  .col.left { border-right: 1px solid var(--line); }
+
+  .schead { display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 12px; }
+  .schead h2 { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: var(--cyan); font-weight: 600; }
+  .schead .meta { margin-left: auto; font-size: 11px; opacity: .6; }
+
+  /* Spec list rows */
+  .rowitem { border: 1px solid var(--line); margin-bottom: 8px; padding: 10px 12px; display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; cursor: pointer; position: relative; }
+  .rowitem:hover { border-color: var(--cyan); background: rgba(127,219,255,.05); }
+  .rowitem.active { border-color: var(--amber); background: rgba(255,209,102,.07); }
+  .rowitem.active::before { content: "►"; position: absolute; left: -16px; color: var(--amber); }
+  .rowitem .rid { color: var(--cyan-bright); font-size: 14px; font-weight: 600; }
+  .rowitem .rspec { font-size: 11px; opacity: .75; margin-top: 2px; }
+  .rowitem .rdim { text-align: right; font-size: 11px; opacity: .7; }
+  .rowitem .rdim b { color: var(--amber); font-weight: 600; }
+
+  /* Detail technical drawing */
+  .drawing { border: 1px solid var(--line); padding: 16px; position: relative; }
+  .drawing .corner { position: absolute; width: 10px; height: 10px; border: 1px solid var(--cyan); }
+  .c1 { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .c2 { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+  .c3 { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+  .c4 { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+  .partno { font-size: 26px; letter-spacing: 2px; color: var(--cyan-bright); }
+  .partsub { font-size: 12px; opacity: .7; margin-top: 4px; letter-spacing: 1px; }
+
+  .dimtable { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 12px; }
+  .dimtable td { border: 1px solid var(--line); padding: 8px 10px; }
+  .dimtable td:first-child { color: var(--cyan); opacity: .8; width: 40%; letter-spacing: 1px; text-transform: uppercase; font-size: 10px; }
+  .dimtable td:last-child { color: var(--cyan-bright); }
+
+  .attach { margin: 14px 0; }
+  .attach .ahead { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--cyan); opacity: .7; margin-bottom: 8px; }
+  .afile { border: 1px dashed var(--line); padding: 8px 10px; margin-bottom: 6px; font-size: 12px; display: flex; gap: 10px; align-items: center; }
+  .afile .tag { border: 1px solid var(--cyan); padding: 1px 6px; font-size: 9px; letter-spacing: 1px; }
+
+  .qrblock { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; border: 1px solid var(--line); padding: 14px; margin-top: 4px; }
+  .qr { width: 90px; height: 90px; background:
+    repeating-conic-gradient(#08203a 0 25%, #b3ecff 0 50%) 0 0/14px 14px;
+    border: 4px solid var(--cyan-bright); }
+  .qrblock .lid { font-size: 16px; letter-spacing: 2px; }
+  .qrblock .lsub { font-size: 11px; opacity: .7; margin-top: 4px; line-height: 1.6; }
+
+  .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .acts button { flex: 1; min-width: 100px; border: 1px solid var(--cyan); background: transparent; color: var(--cyan-bright); padding: 9px; font-family: inherit; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; }
+  .acts button.key { background: var(--amber); color: var(--navy); border-color: var(--amber); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <!-- Title block -->
+  <div class="titleblock">
+    <div class="tb logo"><span class="sq">CT</span> CERTTRACE</div>
+    <div class="tb"><div class="lab">Library</div><div class="val">MAIN SHOP MATERIALS</div></div>
+    <div class="tb"><div class="lab">Records</div><div class="val">1284</div></div>
+    <div class="tb"><div class="lab">Status</div><div class="val">● SYNCED</div></div>
+    <div class="tb"><div class="lab">Rev</div><div class="val">v0.2.0</div></div>
+  </div>
+
+  <!-- Search -->
+  <div class="strip">
+    <span class="prompt">QUERY ›</span>
+    <input placeholder="scan barcode / id / material / supplier / heat / tag" />
+    <button class="btn">OPEN FOLDER</button>
+    <button class="btn fill">+ NEW MATERIAL</button>
+  </div>
+
+  <div class="body">
+    <!-- Left: index -->
+    <div class="col left">
+      <div class="schead"><h2>Material Index</h2><span class="meta">SORT: UPDATED ↓</span></div>
+
+      <div class="rowitem active">
+        <div><div class="rid">AL-falcon-104</div><div class="rspec">6061-T6 · McMaster</div></div>
+        <div class="rspec">HEAT A4921</div>
+        <div class="rdim">LOC <b>RACK B2</b><br>FILES 3</div>
+      </div>
+      <div class="rowitem">
+        <div><div class="rid">AL-otter-221</div><div class="rspec">7075-T651 · Online Metals</div></div>
+        <div class="rspec">HEAT B1180</div>
+        <div class="rdim">LOC <b>RACK A4</b><br>FILES 1</div>
+      </div>
+      <div class="rowitem">
+        <div><div class="rid">ST-raven-087</div><div class="rspec">4140 PH · Ryerson</div></div>
+        <div class="rspec">HEAT H9032</div>
+        <div class="rdim">LOC <b>RACK C1</b><br>FILES 5</div>
+      </div>
+      <div class="rowitem">
+        <div><div class="rid">TI-lynx-045</div><div class="rspec">Ti-6Al-4V · TMS Titanium</div></div>
+        <div class="rspec">HEAT T5567</div>
+        <div class="rdim">LOC <b>CAGE 2</b><br>FILES 2</div>
+      </div>
+      <div class="rowitem">
+        <div><div class="rid">SS-marlin-072</div><div class="rspec">304 SS · Ryerson</div></div>
+        <div class="rspec">HEAT S3309</div>
+        <div class="rdim">LOC <b>RACK D2</b><br>FILES 2</div>
+      </div>
+      <div class="rowitem">
+        <div><div class="rid">AL-heron-198</div><div class="rspec">2024-T3 · McMaster</div></div>
+        <div class="rspec">HEAT A8841</div>
+        <div class="rdim">LOC <b>RACK B5</b><br>FILES 2</div>
+      </div>
+      <div class="rowitem">
+        <div><div class="rid">BR-falcon-019</div><div class="rspec">C360 Brass · McMaster</div></div>
+        <div class="rspec">HEAT BR221</div>
+        <div class="rdim">LOC <b>BIN 7</b><br>FILES 1</div>
+      </div>
+    </div>
+
+    <!-- Right: detail -->
+    <div class="col">
+      <div class="schead"><h2>Detail / Spec Sheet</h2><span class="meta">REF AL-falcon-104</span></div>
+
+      <div class="drawing">
+        <span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span>
+        <div class="partno">AL-falcon-104</div>
+        <div class="partsub">6061-T6 ALUMINUM // GENERAL PURPOSE BAR STOCK</div>
+
+        <table class="dimtable">
+          <tr><td>Material</td><td>6061-T6</td></tr>
+          <tr><td>Supplier</td><td>McMaster-Carr</td></tr>
+          <tr><td>Heat Number</td><td>A4921</td></tr>
+          <tr><td>Location</td><td>Rack B2</td></tr>
+          <tr><td>Tags</td><td>aluminum, bar-stock</td></tr>
+          <tr><td>Created</td><td>2026-05-12</td></tr>
+          <tr><td>Updated</td><td>2026-05-26</td></tr>
+        </table>
+
+        <div class="attach">
+          <div class="ahead">Attached Certifications</div>
+          <div class="afile"><span class="tag">PDF</span> cert.pdf — material certificate</div>
+          <div class="afile"><span class="tag">PDF</span> mill-test-report.pdf — MTR</div>
+          <div class="afile"><span class="tag">PNG</span> photo.png — stock photo</div>
+        </div>
+
+        <div class="qrblock">
+          <div class="qr"></div>
+          <div>
+            <div class="lid">AL-falcon-104</div>
+            <div class="lsub">6061-T6<br>RACK B2<br>LABEL TPL: standard-qr</div>
+          </div>
+        </div>
+
+        <div class="acts">
+          <button>Edit</button>
+          <button>Add Files</button>
+          <button>Open Folder</button>
+          <button class="key">▤ Print Label</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

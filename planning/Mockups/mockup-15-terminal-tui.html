@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CertTrace — Terminal TUI</title>
+<style>
+  :root {
+    --bg: #0b0e0a;
+    --fg: #b6f7a8;
+    --fg-dim: #5c8a52;
+    --amber: #ffd479;
+    --cyan: #79e0ff;
+    --magenta: #ff8ce0;
+    --sel-bg: #1c3318;
+    --border: #2f5a28;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "JetBrains Mono", "SF Mono", "Consolas", monospace;
+    background: var(--bg); color: var(--fg);
+    font-size: 13px; line-height: 1.5;
+    padding: 14px;
+    text-shadow: 0 0 4px rgba(120,224,120,.25);
+  }
+  /* subtle scanlines */
+  body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 99;
+    background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.18) 2px 3px); }
+  .screen { height: calc(100vh - 28px); display: flex; flex-direction: column; border: 1px solid var(--border); }
+
+  .titlebar { display: flex; align-items: center; gap: 14px; padding: 4px 12px; border-bottom: 1px solid var(--border); background: var(--sel-bg); }
+  .titlebar .name { color: var(--amber); font-weight: 700; letter-spacing: 1px; }
+  .titlebar .sep { color: var(--fg-dim); }
+  .titlebar .right { margin-left: auto; color: var(--fg-dim); }
+  .titlebar .right b { color: var(--cyan); }
+
+  .cmdline { padding: 6px 12px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
+  .cmdline .ps { color: var(--magenta); }
+  .cmdline input { flex: 1; background: transparent; border: none; outline: none; color: var(--fg); font-family: inherit; font-size: 13px; caret-color: var(--fg); text-shadow: inherit; }
+  .cmdline .blink { width: 8px; height: 15px; background: var(--fg); animation: bl 1s steps(1) infinite; }
+  @keyframes bl { 50% { opacity: 0; } }
+
+  .panes { flex: 1; display: grid; grid-template-columns: 1.5fr 1fr; overflow: hidden; }
+  .pane { overflow: auto; }
+  .pane.left { border-right: 1px solid var(--border); }
+  .pane-title { padding: 3px 12px; color: var(--bg); background: var(--fg-dim); font-weight: 700; letter-spacing: 1px; position: sticky; top: 0; }
+  .pane-title.alt { background: var(--border); color: var(--fg); }
+
+  /* listing rows */
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 4px 12px; color: var(--fg-dim); border-bottom: 1px dashed var(--border); font-weight: 400; }
+  td { padding: 3px 12px; white-space: nowrap; }
+  tr.row { cursor: pointer; }
+  tr.row:hover td { background: #14210f; }
+  tr.row.sel td { background: var(--sel-bg); color: var(--amber); }
+  tr.row.sel td:first-child::before { content: "▌"; color: var(--amber); margin-right: -8px; }
+  .c-id { color: var(--cyan); }
+  tr.row.sel .c-id { color: var(--amber); }
+  .c-mat { color: var(--fg); }
+  .c-dim { color: var(--fg-dim); }
+  .tagk { color: var(--magenta); }
+
+  /* detail */
+  .detail { padding: 12px; }
+  .kvline { display: flex; }
+  .kvline .k { width: 110px; color: var(--fg-dim); }
+  .kvline .k::after { content: " ......................."; }
+  .kvline .v { color: var(--fg); }
+  .hr { color: var(--border); margin: 10px 0; white-space: pre; overflow: hidden; }
+  .blocktitle { color: var(--amber); margin: 12px 0 6px; }
+  .blocktitle::before { content: "» "; }
+  .file { color: var(--fg); }
+  .file .ext { color: var(--cyan); }
+  .file .sz { color: var(--fg-dim); }
+
+  /* ascii qr label */
+  .label { border: 1px solid var(--border); padding: 10px 12px; margin-top: 8px; display: inline-block; }
+  .qr { font-size: 8px; line-height: 8px; letter-spacing: 0; white-space: pre; color: var(--fg); margin-bottom: 6px; }
+  .label .lid { color: var(--amber); }
+  .label .lsub { color: var(--fg-dim); }
+
+  /* status / keybinds */
+  .keybar { display: flex; gap: 0; border-top: 1px solid var(--border); background: var(--sel-bg); }
+  .keybar .kb { padding: 4px 12px; border-right: 1px solid var(--border); }
+  .keybar .kb b { color: var(--amber); }
+  .keybar .kb span { color: var(--fg-dim); }
+  .keybar .grow { flex: 1; }
+  .keybar .stat { padding: 4px 12px; color: var(--fg-dim); }
+  .keybar .stat .on { color: var(--fg); }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+</style>
+</head>
+<body>
+<div class="screen">
+  <!-- Title bar -->
+  <div class="titlebar">
+    <span class="name">CERTTRACE</span>
+    <span class="sep">│</span>
+    <span>lib: <span style="color:var(--cyan)">Main Shop Materials</span></span>
+    <span class="sep">│</span>
+    <span class="c-dim">/Volumes/Shop/Main Shop</span>
+    <span class="right">[<b>1284</b> mats] [watch: <b>on</b>] [scan: <b>ready</b>] v0.2.0</span>
+  </div>
+
+  <!-- Command line / search -->
+  <div class="cmdline">
+    <span class="ps">search ❯</span>
+    <input value="" placeholder="type to filter, or scan a barcode to jump…" />
+    <span class="blink"></span>
+  </div>
+
+  <div class="panes">
+    <!-- Left: list -->
+    <div class="pane left">
+      <div class="pane-title">MATERIALS  (1284)  ──  sort: updated↓</div>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>MATERIAL</th><th>SUPPLIER</th><th>HEAT</th><th>LOC</th><th>F</th></tr>
+        </thead>
+        <tbody>
+          <tr class="row sel"><td class="c-id">AL-falcon-104</td><td class="c-mat">6061-T6</td><td class="c-dim">McMaster</td><td>A4921</td><td>B2</td><td>3</td></tr>
+          <tr class="row"><td class="c-id">AL-otter-221</td><td class="c-mat">7075-T651</td><td class="c-dim">Online Metals</td><td>B1180</td><td>A4</td><td>1</td></tr>
+          <tr class="row"><td class="c-id">ST-raven-087</td><td class="c-mat">4140 PH</td><td class="c-dim">Ryerson</td><td>H9032</td><td>C1</td><td>5</td></tr>
+          <tr class="row"><td class="c-id">ST-bison-310</td><td class="c-mat">1018 CR</td><td class="c-dim">Metal Smkts</td><td>K2210</td><td>B14</td><td>1</td></tr>
+          <tr class="row"><td class="c-id">TI-lynx-045</td><td class="c-mat">Ti-6Al-4V</td><td class="c-dim">TMS Titanium</td><td>T5567</td><td>CG2</td><td>2</td></tr>
+          <tr class="row"><td class="c-id">AL-heron-198</td><td class="c-mat">2024-T3</td><td class="c-dim">McMaster</td><td>A8841</td><td>B5</td><td>2</td></tr>
+          <tr class="row"><td class="c-id">SS-marlin-072</td><td class="c-mat">304 SS</td><td class="c-dim">Ryerson</td><td>S3309</td><td>D2</td><td>2</td></tr>
+          <tr class="row"><td class="c-id">SS-cobra-156</td><td class="c-mat">316L SS</td><td class="c-dim">Online Metals</td><td>S7741</td><td>D3</td><td>1</td></tr>
+          <tr class="row"><td class="c-id">BR-falcon-019</td><td class="c-mat">C360 Brass</td><td class="c-dim">McMaster</td><td>BR221</td><td>B7</td><td>1</td></tr>
+          <tr class="row"><td class="c-id">AL-wolf-260</td><td class="c-mat">6063-T5</td><td class="c-dim">Metal Smkts</td><td>A1290</td><td>B1</td><td>2</td></tr>
+          <tr class="row"><td class="c-id">ST-eagle-441</td><td class="c-mat">A36 Plate</td><td class="c-dim">Ryerson</td><td>H1123</td><td>C4</td><td>3</td></tr>
+          <tr class="row"><td class="c-id">CU-mako-302</td><td class="c-mat">C110 Copper</td><td class="c-dim">McMaster</td><td>CU991</td><td>B9</td><td>1</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Right: detail -->
+    <div class="pane">
+      <div class="pane-title alt">RECORD :: AL-falcon-104</div>
+      <div class="detail">
+        <div class="kvline"><span class="k">id</span><span class="v c-id">AL-falcon-104</span></div>
+        <div class="kvline"><span class="k">material</span><span class="v">6061-T6</span></div>
+        <div class="kvline"><span class="k">supplier</span><span class="v">McMaster</span></div>
+        <div class="kvline"><span class="k">heat</span><span class="v">A4921</span></div>
+        <div class="kvline"><span class="k">location</span><span class="v">Rack B2</span></div>
+        <div class="kvline"><span class="k">tags</span><span class="v tagk">[aluminum, bar-stock]</span></div>
+        <div class="kvline"><span class="k">created</span><span class="v c-dim">2026-05-12</span></div>
+        <div class="kvline"><span class="k">updated</span><span class="v c-dim">2026-05-26</span></div>
+
+        <div class="hr">────────────────────────────────────────</div>
+
+        <div class="blocktitle">attachments (3)</div>
+        <div class="file">cert<span class="ext">.pdf</span> <span class="sz">248 KB</span> — material cert</div>
+        <div class="file">mill-test-report<span class="ext">.pdf</span> <span class="sz">512 KB</span> — MTR</div>
+        <div class="file">photo<span class="ext">.png</span> <span class="sz">1.2 MB</span> — stock photo</div>
+
+        <div class="blocktitle">label preview (standard-qr)</div>
+        <div class="label">
+<div class="qr">█▀▀▀▀▀█ ▄▀█▄▀ █▀▀▀▀▀█
+█ ███ █ █▀▄ ▀▄ █ ███ █
+█ ▀▀▀ █ ▀█▄█▄  █ ▀▀▀ █
+▀▀▀▀▀▀▀ █▄▀▄█ ▀▀▀▀▀▀▀
+█▄▀█▀▄▀▄ ▀▄▀▀▄▀█▄▀ ▄█▀
+▀ ▄█▀▄▀█▄ █▄▀▄█▀▀ ▄▀▄█
+█▀▀▀▀▀█ ▄█▀▄ ▀█▄▀█▀▄ ▄
+█ ███ █ ▀▄█▀▄▀▄ ▄█▀▄█▀
+█ ▀▀▀ █ █ ▄▀▄█▀▄▀█▄▀ ▄
+▀▀▀▀▀▀▀ ▀ ▀▀ ▀▀▀ ▀ ▀▀▀</div>
+          <div class="lid">AL-falcon-104</div>
+          <div class="lsub">6061-T6 · Rack B2</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keybinds -->
+  <div class="keybar">
+    <div class="kb"><b>↑↓</b> <span>navigate</span></div>
+    <div class="kb"><b>↵</b> <span>open</span></div>
+    <div class="kb"><b>e</b> <span>edit</span></div>
+    <div class="kb"><b>a</b> <span>add file</span></div>
+    <div class="kb"><b>p</b> <span>print label</span></div>
+    <div class="kb"><b>o</b> <span>open folder</span></div>
+    <div class="kb"><b>/</b> <span>search</span></div>
+    <div class="grow"></div>
+    <div class="stat"><span class="on">●</span> synced · 3102 files · <span class="on">3 warnings</span></div>
+  </div>
+</div>
+</body>
+</html>

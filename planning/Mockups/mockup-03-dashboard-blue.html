@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CertTrace — Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #eef2f7;
+      color: #1e293b;
+      min-height: 100vh;
+    }
+    .app-shell { display: grid; grid-template-rows: auto 1fr; min-height: 100vh; }
+    .top-nav {
+      background: #0f2744;
+      color: #fff;
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .top-nav .left { display: flex; align-items: center; gap: 32px; }
+    .top-nav .logo { font-weight: 700; font-size: 18px; }
+    .top-nav .logo em { font-style: normal; color: #60a5fa; }
+    .nav-tabs { display: flex; gap: 4px; }
+    .nav-tab {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+    .nav-tab.active { background: #1e3a5f; color: #fff; }
+    .library-select {
+      background: #1e3a5f;
+      border: 1px solid #334155;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    .dashboard { padding: 24px 32px; }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .stat-card .label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; color: #0f2744; margin-top: 4px; }
+    .stat-card .delta { font-size: 12px; color: #22c55e; margin-top: 4px; }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+    }
+    .panel {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .panel-header h2 { font-size: 15px; font-weight: 600; }
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      padding: 12px 20px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .toolbar input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    .toolbar button {
+      padding: 8px 14px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .filter-chips { display: flex; gap: 6px; padding: 0 20px 12px; }
+    .filter-chip {
+      padding: 4px 10px;
+      background: #eff6ff;
+      color: #2563eb;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .material-rows { max-height: 420px; overflow-y: auto; }
+    .material-row {
+      display: grid;
+      grid-template-columns: 140px 1fr 100px 80px 60px;
+      padding: 12px 20px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 13px;
+      align-items: center;
+    }
+    .material-row.header {
+      background: #f8fafc;
+      font-weight: 600;
+      color: #64748b;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .material-row.highlight { background: #eff6ff; }
+    .material-row .id { font-weight: 600; color: #2563eb; font-family: monospace; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-gray { background: #f1f5f9; color: #475569; }
+    .right-col { display: flex; flex-direction: column; gap: 20px; }
+    .quick-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 16px;
+    }
+    .quick-btn {
+      padding: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 500;
+      color: #334155;
+    }
+    .quick-btn.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .detail-block { padding: 16px 20px; }
+    .detail-block h3 { font-size: 13px; color: #64748b; margin-bottom: 8px; }
+    .detail-block .big-id { font-size: 18px; font-weight: 700; font-family: monospace; color: #0f2744; }
+    .kv { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+    .kv:last-child { border-bottom: none; }
+    .kv .k { color: #64748b; }
+    .label-box {
+      margin: 16px 20px 20px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      background: #fafbfc;
+    }
+    .label-box .fake-qr {
+      width: 64px; height: 64px;
+      margin: 0 auto 10px;
+      background: linear-gradient(45deg, #0f2744 25%, transparent 25%, transparent 75%, #0f2744 75%),
+                  linear-gradient(45deg, #0f2744 25%, transparent 25%, transparent 75%, #0f2744 75%);
+      background-size: 8px 8px;
+      background-position: 0 0, 4px 4px;
+    }
+    .watch-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: #f0fdf4;
+      border-top: 1px solid #bbf7d0;
+      font-size: 12px;
+      color: #166534;
+    }
+    .pulse { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <nav class="top-nav">
+      <div class="left">
+        <div class="logo">Cert<em>Trace</em></div>
+        <div class="nav-tabs">
+          <div class="nav-tab active">Dashboard</div>
+          <div class="nav-tab">Materials</div>
+          <div class="nav-tab">Labels</div>
+          <div class="nav-tab">Libraries</div>
+        </div>
+      </div>
+      <select class="library-select">
+        <option>Main Shop Materials</option>
+        <option>QA Archive</option>
+        <option>Sandbox</option>
+      </select>
+    </nav>
+
+    <div class="dashboard">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="label">Total Materials</div>
+          <div class="value">1,247</div>
+          <div class="delta">+12 this week</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">With Certs</div>
+          <div class="value">1,198</div>
+          <div class="delta">96% coverage</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Pending Labels</div>
+          <div class="value">3</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Libraries</div>
+          <div class="value">3</div>
+        </div>
+      </div>
+
+      <div class="main-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Material Registry</h2>
+            <span style="font-size:12px;color:#64748b">Instant search · barcode ready</span>
+          </div>
+          <div class="toolbar">
+            <input type="text" placeholder="Search ID, material, supplier, heat, tags…" value="6061">
+            <button>+ Add</button>
+          </div>
+          <div class="filter-chips">
+            <span class="filter-chip">aluminum</span>
+            <span class="filter-chip">6061-T6</span>
+            <span class="filter-chip">McMaster</span>
+          </div>
+          <div class="material-rows">
+            <div class="material-row header">
+              <span>ID</span><span>Material / Supplier</span><span>Heat</span><span>Location</span><span>Files</span>
+            </div>
+            <div class="material-row highlight">
+              <span class="id">AL-falcon-104</span>
+              <span>6061-T6 · McMaster</span>
+              <span>A4921</span>
+              <span>Rack B2</span>
+              <span><span class="badge badge-green">3</span></span>
+            </div>
+            <div class="material-row">
+              <span class="id">AL-hawk-337</span>
+              <span>6061-T6 · McMaster</span>
+              <span>A5102</span>
+              <span>Rack B3</span>
+              <span><span class="badge badge-green">2</span></span>
+            </div>
+            <div class="material-row">
+              <span class="id">AL-bear-221</span>
+              <span>7075-T651 · Online Metals</span>
+              <span>H8834</span>
+              <span>Rack A1</span>
+              <span><span class="badge badge-green">1</span></span>
+            </div>
+            <div class="material-row">
+              <span class="id">SS-wolf-089</span>
+              <span>304 SS · Metal Supermarkets</span>
+              <span>SS-4421</span>
+              <span>Bin C4</span>
+              <span><span class="badge badge-green">2</span></span>
+            </div>
+            <div class="material-row">
+              <span class="id">BR-otter-015</span>
+              <span>360 Brass · Speedy Metals</span>
+              <span>B9012</span>
+              <span>Drawer 3</span>
+              <span><span class="badge badge-gray">0</span></span>
+            </div>
+          </div>
+          <div class="watch-status">
+            <span class="pulse"></span>
+            File watching active · last sync 2s ago
+          </div>
+        </div>
+
+        <div class="right-col">
+          <div class="panel">
+            <div class="panel-header"><h2>Quick Actions</h2></div>
+            <div class="quick-actions">
+              <div class="quick-btn primary">New Material</div>
+              <div class="quick-btn">Scan Barcode</div>
+              <div class="quick-btn">Print Label</div>
+              <div class="quick-btn">Open Folder</div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h2>Selected Material</h2></div>
+            <div class="detail-block">
+              <div class="big-id">AL-falcon-104</div>
+            </div>
+            <div class="detail-block">
+              <div class="kv"><span class="k">Material</span><span>6061-T6</span></div>
+              <div class="kv"><span class="k">Supplier</span><span>McMaster</span></div>
+              <div class="kv"><span class="k">Heat</span><span>A4921</span></div>
+              <div class="kv"><span class="k">Location</span><span>Rack B2</span></div>
+              <div class="kv"><span class="k">Attachments</span><span>cert.pdf, MTR, photo</span></div>
+            </div>
+            <div class="label-box">
+              <div class="fake-qr"></div>
+              <div style="font-family:monospace;font-weight:600;font-size:13px">AL-falcon-104</div>
+              <div style="font-size:11px;color:#64748b;margin-top:4px">6061-T6 · Rack B2</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

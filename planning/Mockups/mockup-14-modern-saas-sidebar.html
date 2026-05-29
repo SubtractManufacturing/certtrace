@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CertTrace — Modern SaaS</title>
+<style>
+  :root {
+    --bg: #f7f7fb;
+    --ink: #15131f;
+    --muted: #8884a0;
+    --line: #ececf4;
+    --indigo: #5b4bf5;
+    --violet: #8b5cf6;
+    --pink: #ec4899;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Plus Jakarta Sans", "Inter", system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  .layout { display: grid; grid-template-columns: 84px 1fr; min-height: 100vh; }
+
+  /* Icon rail */
+  .rail { background: linear-gradient(180deg, #5b4bf5, #7c3aed 55%, #a21caf); display: flex; flex-direction: column; align-items: center; padding: 18px 0; gap: 8px; }
+  .rail .logo { width: 46px; height: 46px; border-radius: 14px; background: rgba(255,255,255,.18); backdrop-filter: blur(8px); display: grid; place-items: center; color: #fff; font-weight: 900; margin-bottom: 14px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.3); }
+  .rail .ri { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; color: rgba(255,255,255,.7); cursor: pointer; font-size: 19px; transition: .15s; }
+  .rail .ri:hover { background: rgba(255,255,255,.12); color: #fff; }
+  .rail .ri.on { background: #fff; color: var(--indigo); box-shadow: 0 8px 18px rgba(0,0,0,.18); }
+  .rail .spacer { flex: 1; }
+  .rail .avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg,#fbbf24,#ec4899); border: 2px solid rgba(255,255,255,.5); }
+
+  /* Content */
+  .content { padding: 26px 34px; position: relative; }
+  .topline { display: flex; align-items: center; gap: 18px; margin-bottom: 26px; }
+  .topline h1 { font-size: 24px; font-weight: 800; letter-spacing: -.5px; }
+  .topline .crumb { color: var(--muted); font-size: 13px; }
+  .topline .crumb b { color: var(--ink); }
+  .topline .search { margin-left: auto; display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 11px 16px; width: 360px; box-shadow: 0 4px 14px rgba(91,75,245,.06); }
+  .topline .search input { border: none; outline: none; flex: 1; font-size: 14px; font-family: inherit; }
+  .topline .add { border: none; background: linear-gradient(135deg, var(--indigo), var(--violet)); color: #fff; padding: 12px 18px; border-radius: 14px; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 10px 22px rgba(91,75,245,.35); }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 18px; }
+  .tabs button { border: none; background: transparent; padding: 9px 16px; border-radius: 12px; font-weight: 600; font-size: 14px; color: var(--muted); cursor: pointer; font-family: inherit; }
+  .tabs button.on { background: var(--card); color: var(--indigo); box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+  .tabs .pill { margin-left: 6px; font-size: 11px; background: #efeefe; color: var(--indigo); padding: 1px 7px; border-radius: 10px; }
+
+  /* Table card */
+  .panel { background: var(--card); border-radius: 22px; box-shadow: 0 10px 40px rgba(21,19,31,.05); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { text-align: left; padding: 16px 22px; font-size: 12px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .6px; border-bottom: 1px solid var(--line); }
+  tbody td { padding: 15px 22px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  tbody tr { cursor: pointer; transition: .12s; }
+  tbody tr:hover { background: #faf9ff; }
+  tbody tr.sel { background: #f3f1ff; }
+  .idcell { display: flex; align-items: center; gap: 12px; }
+  .idcell .av { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; font-weight: 800; color: #fff; font-size: 12px; }
+  .av.al { background: linear-gradient(135deg,#6366f1,#8b5cf6); }
+  .av.st { background: linear-gradient(135deg,#ef4444,#f97316); }
+  .av.ti { background: linear-gradient(135deg,#10b981,#06b6d4); }
+  .av.ss { background: linear-gradient(135deg,#0ea5e9,#6366f1); }
+  .idcell .mono { font-family: ui-monospace, monospace; font-weight: 700; }
+  .idcell small { color: var(--muted); font-weight: 500; }
+  .badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  .b-al { background: #eef2ff; color: #4f46e5; }
+  .b-st { background: #fef2f2; color: #dc2626; }
+  .b-ti { background: #ecfdf5; color: #059669; }
+  .b-ss { background: #ecfeff; color: #0891b2; }
+  .loc { color: var(--muted); }
+  .files-dots { display: flex; gap: 4px; }
+  .files-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--violet); display: inline-block; }
+  .files-dots i.empty { background: var(--line); }
+
+  /* Floating detail drawer */
+  .drawer { position: absolute; top: 26px; right: 34px; bottom: 26px; width: 380px; background: var(--card); border-radius: 24px; box-shadow: 0 30px 70px rgba(21,19,31,.18); padding: 26px; overflow-y: auto; }
+  .drawer .dhead { display: flex; align-items: center; gap: 14px; }
+  .drawer .dhead .av { width: 54px; height: 54px; border-radius: 16px; }
+  .drawer .dhead .mono { font-family: ui-monospace, monospace; font-size: 20px; font-weight: 800; }
+  .drawer .dhead small { color: var(--muted); }
+  .qrwrap { background: linear-gradient(135deg,#f5f3ff,#fdf2f8); border-radius: 20px; padding: 22px; text-align: center; margin: 20px 0; }
+  .qr { width: 110px; height: 110px; margin: 0 auto 12px; border-radius: 12px; background: conic-gradient(#15131f 0 25%, #fff 0 50%, #15131f 0 75%, #fff 0 100%); background-size: 11px 11px; border: 6px solid #fff; box-shadow: 0 6px 18px rgba(0,0,0,.1); }
+  .qrwrap .lid { font-family: ui-monospace, monospace; font-weight: 800; font-size: 15px; }
+  .qrwrap .lsub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .kv { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .kv span { color: var(--muted); }
+  .kv b { font-weight: 700; }
+  .dtitle { font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); font-weight: 700; margin: 20px 0 12px; }
+  .fitem { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: var(--bg); margin-bottom: 8px; }
+  .fitem .fi { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-size: 10px; font-weight: 800; color: #fff; }
+  .fi.pdf { background: #ef4444; } .fi.png { background: #10b981; }
+  .fitem .fn { font-size: 13px; font-weight: 600; } .fitem .fs { font-size: 11px; color: var(--muted); }
+  .dactions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+  .dactions button { padding: 12px; border-radius: 13px; border: 1px solid var(--line); background: #fff; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; }
+  .dactions button.primary { grid-column: 1/-1; background: linear-gradient(135deg, var(--indigo), var(--violet)); color: #fff; border: none; box-shadow: 0 10px 22px rgba(91,75,245,.3); }
+  .content.with-drawer .panel { margin-right: 408px; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- Icon rail -->
+  <nav class="rail">
+    <div class="logo">CT</div>
+    <div class="ri on" title="Materials">▦</div>
+    <div class="ri" title="Recent">🕑</div>
+    <div class="ri" title="Labels">🏷️</div>
+    <div class="ri" title="Libraries">🗂️</div>
+    <div class="ri" title="Issues">⚠️</div>
+    <div class="spacer"></div>
+    <div class="ri" title="Settings">⚙️</div>
+    <div class="avatar"></div>
+  </nav>
+
+  <!-- Content -->
+  <main class="content with-drawer">
+    <div class="topline">
+      <h1>Materials</h1>
+      <span class="crumb">Library / <b>Main Shop Materials</b></span>
+      <div class="search"><span>🔍</span><input placeholder="Scan or search materials…" /></div>
+      <button class="add">+ Add Material</button>
+    </div>
+
+    <div class="tabs">
+      <button class="on">All <span class="pill">1284</span></button>
+      <button>Aluminum <span class="pill">612</span></button>
+      <button>Steel <span class="pill">430</span></button>
+      <button>Titanium <span class="pill">88</span></button>
+      <button>Recent</button>
+    </div>
+
+    <div class="panel">
+      <table>
+        <thead>
+          <tr><th>Material ID</th><th>Spec</th><th>Supplier</th><th>Heat</th><th>Location</th><th>Files</th></tr>
+        </thead>
+        <tbody>
+          <tr class="sel">
+            <td><div class="idcell"><span class="av al">AL</span><span><div class="mono">AL-falcon-104</div><small>aluminum</small></span></div></td>
+            <td><span class="badge b-al">6061-T6</span></td><td>McMaster</td><td>A4921</td><td class="loc">Rack B2</td>
+            <td><div class="files-dots"><i></i><i></i><i></i></div></td>
+          </tr>
+          <tr>
+            <td><div class="idcell"><span class="av al">AL</span><span><div class="mono">AL-otter-221</div><small>aluminum</small></span></div></td>
+            <td><span class="badge b-al">7075-T651</span></td><td>Online Metals</td><td>B1180</td><td class="loc">Rack A4</td>
+            <td><div class="files-dots"><i></i><i class="empty"></i><i class="empty"></i></div></td>
+          </tr>
+          <tr>
+            <td><div class="idcell"><span class="av st">ST</span><span><div class="mono">ST-raven-087</div><small>steel</small></span></div></td>
+            <td><span class="badge b-st">4140 PH</span></td><td>Ryerson</td><td>H9032</td><td class="loc">Rack C1</td>
+            <td><div class="files-dots"><i></i><i></i><i></i></div></td>
+          </tr>
+          <tr>
+            <td><div class="idcell"><span class="av ti">TI</span><span><div class="mono">TI-lynx-045</div><small>titanium</small></span></div></td>
+            <td><span class="badge b-ti">Ti-6Al-4V</span></td><td>TMS Titanium</td><td>T5567</td><td class="loc">Cage 2</td>
+            <td><div class="files-dots"><i></i><i></i><i class="empty"></i></div></td>
+          </tr>
+          <tr>
+            <td><div class="idcell"><span class="av ss">SS</span><span><div class="mono">SS-marlin-072</div><small>stainless</small></span></div></td>
+            <td><span class="badge b-ss">304 SS</span></td><td>Ryerson</td><td>S3309</td><td class="loc">Rack D2</td>
+            <td><div class="files-dots"><i></i><i></i><i class="empty"></i></div></td>
+          </tr>
+          <tr>
+            <td><div class="idcell"><span class="av al">AL</span><span><div class="mono">AL-heron-198</div><small>aluminum</small></span></div></td>
+            <td><span class="badge b-al">2024-T3</span></td><td>McMaster</td><td>A8841</td><td class="loc">Rack B5</td>
+            <td><div class="files-dots"><i></i><i></i><i class="empty"></i></div></td>
+          </tr>
+          <tr>
+            <td><div class="idcell"><span class="av ss">SS</span><span><div class="mono">SS-cobra-156</div><small>stainless</small></span></div></td>
+            <td><span class="badge b-ss">316L SS</span></td><td>Online Metals</td><td>S7741</td><td class="loc">Rack D3</td>
+            <td><div class="files-dots"><i></i><i class="empty"></i><i class="empty"></i></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Drawer -->
+    <aside class="drawer">
+      <div class="dhead">
+        <span class="av al" style="width:54px;height:54px;border-radius:16px;font-size:15px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#6366f1,#8b5cf6)">AL</span>
+        <div><div class="mono">AL-falcon-104</div><small>6061-T6 · McMaster</small></div>
+      </div>
+
+      <div class="qrwrap">
+        <div class="qr"></div>
+        <div class="lid">AL-falcon-104</div>
+        <div class="lsub">6061-T6 · Rack B2</div>
+      </div>
+
+      <div class="kv"><span>Material</span><b>6061-T6</b></div>
+      <div class="kv"><span>Supplier</span><b>McMaster</b></div>
+      <div class="kv"><span>Heat #</span><b>A4921</b></div>
+      <div class="kv"><span>Location</span><b>Rack B2</b></div>
+      <div class="kv"><span>Updated</span><b>2026-05-26</b></div>
+
+      <div class="dtitle">Attachments</div>
+      <div class="fitem"><span class="fi pdf">PDF</span><div><div class="fn">cert.pdf</div><div class="fs">248 KB</div></div></div>
+      <div class="fitem"><span class="fi pdf">PDF</span><div><div class="fn">mill-test-report.pdf</div><div class="fs">512 KB</div></div></div>
+      <div class="fitem"><span class="fi png">PNG</span><div><div class="fn">photo.png</div><div class="fs">1.2 MB</div></div></div>
+
+      <div class="dactions">
+        <button>Edit</button>
+        <button>Open Folder</button>
+        <button class="primary">🖨 Print Label</button>
+      </div>
+    </aside>
+  </main>
+</div>
+</body>
+</html>

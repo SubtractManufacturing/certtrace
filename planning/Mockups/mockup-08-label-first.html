@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CertTrace Mockup 03 - Label First</title>
+  <style>
+    :root {
+      --paper: #fffaf0;
+      --ink: #1e1a16;
+      --muted: #766b5c;
+      --line: #e6d5b8;
+      --panel: #fffdf8;
+      --red: #d9452f;
+      --blue: #1d5d9b;
+      --green: #2e7d52;
+      --yellow: #f2bf49;
+      --shadow: 0 22px 55px rgba(76, 56, 33, 0.15);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 12% 20%, rgba(217, 69, 47, 0.09), transparent 30%),
+        radial-gradient(circle at 88% 2%, rgba(29, 93, 155, 0.1), transparent 32%),
+        var(--paper);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    .screen {
+      display: grid;
+      grid-template-columns: 1fr 430px;
+      min-height: 100vh;
+    }
+
+    .workspace {
+      padding: 32px;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    }
+
+    .seal {
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      border: 3px solid var(--ink);
+      border-radius: 50%;
+      background: var(--yellow);
+      font-weight: 1000;
+      letter-spacing: -0.08em;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      font-size: 24px;
+      letter-spacing: -0.04em;
+    }
+
+    .brand p,
+    .sans,
+    .muted {
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .search {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-width: 460px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--panel);
+      padding: 14px 18px 14px 22px;
+      box-shadow: 8px 8px 0 #1e1a16;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-weight: 900;
+    }
+
+    .search span {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(360px, 0.95fr) minmax(420px, 1.05fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .label-card {
+      border: 3px solid var(--ink);
+      border-radius: 28px;
+      background: #fff;
+      padding: 24px;
+      box-shadow: 12px 12px 0 #1e1a16;
+    }
+
+    .label-card h2 {
+      margin-bottom: 18px;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: 15px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .print-label {
+      border: 2px solid #111;
+      border-radius: 18px;
+      padding: 20px;
+      background:
+        linear-gradient(90deg, transparent 96%, rgba(0,0,0,0.06) 96%),
+        linear-gradient(transparent 96%, rgba(0,0,0,0.06) 96%),
+        white;
+      background-size: 24px 24px;
+    }
+
+    .label-top {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 18px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .qr {
+      width: 130px;
+      height: 130px;
+      border: 10px solid #111;
+      background:
+        linear-gradient(90deg, #111 14px, transparent 14px) 0 0 / 26px 26px,
+        linear-gradient(#111 14px, transparent 14px) 0 0 / 26px 26px,
+        white;
+    }
+
+    .label-id {
+      font-family: "Arial Black", Impact, sans-serif;
+      font-size: 36px;
+      line-height: 0.95;
+      letter-spacing: -0.06em;
+      text-transform: uppercase;
+    }
+
+    .barcode {
+      height: 80px;
+      margin: 18px 0;
+      background:
+        linear-gradient(90deg,
+          #111 0 6px, transparent 6px 10px,
+          #111 10px 14px, transparent 14px 20px,
+          #111 20px 31px, transparent 31px 38px,
+          #111 38px 42px, transparent 42px 48px,
+          #111 48px 60px, transparent 60px 64px,
+          #111 64px 68px, transparent 68px 74px,
+          #111 74px 90px, transparent 90px 96px);
+      background-size: 96px 80px;
+    }
+
+    .label-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    }
+
+    .label-meta div {
+      border-top: 2px solid #111;
+      padding-top: 8px;
+    }
+
+    .label-meta span {
+      display: block;
+      font-size: 10px;
+      font-weight: 1000;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .label-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 18px;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    }
+
+    .button {
+      border: 3px solid var(--ink);
+      border-radius: 16px;
+      background: var(--yellow);
+      padding: 13px;
+      text-align: center;
+      font-weight: 1000;
+      box-shadow: 5px 5px 0 var(--ink);
+    }
+
+    .button.secondary {
+      background: white;
+    }
+
+    .records {
+      display: grid;
+      gap: 14px;
+    }
+
+    .record {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 14px;
+      border: 2px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 253, 248, 0.88);
+      padding: 15px;
+      box-shadow: 0 10px 28px rgba(76, 56, 33, 0.08);
+    }
+
+    .record.active {
+      border: 3px solid var(--ink);
+      background: white;
+      box-shadow: 7px 7px 0 var(--red);
+    }
+
+    .thumb {
+      display: grid;
+      place-items: center;
+      width: 56px;
+      height: 70px;
+      border: 2px solid var(--ink);
+      border-radius: 8px;
+      background: white;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: 11px;
+      font-weight: 1000;
+    }
+
+    .record strong {
+      display: block;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: 16px;
+    }
+
+    .status {
+      border-radius: 999px;
+      background: #e9f5ec;
+      color: var(--green);
+      padding: 7px 10px;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: 12px;
+      font-weight: 1000;
+    }
+
+    .status.warn {
+      background: #fff3d6;
+      color: #a86600;
+    }
+
+    .right {
+      border-left: 3px solid var(--ink);
+      background: #1f2b39;
+      color: white;
+      padding: 30px;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    }
+
+    .right h2 {
+      margin-bottom: 8px;
+      font-size: 28px;
+      letter-spacing: -0.04em;
+    }
+
+    .card {
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 22px;
+      background: rgba(255,255,255,0.08);
+      padding: 18px;
+      margin-top: 18px;
+    }
+
+    .field {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .field:last-child { border-bottom: 0; }
+
+    .field span {
+      color: #aebbd0;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .attachments {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .attachment {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.1);
+      padding: 12px;
+    }
+
+    .folder {
+      border: 2px dashed rgba(255,255,255,0.28);
+      border-radius: 18px;
+      padding: 16px;
+      color: #dce7f4;
+      margin-top: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="screen">
+    <main class="workspace">
+      <header class="top">
+        <div class="brand">
+          <div class="seal">CT</div>
+          <div>
+            <h1>CertTrace Label Desk</h1>
+            <p class="muted">Print-first workflow for receiving material.</p>
+          </div>
+        </div>
+        <div class="search">
+          <strong>Scan / Search</strong>
+          <span>AL-falcon-104</span>
+        </div>
+      </header>
+
+      <section class="hero-grid">
+        <div class="label-card">
+          <h2>Current label</h2>
+          <div class="print-label">
+            <div class="label-top">
+              <div class="qr"></div>
+              <div class="label-id">AL<br>falcon<br>104</div>
+            </div>
+            <div class="barcode"></div>
+            <div class="label-meta">
+              <div><span>Material</span><strong>6061-T6</strong></div>
+              <div><span>Location</span><strong>Rack B2</strong></div>
+              <div><span>Heat</span><strong>A4921</strong></div>
+              <div><span>Supplier</span><strong>McMaster</strong></div>
+            </div>
+          </div>
+          <div class="label-actions">
+            <div class="button">Print label</div>
+            <div class="button secondary">Regenerate</div>
+          </div>
+        </div>
+
+        <div class="records">
+          <div class="record active">
+            <div class="thumb">PDF</div>
+            <div>
+              <strong>AL-falcon-104</strong>
+              <p class="muted">6061-T6 bar stock - Rack B2 - Heat A4921</p>
+            </div>
+            <span class="status">ready</span>
+          </div>
+          <div class="record">
+            <div class="thumb">JPG</div>
+            <div>
+              <strong>SS-raven-108</strong>
+              <p class="muted">304 sheet - Rack A1 - Heat SS883</p>
+            </div>
+            <span class="status">ready</span>
+          </div>
+          <div class="record">
+            <div class="thumb">PDF</div>
+            <div>
+              <strong>TI-fox-015</strong>
+              <p class="muted">Grade 5 tube - Crate 4 - file missing</p>
+            </div>
+            <span class="status warn">repair</span>
+          </div>
+          <div class="record">
+            <div class="thumb">PNG</div>
+            <div>
+              <strong>BR-hawk-332</strong>
+              <p class="muted">C360 rod - Rack C3 - Online Metals</p>
+            </div>
+            <span class="status">ready</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="right">
+      <p class="muted">Material detail</p>
+      <h2>AL-falcon-104</h2>
+      <p class="muted">A label-centered detail view where print readiness is the main affordance.</p>
+
+      <div class="card">
+        <div class="field"><span>Material</span><strong>6061-T6 bar stock</strong></div>
+        <div class="field"><span>Supplier</span><strong>McMaster</strong></div>
+        <div class="field"><span>Heat</span><strong>A4921</strong></div>
+        <div class="field"><span>Tags</span><strong>aluminum, bar</strong></div>
+      </div>
+
+      <div class="card">
+        <h3>Attachments</h3>
+        <div class="attachments">
+          <div class="attachment"><strong>cert.pdf</strong><span>open</span></div>
+          <div class="attachment"><strong>photo.png</strong><span>preview</span></div>
+          <div class="attachment"><strong>metadata.json</strong><span>inspect</span></div>
+        </div>
+      </div>
+
+      <div class="folder">
+        <strong>Filesystem-backed</strong>
+        <p class="muted">Main Shop/materials/AL-falcon-104/ remains visible in Finder or Explorer.</p>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

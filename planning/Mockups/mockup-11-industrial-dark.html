@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CertTrace — Industrial Dark</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #161b22;
+    --panel-2: #1c2230;
+    --line: #2a3040;
+    --text: #e6edf3;
+    --muted: #8b97a7;
+    --accent: #ffb000;
+    --accent-dim: #5a4410;
+    --green: #3fb950;
+    --red: #f85149;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", Roboto, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    font-size: 14px;
+  }
+  .app { display: grid; grid-template-rows: 48px 1fr 26px; height: 100vh; }
+
+  /* Top bar */
+  .topbar {
+    display: flex; align-items: center; gap: 18px;
+    background: linear-gradient(180deg,#1a212c,#11151c);
+    border-bottom: 1px solid var(--line);
+    padding: 0 16px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .5px; }
+  .logo .mark {
+    width: 26px; height: 26px; border-radius: 5px;
+    background: var(--accent); color: #1a1300;
+    display: grid; place-items: center; font-weight: 900; font-size: 15px;
+    box-shadow: 0 0 0 1px #ffce5c inset;
+  }
+  .logo .mark::after { content: "CT"; }
+  .lib-pill {
+    background: var(--panel-2); border: 1px solid var(--line);
+    padding: 5px 12px; border-radius: 5px; color: var(--muted);
+    font-size: 12px; display: flex; gap: 8px; align-items: center;
+  }
+  .lib-pill b { color: var(--text); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .search {
+    flex: 1; max-width: 520px; margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+    background: #0a0d12; border: 1px solid var(--line);
+    border-radius: 6px; padding: 7px 12px;
+  }
+  .search:focus-within { border-color: var(--accent); }
+  .search input { flex: 1; background: none; border: none; color: var(--text); outline: none; font-size: 13px; }
+  .search .kbd { color: var(--muted); border: 1px solid var(--line); padding: 1px 6px; border-radius: 4px; font-size: 11px; }
+  .tbtn { background: var(--panel-2); border: 1px solid var(--line); color: var(--text); padding: 7px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .tbtn.primary { background: var(--accent); color: #1a1300; border-color: var(--accent); font-weight: 700; }
+
+  /* Main */
+  .main { display: grid; grid-template-columns: 200px 1fr 360px; overflow: hidden; }
+
+  /* Left rail */
+  .rail { background: var(--panel); border-right: 1px solid var(--line); padding: 14px 10px; overflow-y: auto; }
+  .rail h4 { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; margin: 14px 6px 8px; }
+  .rail h4:first-child { margin-top: 0; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; color: var(--muted); cursor: pointer; font-size: 13px; }
+  .nav-item:hover { background: var(--panel-2); color: var(--text); }
+  .nav-item.active { background: var(--accent-dim); color: var(--accent); border-left: 2px solid var(--accent); padding-left: 8px; }
+  .nav-item .ico { width: 14px; text-align: center; }
+  .nav-item .count { margin-left: auto; font-size: 11px; color: var(--muted); }
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 20px; background: var(--panel-2); border: 1px solid var(--line); font-size: 12px; margin: 3px; }
+  .tag .sw { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* Center table */
+  .center { overflow: hidden; display: flex; flex-direction: column; }
+  .center-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+  .center-head .title { font-size: 16px; font-weight: 600; }
+  .center-head .sub { color: var(--muted); font-size: 12px; }
+  .filters { display: flex; gap: 8px; }
+  .chip { font-size: 12px; padding: 5px 11px; border-radius: 20px; border: 1px solid var(--line); color: var(--muted); cursor: pointer; }
+  .chip.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .table-wrap { overflow-y: auto; flex: 1; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { position: sticky; top: 0; background: var(--panel); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .8px; text-align: left; padding: 10px 18px; border-bottom: 1px solid var(--line); font-weight: 600; }
+  tbody td { padding: 13px 18px; border-bottom: 1px solid #1a1f29; font-size: 13px; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--panel); }
+  tbody tr.sel { background: var(--accent-dim); }
+  tbody tr.sel td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+  .mono { font-family: "SF Mono", "JetBrains Mono", Consolas, monospace; color: var(--accent); }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 4px; background: var(--panel-2); border: 1px solid var(--line); font-size: 11px; color: var(--muted); }
+  .files-mini { color: var(--muted); font-size: 12px; }
+
+  /* Right detail */
+  .detail { background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; padding: 18px; }
+  .detail .id { font-family: "SF Mono", monospace; font-size: 22px; color: var(--accent); }
+  .detail .matname { color: var(--muted); margin-top: 2px; }
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 16px 0; }
+  .meta-grid div { background: var(--panel); padding: 10px 12px; }
+  .meta-grid .k { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+  .meta-grid .v { margin-top: 3px; }
+  .sec-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 18px 0 10px; }
+  .file-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 7px; margin-bottom: 7px; background: var(--panel-2); }
+  .file-ico { width: 30px; height: 30px; border-radius: 5px; display: grid; place-items: center; font-size: 10px; font-weight: 700; }
+  .pdf { background: #3a1416; color: #ff7b72; }
+  .img { background: #11302a; color: #56d4a0; }
+  .file-row .fn { font-size: 12px; }
+  .file-row .fs { font-size: 11px; color: var(--muted); }
+  .label-card { border: 1px dashed var(--line); border-radius: 10px; padding: 16px; text-align: center; background: #0a0d12; }
+  .qr { width: 96px; height: 96px; margin: 0 auto 10px; border-radius: 6px; background:
+    conic-gradient(#000 0 25%, #fff 0 50%, #000 0 75%, #fff 0 100%);
+    background-size: 12px 12px; border: 6px solid #fff; }
+  .label-card .lid { font-family: monospace; color: var(--text); font-size: 14px; }
+  .label-card .lsub { color: var(--muted); font-size: 12px; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+  .actions button { padding: 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); cursor: pointer; font-size: 12px; }
+  .actions button.full { grid-column: 1 / -1; background: var(--accent); color: #1a1300; border-color: var(--accent); font-weight: 700; }
+
+  /* Status bar */
+  .statusbar { background: #11151c; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 20px; padding: 0 16px; color: var(--muted); font-size: 11px; }
+  .statusbar .grow { flex: 1; }
+  .statusbar .ok { color: var(--green); }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #2a3040; border-radius: 5px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="logo"><span class="mark"></span> CertTrace</div>
+    <div class="lib-pill"><span class="dot"></span> <b>Main Shop Materials</b> · /Volumes/Shop</div>
+    <div class="search">
+      <span>🔍</span>
+      <input placeholder="Scan barcode or search ID, material, supplier, heat…" />
+      <span class="kbd">⌘K</span>
+    </div>
+    <button class="tbtn">Open Folder</button>
+    <button class="tbtn primary">+ New Material</button>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Left rail -->
+    <aside class="rail">
+      <h4>Libraries</h4>
+      <div class="nav-item active"><span class="ico">▣</span> Main Shop <span class="count">1,284</span></div>
+      <div class="nav-item"><span class="ico">▢</span> QA Archive <span class="count">512</span></div>
+      <div class="nav-item"><span class="ico">▢</span> Customer Stock <span class="count">96</span></div>
+      <div class="nav-item"><span class="ico">▢</span> Sandbox <span class="count">12</span></div>
+
+      <h4>Views</h4>
+      <div class="nav-item"><span class="ico">≡</span> All Materials</div>
+      <div class="nav-item"><span class="ico">★</span> Recent</div>
+      <div class="nav-item"><span class="ico">⚠</span> Missing Files <span class="count" style="color:var(--red)">3</span></div>
+
+      <h4>Tags</h4>
+      <div>
+        <span class="tag"><span class="sw" style="background:#8b97a7"></span> aluminum</span>
+        <span class="tag"><span class="sw" style="background:#f85149"></span> steel</span>
+        <span class="tag"><span class="sw" style="background:#3fb950"></span> titanium</span>
+        <span class="tag"><span class="sw" style="background:#58a6ff"></span> stock</span>
+      </div>
+    </aside>
+
+    <!-- Center -->
+    <section class="center">
+      <div class="center-head">
+        <div>
+          <div class="title">All Materials</div>
+          <div class="sub">1,284 records · sorted by last updated</div>
+        </div>
+        <div class="filters">
+          <span class="chip on">All</span>
+          <span class="chip">Aluminum</span>
+          <span class="chip">Steel</span>
+          <span class="chip">Has Cert</span>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Material</th><th>Supplier</th><th>Heat</th><th>Location</th><th>Files</th></tr>
+          </thead>
+          <tbody>
+            <tr class="sel"><td class="mono">AL-falcon-104</td><td>6061-T6</td><td>McMaster</td><td>A4921</td><td><span class="pill">Rack B2</span></td><td class="files-mini">📄 2 · 🖼 1</td></tr>
+            <tr><td class="mono">AL-otter-221</td><td>7075-T651</td><td>Online Metals</td><td>B1180</td><td><span class="pill">Rack A4</span></td><td class="files-mini">📄 1</td></tr>
+            <tr><td class="mono">ST-raven-087</td><td>4140 PH</td><td>Ryerson</td><td>H9032</td><td><span class="pill">Rack C1</span></td><td class="files-mini">📄 3 · 🖼 2</td></tr>
+            <tr><td class="mono">ST-bison-310</td><td>1018 CR</td><td>Metal Supermarkets</td><td>K2210</td><td><span class="pill">Bin 14</span></td><td class="files-mini">📄 1</td></tr>
+            <tr><td class="mono">TI-lynx-045</td><td>Ti-6Al-4V</td><td>TMS Titanium</td><td>T5567</td><td><span class="pill">Cage 2</span></td><td class="files-mini">📄 2</td></tr>
+            <tr><td class="mono">AL-heron-198</td><td>2024-T3</td><td>McMaster</td><td>A8841</td><td><span class="pill">Rack B5</span></td><td class="files-mini">📄 1 · 🖼 1</td></tr>
+            <tr><td class="mono">SS-marlin-072</td><td>304 SS</td><td>Ryerson</td><td>S3309</td><td><span class="pill">Rack D2</span></td><td class="files-mini">📄 2</td></tr>
+            <tr><td class="mono">SS-cobra-156</td><td>316L SS</td><td>Online Metals</td><td>S7741</td><td><span class="pill">Rack D3</span></td><td class="files-mini">📄 1</td></tr>
+            <tr><td class="mono">BR-falcon-019</td><td>C360 Brass</td><td>McMaster</td><td>BR221</td><td><span class="pill">Bin 7</span></td><td class="files-mini">🖼 1</td></tr>
+            <tr><td class="mono">AL-wolf-260</td><td>6063-T5</td><td>Metal Supermarkets</td><td>A1290</td><td><span class="pill">Rack B1</span></td><td class="files-mini">📄 2</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Right detail -->
+    <aside class="detail">
+      <div class="id">AL-falcon-104</div>
+      <div class="matname">6061-T6 Aluminum · McMaster</div>
+
+      <div class="meta-grid">
+        <div><div class="k">Material</div><div class="v">6061-T6</div></div>
+        <div><div class="k">Heat #</div><div class="v">A4921</div></div>
+        <div><div class="k">Supplier</div><div class="v">McMaster</div></div>
+        <div><div class="k">Location</div><div class="v">Rack B2</div></div>
+        <div><div class="k">Created</div><div class="v">2026-05-12</div></div>
+        <div><div class="k">Updated</div><div class="v">2026-05-26</div></div>
+      </div>
+
+      <div class="sec-title">Attachments (3)</div>
+      <div class="file-row"><span class="file-ico pdf">PDF</span><div><div class="fn">cert.pdf</div><div class="fs">Material cert · 248 KB</div></div></div>
+      <div class="file-row"><span class="file-ico pdf">PDF</span><div><div class="fn">mill-test-report.pdf</div><div class="fs">MTR · 512 KB</div></div></div>
+      <div class="file-row"><span class="file-ico img">IMG</span><div><div class="fn">photo.png</div><div class="fs">Stock photo · 1.2 MB</div></div></div>
+
+      <div class="sec-title">Label Preview</div>
+      <div class="label-card">
+        <div class="qr"></div>
+        <div class="lid">AL-falcon-104</div>
+        <div class="lsub">6061-T6 · Rack B2</div>
+      </div>
+
+      <div class="actions">
+        <button>Edit</button>
+        <button>Add Files</button>
+        <button>Open Folder</button>
+        <button>Regenerate</button>
+        <button class="full">🖨 Print Label</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Status bar -->
+  <div class="statusbar">
+    <span class="ok">● Library synced</span>
+    <span>Watching /Volumes/Shop/Main Shop</span>
+    <span class="grow"></span>
+    <span>Scanner: ready</span>
+    <span>1,284 materials</span>
+    <span>v0.2.0</span>
+  </div>
+</div>
+</body>
+</html>
