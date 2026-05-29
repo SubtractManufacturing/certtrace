@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "pnpm -w build:packages && tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
     "lint": "echo \"lint: not configured yet\"",
@@ -13,7 +13,14 @@
     "test": "echo \"test: not configured yet\""
   },
   "dependencies": {
+    "@certtrace/core": "workspace:*",
+    "@certtrace/file-storage": "workspace:*",
+    "@certtrace/library-engine": "workspace:*",
+    "@certtrace/types": "workspace:*",
+    "@certtrace/ui": "workspace:*",
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2",
+    "@tauri-apps/plugin-fs": "^2",
     "@tauri-apps/plugin-opener": "^2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

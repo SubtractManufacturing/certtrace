@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "name": "",
+  "idStrategy": "material-animal-number",
+  "labelTemplate": "standard-qr",
+  "searchAllFields": true
+}

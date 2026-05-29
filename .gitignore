@@ -6,6 +6,7 @@ node_modules/
 dist/
 build/
 target/
+packages/*/dist/
 
 # Tauri
 apps/desktop/src-tauri/target/
@@ -32,9 +33,10 @@ Desktop.ini
 npm-debug.log*
 pnpm-debug.log*
 
-# Test / local library fixtures
-.certtrace/
-fixtures/libraries/**/materials/
+# Test / local library fixtures (ignore attachments, keep metadata fixtures)
+fixtures/libraries/**/materials/*
+!fixtures/libraries/**/materials/**/
+!fixtures/libraries/**/materials/**/metadata.json
 
 # Coverage
 coverage/

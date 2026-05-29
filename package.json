@@ -6,15 +6,13 @@
   "license": "MIT",
   "scripts": {
     "dev": "pnpm --filter @certtrace/desktop tauri dev",
-    "build": "pnpm --filter @certtrace/desktop tauri build",
+    "build": "pnpm -w build:packages && pnpm --filter @certtrace/desktop tauri build",
+    "build:packages": "pnpm -r --filter \"@certtrace/*\" --filter \"!@certtrace/desktop\" build",
     "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "typecheck": "pnpm build:packages && pnpm -r typecheck",
+    "test": "pnpm build:packages && pnpm -r test"
   },
   "engines": {
     "node": ">=20"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
   }
 }

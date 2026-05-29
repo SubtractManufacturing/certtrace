@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "lists": {
+    "animals": {
+      "label": "Animals",
+      "words": ["falcon", "raven", "hamster", "orca"]
+    }
+  }
+}

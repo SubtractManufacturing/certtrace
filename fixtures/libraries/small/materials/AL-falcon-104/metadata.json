@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "id": "AL-falcon-104",
+  "material": "6061-T6",
+  "supplier": "McMaster",
+  "heat": "A4921",
+  "location": "Rack B2",
+  "tags": ["aluminum"],
+  "notes": "",
+  "barcode": "AL-falcon-104",
+  "createdAt": "2026-05-28T12:00:00.000Z",
+  "updatedAt": "2026-05-28T12:00:00.000Z"
+}

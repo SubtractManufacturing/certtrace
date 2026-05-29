@@ -24,9 +24,20 @@ macOS, Windows, and Linux are equally supported targets for v0.1.
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) 20+ (LTS recommended)
-- [pnpm](https://pnpm.io/installation) — `corepack enable && corepack prepare pnpm@latest --activate`
+- [pnpm](https://pnpm.io/installation) — install via standalone script or `corepack enable && corepack prepare pnpm@latest --activate`
 - [Rust](https://www.rust-lang.org/tools/install) — required for Tauri
 - [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS
+
+If `pnpm` is not found after install, reload your shell:
+
+```bash
+source ~/.zshrc   # macOS / Linux
+# or open a new terminal tab
+```
+
+The standalone installer sets `PNPM_HOME` (commonly `~/Library/pnpm` on macOS and `~/.local/share/pnpm` on Linux). Ensure `$PNPM_HOME` is on your `PATH`.
+
+Rust installs `cargo` under `~/.cargo/bin`; make sure `~/.cargo/env` is sourced in your shell before running `pnpm dev` / Tauri commands.
 
 ### Commands
 
