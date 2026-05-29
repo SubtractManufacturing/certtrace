@@ -34,7 +34,8 @@ npm-debug.log*
 pnpm-debug.log*
 
 # Test / local library fixtures (ignore attachments, keep metadata fixtures)
-fixtures/libraries/**/materials/**/*
+fixtures/libraries/**/materials/*
+!fixtures/libraries/**/materials/**/
 !fixtures/libraries/**/materials/**/metadata.json
 
 # Coverage
