@@ -12,6 +12,21 @@ export const materialDir = (materialId: string) => `${MATERIALS_DIR}/${materialI
 export const materialMetadataPath = (materialId: string) =>
   `${materialDir(materialId)}/metadata.json`;
 
+/** Join path segments for library layout (browser + Node safe). */
+export function joinPath(base: string, ...parts: string[]): string {
+  const separator = base.includes("\\") ? "\\" : "/";
+  let result = base.replace(/[/\\]+$/, "");
+
+  for (const part of parts) {
+    const cleaned = part.replace(/^[/\\]+|[/\\]+$/g, "");
+    if (cleaned) {
+      result += `${separator}${cleaned}`;
+    }
+  }
+
+  return result;
+}
+
 /** Filesystem-safe material IDs (folder names). */
 export const MATERIAL_ID_PATTERN = /^[A-Za-z0-9._-]+$/;
 

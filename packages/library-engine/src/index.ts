@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import { generateMaterialId } from "@certtrace/id-generator";
 import type { FileSystem } from "@certtrace/file-storage";
 import {
@@ -8,6 +7,7 @@ import {
   LIBRARY_PATHS,
   MATERIALS_DIR,
   NAMING_RULES_JSON,
+  joinPath,
   materialMetadataPath,
   materialMetadataV1Schema,
   WORD_LISTS_JSON,
@@ -72,12 +72,12 @@ export interface UpdateMaterialInput {
 export function getLibraryPaths(root: string): LibraryPaths {
   return {
     root,
-    certtrace: join(root, CERTTRACE_DIR),
-    materials: join(root, MATERIALS_DIR),
-    labels: join(root, LABELS_DIR),
-    libraryJson: join(root, LIBRARY_JSON),
-    namingRulesJson: join(root, NAMING_RULES_JSON),
-    wordListsJson: join(root, WORD_LISTS_JSON),
+    certtrace: joinPath(root, CERTTRACE_DIR),
+    materials: joinPath(root, MATERIALS_DIR),
+    labels: joinPath(root, LABELS_DIR),
+    libraryJson: joinPath(root, LIBRARY_JSON),
+    namingRulesJson: joinPath(root, NAMING_RULES_JSON),
+    wordListsJson: joinPath(root, WORD_LISTS_JSON),
   };
 }
 
@@ -193,7 +193,7 @@ export async function getMaterial(
   library: OpenLibraryResult,
   materialId: string,
 ): Promise<MaterialMetadataV1> {
-  const metadataPath = join(library.paths.root, materialMetadataPath(materialId));
+  const metadataPath = joinPath(library.paths.root, materialMetadataPath(materialId));
   return readValidatedJson(library.fs, metadataPath, materialMetadataV1Schema, "metadata.json");
 }
 
@@ -226,9 +226,9 @@ export async function createMaterial(
     updatedAt: now,
   };
 
-  const materialDir = join(library.paths.materials, id);
+  const materialDir = joinPath(library.paths.materials, id);
   await library.fs.mkdir(materialDir, { recursive: true });
-  await writeJson(library.fs, join(materialDir, "metadata.json"), metadata);
+  await writeJson(library.fs, joinPath(materialDir, "metadata.json"), metadata);
 
   return metadata;
 }
@@ -250,7 +250,7 @@ export async function updateMaterial(
 
   materialMetadataV1Schema.parse(updated);
 
-  const metadataPath = join(library.paths.root, materialMetadataPath(materialId));
+  const metadataPath = joinPath(library.paths.root, materialMetadataPath(materialId));
   await writeJson(library.fs, metadataPath, updated);
 
   return updated;
