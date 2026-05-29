@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import type { MaterialMetadataV1 } from "@certtrace/types";
+import type { MaterialMetadataV1, RecentLibraryEntryV1 } from "@certtrace/types";
 import type { OpenLibraryResult } from "@certtrace/library-engine";
+import { Button, Input } from "@certtrace/ui";
 import {
   addMaterial,
   createLibraryAtPath,
@@ -8,6 +9,8 @@ import {
   openLibraryAtPath,
   pickParentFolder,
 } from "../lib/library-client";
+import { forgetRecentLibrary, loadAppSettings } from "../lib/app-settings-client";
+import { onLibraryFsChanged, startLibraryWatch, stopLibraryWatch } from "../lib/library-watch";
 
 interface MaterialsViewProps {
   library: OpenLibraryResult;
@@ -41,6 +44,22 @@ export function MaterialsView({ library, libraryRoot, onCloseLibrary }: Material
     void refreshMaterials(library);
   }, [library, libraryRoot]);
 
+  useEffect(() => {
+    void startLibraryWatch(libraryRoot);
+
+    let unlisten: (() => void) | undefined;
+    void onLibraryFsChanged(() => {
+      void refreshMaterials(library);
+    }).then((dispose) => {
+      unlisten = dispose;
+    });
+
+    return () => {
+      unlisten?.();
+      void stopLibraryWatch();
+    };
+  }, [library, libraryRoot]);
+
   async function handleAddMaterial(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
@@ -72,13 +91,9 @@ export function MaterialsView({ library, libraryRoot, onCloseLibrary }: Material
             </p>
             <p className="mt-1 truncate text-sm text-slate-600">{libraryRoot}</p>
           </div>
-          <button
-            type="button"
-            onClick={onCloseLibrary}
-            className="rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
+          <Button type="button" variant="outline" onClick={onCloseLibrary}>
             Change library
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -88,8 +103,7 @@ export function MaterialsView({ library, libraryRoot, onCloseLibrary }: Material
           <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={handleAddMaterial}>
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-slate-700">ID prefix / material code</span>
-              <input
-                className="rounded-md border border-slate-200 px-3 py-2"
+              <Input
                 value={materialCode}
                 onChange={(event) => setMaterialCode(event.target.value)}
                 placeholder="AL"
@@ -97,8 +111,7 @@ export function MaterialsView({ library, libraryRoot, onCloseLibrary }: Material
             </label>
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-slate-700">Material</span>
-              <input
-                className="rounded-md border border-slate-200 px-3 py-2"
+              <Input
                 value={material}
                 onChange={(event) => setMaterial(event.target.value)}
                 placeholder="6061-T6"
@@ -106,36 +119,22 @@ export function MaterialsView({ library, libraryRoot, onCloseLibrary }: Material
             </label>
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-slate-700">Supplier</span>
-              <input
-                className="rounded-md border border-slate-200 px-3 py-2"
-                value={supplier}
-                onChange={(event) => setSupplier(event.target.value)}
-              />
+              <Input value={supplier} onChange={(event) => setSupplier(event.target.value)} />
             </label>
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-slate-700">Heat</span>
-              <input
-                className="rounded-md border border-slate-200 px-3 py-2"
-                value={heat}
-                onChange={(event) => setHeat(event.target.value)}
-              />
+              <Input value={heat} onChange={(event) => setHeat(event.target.value)} />
             </label>
             <label className="flex flex-col gap-1 text-sm sm:col-span-2">
               <span className="font-medium text-slate-700">Location</span>
-              <input
-                className="rounded-md border border-slate-200 px-3 py-2"
+              <Input
                 value={location}
                 onChange={(event) => setLocation(event.target.value)}
                 placeholder="Rack B2"
               />
             </label>
             <div className="sm:col-span-2">
-              <button
-                type="submit"
-                className="rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-              >
-                Add material
-              </button>
+              <Button type="submit">Add material</Button>
             </div>
           </form>
         </section>
@@ -192,8 +191,39 @@ interface WelcomeViewProps {
 
 export function WelcomeView({ onLibraryReady }: WelcomeViewProps) {
   const [libraryName, setLibraryName] = useState("Main Shop Materials");
+  const [recentLibraries, setRecentLibraries] = useState<RecentLibraryEntryV1[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    void loadAppSettings()
+      .then((settings) => setRecentLibraries(settings.recentLibraries))
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : String(err));
+      });
+  }, []);
+
+  async function openRecent(entry: RecentLibraryEntryV1) {
+    setBusy(true);
+    setError(null);
+    try {
+      const library = await openLibraryAtPath(entry.path);
+      onLibraryReady(entry.path, library);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRemoveRecent(path: string) {
+    try {
+      const settings = await forgetRecentLibrary(path);
+      setRecentLibraries(settings.recentLibraries);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
 
   async function handleOpenLibrary() {
     setBusy(true);
@@ -204,6 +234,7 @@ export function WelcomeView({ onLibraryReady }: WelcomeViewProps) {
         return;
       }
       const library = await openLibraryAtPath(root);
+      setRecentLibraries((await loadAppSettings()).recentLibraries);
       onLibraryReady(root, library);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -227,6 +258,7 @@ export function WelcomeView({ onLibraryReady }: WelcomeViewProps) {
         return;
       }
       const library = await createLibraryAtPath(parentDir, name);
+      setRecentLibraries((await loadAppSettings()).recentLibraries);
       onLibraryReady(library.paths.root, library);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -249,30 +281,60 @@ export function WelcomeView({ onLibraryReady }: WelcomeViewProps) {
 
         <label className="mt-6 flex flex-col gap-1 text-sm">
           <span className="font-medium text-slate-700">Library name</span>
-          <input
-            className="rounded-md border border-slate-200 px-3 py-2"
-            value={libraryName}
-            onChange={(event) => setLibraryName(event.target.value)}
-          />
+          <Input value={libraryName} onChange={(event) => setLibraryName(event.target.value)} />
         </label>
 
+        {recentLibraries.length > 0 ? (
+          <section className="mt-6">
+            <h2 className="text-sm font-semibold text-slate-700">Recent libraries</h2>
+            <ul className="mt-2 divide-y divide-slate-100 rounded-md border border-slate-200">
+              {recentLibraries.map((entry) => (
+                <li
+                  key={entry.path}
+                  className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
+                >
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void openRecent(entry)}
+                    className="min-w-0 flex-1 text-left hover:text-slate-900 disabled:opacity-50"
+                  >
+                    <span className="block truncate font-medium">{entry.name}</span>
+                    <span className="block truncate text-xs text-slate-500">{entry.path}</span>
+                  </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => void handleRemoveRecent(entry.path)}
+                  >
+                    Remove
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <button
+          <Button
             type="button"
+            variant="outline"
             disabled={busy}
+            className="flex-1"
             onClick={() => void handleOpenLibrary()}
-            className="flex-1 rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
           >
             Open library
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             disabled={busy}
+            className="flex-1"
             onClick={() => void handleCreateLibrary()}
-            className="flex-1 rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
           >
             Create library
-          </button>
+          </Button>
         </div>
 
         {error ? (

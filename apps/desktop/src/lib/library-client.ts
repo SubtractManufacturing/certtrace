@@ -8,6 +8,7 @@ import {
   type OpenLibraryResult,
 } from "@certtrace/library-engine";
 import type { MaterialMetadataV1 } from "@certtrace/types";
+import { recordRecentLibrary } from "./app-settings-client";
 import { createTauriFileSystem } from "./tauri-fs";
 
 const fs = createTauriFileSystem();
@@ -27,14 +28,18 @@ export async function pickParentFolder(title: string): Promise<string | null> {
 }
 
 export async function openLibraryAtPath(root: string): Promise<OpenLibraryResult> {
-  return openLibrary(fs, root);
+  const library = await openLibrary(fs, root);
+  await recordRecentLibrary(root, library.config.name);
+  return library;
 }
 
 export async function createLibraryAtPath(
   parentDir: string,
   name: string,
 ): Promise<OpenLibraryResult> {
-  return createLibrary(fs, parentDir, name);
+  const library = await createLibrary(fs, parentDir, name);
+  await recordRecentLibrary(library.paths.root, library.config.name);
+  return library;
 }
 
 export async function fetchMaterials(

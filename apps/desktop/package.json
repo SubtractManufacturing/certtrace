@@ -13,9 +13,11 @@
     "test": "echo \"test: not configured yet\""
   },
   "dependencies": {
+    "@certtrace/core": "workspace:*",
     "@certtrace/file-storage": "workspace:*",
     "@certtrace/library-engine": "workspace:*",
     "@certtrace/types": "workspace:*",
+    "@certtrace/ui": "workspace:*",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2",
     "@tauri-apps/plugin-fs": "^2",
