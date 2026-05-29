@@ -1,0 +1,20 @@
+{
+  "name": "certtrace",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Local-first material certification tracking for CNC job shops",
+  "license": "MIT",
+  "scripts": {
+    "dev": "pnpm --filter @certtrace/desktop tauri dev",
+    "build": "pnpm --filter @certtrace/desktop tauri build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}

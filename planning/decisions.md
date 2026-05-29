@@ -82,7 +82,7 @@ Settings include: theme, update preferences, recent libraries, window layout, an
 
 | Decision | Choice |
 |----------|--------|
-| **Organization** | Tied to **subtractmanufacturing.com**. Confirm exact GitHub org slug at repo creation (e.g. `SubtractManufacturing`). |
+| **Organization** | [SubtractManufacturing](https://github.com/SubtractManufacturing) (`subtractmanufacturing.com`) |
 | **Repository name** | `certtrace` (recommended) |
 | **Remote URL pattern** | `https://github.com/<org>/certtrace` |
 
@@ -141,6 +141,6 @@ These remain on the future roadmap in [spec.md](spec.md).
 
 | Item | When | Default if undecided |
 |------|------|----------------------|
-| GitHub org slug | Phase 0 repo creation | Confirm with org admin |
+| GitHub org slug | Phase 0 repo creation | **SubtractManufacturing** |
 | File watching library | Phase 1 `library-engine` | Rust `notify` via Tauri |
 | Update check frequency | Phase 3 updater | Manual "Check for updates" + optional weekly background check |
