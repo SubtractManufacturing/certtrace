@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "component": "certtrace",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "apps/desktop": {
+      "release-type": "node",
+      "component": "desktop",
+      "changelog-path": "CHANGELOG.md"
+    }
+  },
+  "plugins": ["sentence-case"]
+}
