@@ -14,6 +14,7 @@ import {
   type OpenLibraryResult,
   type UpdateMaterialInput,
 } from "@certtrace/library-engine";
+import { joinPath, libraryFolderName } from "@certtrace/types";
 import type {
   AttachedFile,
   LibraryConfigV1,
@@ -22,9 +23,14 @@ import type {
   WordListsV1,
 } from "@certtrace/types";
 import { recordRecentLibrary } from "./app-settings-client";
+import { allowLibraryDirectory } from "./library-scope";
 import { createTauriFileSystem } from "./tauri-fs";
 
 const fs = createTauriFileSystem();
+
+async function grantLibraryAccess(path: string): Promise<void> {
+  await allowLibraryDirectory(path);
+}
 
 export async function pickParentFolder(title: string): Promise<string | null> {
   const selected = await open({
@@ -37,10 +43,12 @@ export async function pickParentFolder(title: string): Promise<string | null> {
     return null;
   }
 
+  await grantLibraryAccess(selected);
   return selected;
 }
 
 export async function openLibraryAtPath(root: string): Promise<OpenLibraryResult> {
+  await grantLibraryAccess(root);
   const library = await openLibrary(fs, root);
   await recordRecentLibrary(library.paths.root, library.config.name);
   return library;
@@ -57,7 +65,11 @@ export async function createLibraryWithOptions(
   parentDir: string,
   options: CreateLibraryOptions,
 ): Promise<OpenLibraryResult> {
+  await grantLibraryAccess(parentDir);
+  const root = joinPath(parentDir, libraryFolderName(options.name));
+  await grantLibraryAccess(root);
   const library = await createLibrary(fs, parentDir, options);
+  await grantLibraryAccess(library.paths.root);
   await recordRecentLibrary(library.paths.root, library.config.name);
   return library;
 }
@@ -116,4 +128,10 @@ export async function fetchMaterialAttachments(
   materialId: string,
 ): Promise<AttachedFile[]> {
   return listMaterialAttachments(library, materialId);
+}
+
+export async function deleteLibraryFolder(path: string): Promise<void> {
+  const { remove } = await import("@tauri-apps/plugin-fs");
+  await grantLibraryAccess(path);
+  await remove(path, { recursive: true });
 }

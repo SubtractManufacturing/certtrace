@@ -15,12 +15,14 @@ vi.mock("../lib/app-settings-client", () => ({
       },
     ],
     checkForUpdates: true,
+    defaultLibraryOnLaunch: null,
   })),
   forgetRecentLibrary: vi.fn(async () => ({
     version: 1 as const,
     theme: "system" as const,
     recentLibraries: [],
     checkForUpdates: true,
+    defaultLibraryOnLaunch: null,
   })),
 }));
 

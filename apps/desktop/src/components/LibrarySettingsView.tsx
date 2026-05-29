@@ -71,7 +71,7 @@ export function LibrarySettingsView({ library, onLibraryUpdated }: LibrarySettin
     : null;
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-6">
+    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 overflow-auto px-6 py-6">
       <header>
         <h1 className="text-2xl font-semibold">Library settings</h1>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{library.config.name}</p>

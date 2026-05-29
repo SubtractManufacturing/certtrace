@@ -110,15 +110,19 @@ export function DialogContent({ className, children, ...props }: HTMLAttributes<
   if (!open) return null;
 
   return createPortal(
-    <>
-      <DialogOverlay />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/50"
+        aria-hidden
+        onClick={() => setOpen(false)}
+      />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-lg",
+          "relative z-10 grid w-full max-w-lg gap-4 rounded-lg border border-slate-200 bg-white p-6 text-slate-900 shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
           className,
         )}
         onClick={(event) => event.stopPropagation()}
@@ -126,7 +130,7 @@ export function DialogContent({ className, children, ...props }: HTMLAttributes<
       >
         {children}
       </div>
-    </>,
+    </div>,
     document.body,
   );
 }

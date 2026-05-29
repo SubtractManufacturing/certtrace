@@ -110,6 +110,7 @@ export async function createLibrary(
   }
 
   const root = joinPath(parentDir, folderName);
+  await fs.mkdir(parentDir, { recursive: true });
   await assertNewLibraryRoot(fs, root);
   await fs.mkdir(root, { recursive: true });
   await fs.writeFile(joinPath(root, LIBRARY_README), createLibraryReadme(options.name.trim()));

@@ -25,8 +25,8 @@ export function Switch({
       aria-checked={isChecked}
       disabled={disabled}
       className={cn(
-        "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50",
-        isChecked ? "bg-slate-900" : "bg-slate-200",
+        "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:ring-slate-500",
+        isChecked ? "bg-slate-900 dark:bg-slate-100" : "bg-slate-200 dark:bg-slate-700",
         className,
       )}
       onClick={(event) => {
@@ -42,8 +42,8 @@ export function Switch({
     >
       <span
         className={cn(
-          "pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
-          isChecked ? "translate-x-4" : "translate-x-0",
+          "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-sm transition-transform dark:bg-slate-950",
+          isChecked ? "translate-x-5" : "translate-x-0",
         )}
       />
     </button>

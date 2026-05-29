@@ -39,6 +39,20 @@ describe("createLibrary", () => {
     }
   });
 
+  it("creates a library when the parent directory does not exist yet", async () => {
+    const fs = createNodeFileSystem();
+    const parentDir = join(tmpdir(), `certtrace-new-parent-${Date.now()}`);
+
+    try {
+      const library = await createLibrary(fs, parentDir, "Nested Library");
+      expect(library.paths.root).toBe(join(parentDir, "Nested Library"));
+      const reopened = await openLibrary(fs, library.paths.root);
+      expect(reopened.config.name).toBe("Nested Library");
+    } finally {
+      await rm(parentDir, { recursive: true, force: true });
+    }
+  });
+
   it("creates expected relative paths inside the library folder", async () => {
     const fs = createNodeFileSystem();
     const parentDir = await mkdtemp(join(tmpdir(), "certtrace-lib-"));

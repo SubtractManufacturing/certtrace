@@ -1,27 +1,85 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ThemeProvider } from "@certtrace/ui";
+import type { DefaultLibraryOnLaunch } from "@certtrace/types";
 import { AppShell, type AppView } from "./components/AppShell";
 import { CreateLibraryWizard } from "./components/CreateLibraryWizard";
 import { ErrorBanner } from "./components/ErrorBanner";
 import { LibrarySettingsView } from "./components/LibrarySettingsView";
 import { MaterialsWorkspace } from "./components/MaterialsWorkspace";
 import { SettingsView } from "./components/SettingsView";
+import { UpdateAvailableBanner } from "./components/UpdateAvailableBanner";
 import { WelcomeView } from "./components/WelcomeView";
 import { useAppSettings } from "./hooks/useAppSettings";
 import { useLibrarySession } from "./hooks/useLibrarySession";
 import { useSearchIndex } from "./hooks/useSearchIndex";
+import { useUpdateCheck } from "./hooks/useUpdateCheck";
+import { forgetRecentLibrary } from "./lib/app-settings-client";
 import { onLibraryFsChanged, syncLibraryWatch } from "./lib/library-watch";
+import { openPathWithOpener } from "./lib/label-client";
+import { pickParentFolder, deleteLibraryFolder } from "./lib/library-client";
+
+async function bootstrapLibraries(
+  defaultLibraryOnLaunch: DefaultLibraryOnLaunch,
+  recentLibraries: { path: string }[],
+  openLibrary: (path: string) => Promise<unknown>,
+  setActiveLibraryPath: (path: string | "all" | null) => void,
+) {
+  if (defaultLibraryOnLaunch === "all") {
+    const paths = recentLibraries.map((entry) => entry.path);
+    if (paths.length === 0) {
+      return;
+    }
+    for (const path of paths) {
+      await openLibrary(path);
+    }
+    if (paths.length > 1) {
+      setActiveLibraryPath("all");
+    }
+    return;
+  }
+
+  const targetPath =
+    defaultLibraryOnLaunch ?? recentLibraries[0]?.path;
+
+  if (!targetPath) {
+    return;
+  }
+
+  await openLibrary(targetPath);
+}
 
 function App() {
-  const { settings, resolvedTheme, error: settingsError, setTheme, updateSettings } =
+  const { settings, resolvedTheme, loading: settingsLoading, error: settingsError, setTheme, updateSettings, refresh: refreshSettings } =
     useAppSettings();
   const session = useLibrarySession();
   const [activeView, setActiveView] = useState<AppView>("materials");
   const [showCreateWizard, setShowCreateWizard] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [bootstrapping, setBootstrapping] = useState(true);
+  const [removingLibrary, setRemovingLibrary] = useState(false);
+  const bootstrapAttempted = useRef(false);
+
+  const updateCheck = useUpdateCheck({
+    enabled: Boolean(settings?.checkForUpdates),
+    autoCheck: Boolean(settings?.checkForUpdates),
+  });
 
   const recentLibraries = settings?.recentLibraries ?? [];
+
+  const librariesForSettings = useMemo(() => {
+    const byPath = new Map(recentLibraries.map((entry) => [entry.path, entry]));
+    for (const [path, library] of session.sessionLibraries) {
+      if (!byPath.has(path)) {
+        byPath.set(path, {
+          path,
+          name: library.config.name,
+          lastOpenedAt: new Date().toISOString(),
+        });
+      }
+    }
+    return [...byPath.values()];
+  }, [recentLibraries, session.sessionLibraries]);
 
   const {
     indexedMaterials,
@@ -43,6 +101,35 @@ function App() {
       })),
     [session.sessionLibraries],
   );
+
+  useEffect(() => {
+    if (settingsLoading || bootstrapAttempted.current) {
+      return;
+    }
+
+    bootstrapAttempted.current = true;
+
+    void (async () => {
+      try {
+        await bootstrapLibraries(
+          settings?.defaultLibraryOnLaunch ?? null,
+          recentLibraries,
+          session.openLibrary,
+          session.setActiveLibraryPath,
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setBootstrapping(false);
+      }
+    })();
+  }, [settingsLoading, settings?.defaultLibraryOnLaunch, recentLibraries, session]);
+
+  useEffect(() => {
+    if (activeView === "settings") {
+      void refreshSettings();
+    }
+  }, [activeView, refreshSettings]);
 
   useEffect(() => {
     if (!session.hasSession || session.activeLibraryPath) {
@@ -90,10 +177,45 @@ function App() {
     setError(null);
     try {
       await session.openLibrary(path);
+      await refreshSettings();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleAddLibraryFromSettings() {
+    setError(null);
+    try {
+      const root = await pickParentFolder("Open CertTrace library folder");
+      if (!root) {
+        return;
+      }
+      await handleOpenLibrary(root);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function handleRemoveLibrary(path: string, deleteFolder: boolean) {
+    setRemovingLibrary(true);
+    setError(null);
+    try {
+      if (deleteFolder) {
+        await deleteLibraryFolder(path);
+      }
+      await forgetRecentLibrary(path);
+      session.removeLibraryFromSession(path);
+      if (settings?.defaultLibraryOnLaunch === path) {
+        await updateSettings({ defaultLibraryOnLaunch: null });
+      }
+      await refreshSettings();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      throw err;
+    } finally {
+      setRemovingLibrary(false);
     }
   }
 
@@ -102,6 +224,7 @@ function App() {
     setError(null);
     try {
       await session.createLibrary(parentDir, options);
+      await refreshSettings();
       setActiveView("materials");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -109,6 +232,16 @@ function App() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (settingsLoading || bootstrapping) {
+    return (
+      <ThemeProvider theme={resolvedTheme}>
+        <main className="flex min-h-screen items-center justify-center bg-slate-50 text-sm text-slate-600 dark:bg-slate-950 dark:text-slate-400">
+          Loading library…
+        </main>
+      </ThemeProvider>
+    );
   }
 
   if (!session.hasSession) {
@@ -139,6 +272,12 @@ function App() {
       ? session.sessionLibraries.get(session.activeLibraryPath)
       : undefined;
 
+  const settingsLibraryForMenu =
+    activeLibrary ??
+    (libraryOptions.length === 1
+      ? session.sessionLibraries.get(libraryOptions[0]!.path)
+      : undefined);
+
   return (
     <ThemeProvider theme={resolvedTheme}>
       <AppShell
@@ -147,7 +286,6 @@ function App() {
         libraries={libraryOptions}
         activeLibraryPath={session.activeLibraryPath}
         onLibraryChange={session.setActiveLibraryPath}
-        onAddLibrary={() => setShowCreateWizard(true)}
         onOpenLibrarySettings={() => setActiveView("library-settings")}
       >
         {activeView === "materials" ? (
@@ -166,14 +304,31 @@ function App() {
           <SettingsView
             theme={settings.theme}
             checkForUpdates={settings.checkForUpdates}
+            defaultLibraryOnLaunch={settings.defaultLibraryOnLaunch}
+            recentLibraries={librariesForSettings}
+            checkingForUpdates={updateCheck.checking}
+            updateAvailable={Boolean(updateCheck.updateInfo)}
+            updateError={updateCheck.error}
+            hasCheckedForUpdates={updateCheck.hasChecked}
+            removingLibrary={removingLibrary}
             onThemeChange={(theme) => void setTheme(theme)}
             onCheckForUpdatesChange={(value) => void updateSettings({ checkForUpdates: value })}
+            onDefaultLibraryChange={(value) => void updateSettings({ defaultLibraryOnLaunch: value })}
+            onAddLibrary={() => void handleAddLibraryFromSettings()}
+            onCreateLibrary={() => setShowCreateWizard(true)}
+            onRemoveLibrary={(path, deleteFolder) => handleRemoveLibrary(path, deleteFolder)}
+            onCheckForUpdatesNow={() => void updateCheck.checkNow()}
+            onUpdateNow={() => {
+              if (updateCheck.updateInfo) {
+                void openPathWithOpener(updateCheck.updateInfo.releaseUrl);
+              }
+            }}
           />
         ) : null}
 
-        {activeView === "library-settings" && activeLibrary ? (
+        {activeView === "library-settings" && settingsLibraryForMenu ? (
           <LibrarySettingsView
-            library={activeLibrary}
+            library={settingsLibraryForMenu}
             onLibraryUpdated={(library) => session.updateLibraryInSession(library)}
           />
         ) : null}
@@ -188,6 +343,13 @@ function App() {
           setShowCreateWizard(false);
         }}
       />
+
+      {updateCheck.updateInfo && !updateCheck.dismissed ? (
+        <UpdateAvailableBanner
+          updateInfo={updateCheck.updateInfo}
+          onDismiss={updateCheck.dismiss}
+        />
+      ) : null}
     </ThemeProvider>
   );
 }

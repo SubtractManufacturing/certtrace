@@ -151,17 +151,18 @@ export function MaterialsWorkspace({
   return (
     <div className="flex min-h-0 flex-1">
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="border-b border-slate-200 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-wrap items-center gap-3">
+        <header className="shrink-0 border-b border-slate-200 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center gap-3">
             <SearchInput
               id={searchInputId}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={searchPlaceholder}
-              className="min-w-[16rem] flex-1"
+              className="min-w-[16rem]"
             />
             <Button
               type="button"
+              className="shrink-0"
               disabled={activeLibraryPath === "all" || !activeLibraryPath}
               onClick={() => setAddOpen(true)}
             >
