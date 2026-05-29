@@ -1,0 +1,44 @@
+---
+name: Bug report
+description: Report a problem with CertTrace
+title: "[bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        CertTrace does not collect telemetry. Please paste any error details below.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open library …
+        2. Click …
+        3. See error
+  - type: input
+    id: version
+    attributes:
+      label: CertTrace version
+      placeholder: e.g. 0.1.0
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+  - type: textarea
+    id: error-trace
+    attributes:
+      label: Error trace
+      description: Paste the full error message or stack trace (copy from app if available). Nothing is uploaded automatically.
+      render: shell
