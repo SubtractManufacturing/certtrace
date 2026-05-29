@@ -1,7 +1,4 @@
 {
-  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/manifest.json",
-  "packages": {
-    ".": "0.0.0",
-    "apps/desktop": "0.0.0"
-  }
+  ".": "0.0.0",
+  "apps/desktop": "0.0.0"
 }
