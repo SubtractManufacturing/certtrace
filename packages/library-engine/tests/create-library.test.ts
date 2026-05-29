@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createNodeFileSystem } from "@certtrace/file-storage";
+import { createNodeFileSystem } from "@certtrace/file-storage/node";
 import {
   CERTTRACE_DIR,
   LABELS_DIR,
