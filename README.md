@@ -35,9 +35,9 @@ source ~/.zshrc   # macOS / Linux
 # or open a new terminal tab
 ```
 
-pnpm is installed to `~/Library/pnpm/bin` by the standalone installer.
+The standalone installer sets `PNPM_HOME` (commonly `~/Library/pnpm` on macOS and `~/.local/share/pnpm` on Linux). Ensure `$PNPM_HOME` is on your `PATH`.
 
-Rust installs `cargo` to `~/.cargo/bin`. The shell snippet above also sources `~/.cargo/env` — required for `pnpm dev` / Tauri.
+Rust installs `cargo` under `~/.cargo/bin`; make sure `~/.cargo/env` is sourced in your shell before running `pnpm dev` / Tauri commands.
 
 ### Commands
 

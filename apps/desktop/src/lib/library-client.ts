@@ -29,7 +29,7 @@ export async function pickParentFolder(title: string): Promise<string | null> {
 
 export async function openLibraryAtPath(root: string): Promise<OpenLibraryResult> {
   const library = await openLibrary(fs, root);
-  await recordRecentLibrary(root, library.config.name);
+  await recordRecentLibrary(library.paths.root, library.config.name);
   return library;
 }
 

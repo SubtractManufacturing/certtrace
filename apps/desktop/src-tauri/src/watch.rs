@@ -20,8 +20,8 @@ pub fn start_library_watch(
 ) -> Result<(), String> {
     let app_handle = app.clone();
     let mut watcher = RecommendedWatcher::new(
-        move |result: Result<notify::Event, notify::Error>| {
-            if let Ok(event) = result {
+        move |result: Result<notify::Event, notify::Error>| match result {
+            Ok(event) => {
                 let payload = LibraryWatchEvent {
                     kind: format!("{:?}", event.kind),
                     paths: event
@@ -31,6 +31,9 @@ pub fn start_library_watch(
                         .collect(),
                 };
                 let _ = app_handle.emit("library-fs-changed", payload);
+            }
+            Err(error) => {
+                let _ = app_handle.emit("library-fs-watch-error", error.to_string());
             }
         },
         Config::default(),

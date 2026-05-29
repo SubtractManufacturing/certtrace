@@ -21,6 +21,7 @@ interface MaterialsViewProps {
 export function MaterialsView({ library, libraryRoot, onCloseLibrary }: MaterialsViewProps) {
   const [materials, setMaterials] = useState<MaterialMetadataV1[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [materialCode, setMaterialCode] = useState("AL");
   const [material, setMaterial] = useState("");
@@ -48,13 +49,21 @@ export function MaterialsView({ library, libraryRoot, onCloseLibrary }: Material
     void startLibraryWatch(libraryRoot);
 
     let unlisten: (() => void) | undefined;
-    void onLibraryFsChanged(() => {
-      void refreshMaterials(library);
-    }).then((dispose) => {
-      unlisten = dispose;
-    });
+    let mounted = true;
+
+    void (async () => {
+      const dispose = await onLibraryFsChanged(() => {
+        void refreshMaterials(library);
+      });
+      if (mounted) {
+        unlisten = dispose;
+      } else {
+        dispose();
+      }
+    })();
 
     return () => {
+      mounted = false;
       unlisten?.();
       void stopLibraryWatch();
     };
@@ -62,6 +71,10 @@ export function MaterialsView({ library, libraryRoot, onCloseLibrary }: Material
 
   async function handleAddMaterial(event: React.FormEvent) {
     event.preventDefault();
+    if (submitting) {
+      return;
+    }
+    setSubmitting(true);
     setError(null);
     try {
       await addMaterial(library, {
@@ -78,6 +91,8 @@ export function MaterialsView({ library, libraryRoot, onCloseLibrary }: Material
       await refreshMaterials(library);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -134,7 +149,9 @@ export function MaterialsView({ library, libraryRoot, onCloseLibrary }: Material
               />
             </label>
             <div className="sm:col-span-2">
-              <Button type="submit">Add material</Button>
+              <Button type="submit" disabled={submitting}>
+                Add material
+              </Button>
             </div>
           </form>
         </section>

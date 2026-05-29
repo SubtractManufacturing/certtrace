@@ -1,4 +1,4 @@
-import type { FileSystem } from "@certtrace/file-storage";
+import { isNotFoundError, type FileSystem } from "@certtrace/file-storage";
 import {
   APP_SETTINGS_FILENAME,
   appSettingsV1Schema,
@@ -37,7 +37,11 @@ export async function readAppSettings(
       throw error;
     }
 
-    return createDefaultAppSettingsV1();
+    if (isNotFoundError(error)) {
+      return createDefaultAppSettingsV1();
+    }
+
+    throw error;
   }
 }
 

@@ -1,5 +1,5 @@
 import { generateMaterialId } from "@certtrace/id-generator";
-import type { FileSystem } from "@certtrace/file-storage";
+import { isNotFoundError, type FileSystem } from "@certtrace/file-storage";
 import {
   CERTTRACE_DIR,
   LABELS_DIR,
@@ -96,11 +96,15 @@ async function assertNewLibraryRoot(fs: FileSystem, root: string): Promise<void>
     if (hasCerttrace) {
       throw new LibraryError(`A CertTrace library already exists at ${root}`);
     }
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof LibraryError) {
       throw error;
     }
-    // Root does not exist yet — createLibrary will create it.
+    if (isNotFoundError(error)) {
+      // Root does not exist yet — createLibrary will create it.
+      return;
+    }
+    throw new LibraryError(`Unable to inspect library root at ${root}: ${String(error)}`);
   }
 }
 
@@ -207,8 +211,13 @@ export async function listMaterialIds(library: OpenLibraryResult): Promise<strin
   try {
     const entries = await library.fs.readdir(library.paths.materials);
     return entries.filter((entry) => entry.isDirectory).map((entry) => entry.name).sort();
-  } catch {
-    return [];
+  } catch (error: unknown) {
+    if (isNotFoundError(error)) {
+      return [];
+    }
+    throw new LibraryError(
+      `Unable to list materials in ${library.paths.materials}: ${String(error)}`,
+    );
   }
 }
 
@@ -246,7 +255,7 @@ export async function createMaterial(
   });
 
   const now = new Date().toISOString();
-  const metadata: MaterialMetadataV1 = {
+  const metadata = materialMetadataV1Schema.parse({
     version: 1,
     id,
     material: input.material ?? "",
@@ -258,7 +267,7 @@ export async function createMaterial(
     barcode: id,
     createdAt: now,
     updatedAt: now,
-  };
+  });
 
   const materialDir = joinPath(library.paths.materials, id);
   await library.fs.mkdir(materialDir, { recursive: true });
