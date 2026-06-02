@@ -60,9 +60,23 @@ export function MaterialDetailPanel({
   }, [material]);
 
   useEffect(() => {
+    let cancelled = false;
+
     void fetchMaterialAttachments(library, material.id)
-      .then(setAttachments)
-      .catch((err) => setError(err instanceof Error ? err.message : String(err)));
+      .then((result) => {
+        if (!cancelled) {
+          setAttachments(result);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : String(err));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [library, material.id]);
 
   useEffect(() => {

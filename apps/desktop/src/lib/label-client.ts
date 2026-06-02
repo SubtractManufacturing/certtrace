@@ -59,6 +59,9 @@ export async function printLabelPdfFromObjectUrl(
   materialId: string,
 ): Promise<void> {
   const response = await fetch(objectUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to read label data (${response.status})`);
+  }
   const bytes = new Uint8Array(await response.arrayBuffer());
   await printLabelPdf(bytes, materialId);
 }

@@ -6,6 +6,19 @@ use tauri_plugin_fs::FsExt;
 fn open_with_default_app(path: &Path) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
+        if path.is_dir() {
+            let status = Command::new("open")
+                .arg(path)
+                .status()
+                .map_err(|err| format!("Failed to open folder: {err}"))?;
+
+            if status.success() {
+                return Ok(());
+            }
+
+            return Err("Could not open this folder.".to_string());
+        }
+
         let output = Command::new("open")
             .arg(path)
             .output()
@@ -85,13 +98,17 @@ fn open_with_default_app(path: &Path) -> Result<(), String> {
 pub fn open_local_path(app: tauri::AppHandle, path: String) -> Result<(), String> {
     let path = Path::new(&path);
 
-    if !app.fs_scope().is_allowed(path) {
-        return Err("Access to this path is not allowed.".to_string());
+    if !path.exists() {
+        return Err(format!("Path not found: {}", path.display()));
     }
 
     let canonical = path
         .canonicalize()
         .map_err(|err| format!("File not found: {err}"))?;
+
+    if !app.fs_scope().is_allowed(&canonical) {
+        return Err("Access to this path is not allowed.".to_string());
+    }
 
     open_with_default_app(&canonical)
 }

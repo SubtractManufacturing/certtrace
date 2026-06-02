@@ -41,7 +41,7 @@ describe("createLibrary", () => {
 
   it("creates a library when the parent directory does not exist yet", async () => {
     const fs = createNodeFileSystem();
-    const parentDir = join(tmpdir(), `certtrace-new-parent-${Date.now()}`);
+    const parentDir = await mkdtemp(join(tmpdir(), "certtrace-new-parent-"));
 
     try {
       const library = await createLibrary(fs, parentDir, "Nested Library");

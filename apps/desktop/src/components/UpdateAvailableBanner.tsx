@@ -28,7 +28,15 @@ export function UpdateAvailableBanner({ updateInfo, onDismiss }: UpdateAvailable
         </button>
       </div>
       <div className="mt-3 flex gap-2">
-        <Button type="button" size="sm" onClick={() => void openPathWithOpener(updateInfo.releaseUrl)}>
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => {
+            void openPathWithOpener(updateInfo.releaseUrl).catch((err) => {
+              console.error("Failed to open update URL:", err);
+            });
+          }}
+        >
           Update now
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={onDismiss}>

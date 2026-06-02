@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { appDataDir } from "@tauri-apps/api/path";
+import { mkdir } from "@tauri-apps/plugin-fs";
+import { openPath } from "@tauri-apps/plugin-opener";
 import type { AppSettingsTheme, DefaultLibraryOnLaunch, RecentLibraryEntryV1 } from "@certtrace/types";
 import { Button, Label, Select, Switch } from "@certtrace/ui";
 import { FolderOpen, Plus } from "lucide-react";
 import { APP_VERSION } from "../lib/update-check";
-import { openPathWithOpener } from "../lib/label-client";
 import { RemoveLibraryDialog } from "./RemoveLibraryDialog";
+import { ErrorBanner } from "./ErrorBanner";
 
 interface SettingsViewProps {
   theme: AppSettingsTheme;
@@ -49,9 +51,18 @@ export function SettingsView({
   onUpdateNow,
 }: SettingsViewProps) {
   const [libraryToRemove, setLibraryToRemove] = useState<RecentLibraryEntryV1 | null>(null);
+  const [appDataError, setAppDataError] = useState<string | null>(null);
+  const [removeLibraryError, setRemoveLibraryError] = useState<string | null>(null);
 
   async function openAppDataFolder() {
-    await openPathWithOpener(await appDataDir());
+    setAppDataError(null);
+    try {
+      const dir = await appDataDir();
+      await mkdir(dir, { recursive: true });
+      await openPath(dir);
+    } catch (err) {
+      setAppDataError(err instanceof Error ? err.message : String(err));
+    }
   }
 
   const launchOptions = recentLibraries;
@@ -186,6 +197,11 @@ export function SettingsView({
             material data is sent to the cloud unless you explicitly export or share files.
           </p>
           <p className="mt-2 text-sm text-slate-500">Version {APP_VERSION}</p>
+          {appDataError ? (
+            <div className="mt-4">
+              <ErrorBanner message={appDataError} />
+            </div>
+          ) : null}
           <Button type="button" variant="outline" className="mt-4" onClick={() => void openAppDataFolder()}>
             <FolderOpen className="mr-2 h-4 w-4" />
             Open app data folder
@@ -196,13 +212,24 @@ export function SettingsView({
       <RemoveLibraryDialog
         entry={libraryToRemove}
         busy={removingLibrary}
-        onClose={() => setLibraryToRemove(null)}
+        onClose={() => {
+          setLibraryToRemove(null);
+          setRemoveLibraryError(null);
+        }}
         onConfirm={(path, deleteFolder) => {
+          setRemoveLibraryError(null);
           void onRemoveLibrary(path, deleteFolder)
             .then(() => setLibraryToRemove(null))
-            .catch(() => undefined);
+            .catch((err) => {
+              setRemoveLibraryError(err instanceof Error ? err.message : String(err));
+            });
         }}
       />
+      {removeLibraryError ? (
+        <div className="fixed bottom-4 left-4 right-4 mx-auto max-w-lg">
+          <ErrorBanner message={removeLibraryError} />
+        </div>
+      ) : null}
     </>
   );
 }

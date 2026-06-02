@@ -1,5 +1,6 @@
-export const APP_VERSION = "0.0.0";
-const RELEASES_URL = "https://api.github.com/repos/SubtractManufacturing/certtrace/releases";
+export const APP_VERSION = __APP_VERSION__;
+const RELEASES_URL =
+  "https://api.github.com/repos/SubtractManufacturing/certtrace/releases/latest";
 
 export interface UpdateInfo {
   latestVersion: string;
@@ -38,7 +39,7 @@ export function isNewerVersion(latest: string, current: string): boolean {
 }
 
 export async function checkForUpdates(): Promise<UpdateCheckResult> {
-  const response = await fetch(`${RELEASES_URL}?per_page=1`, {
+  const response = await fetch(RELEASES_URL, {
     headers: { Accept: "application/vnd.github+json" },
   });
 
@@ -50,20 +51,15 @@ export async function checkForUpdates(): Promise<UpdateCheckResult> {
     throw new Error(`Update check failed (${response.status})`);
   }
 
-  const releases = (await response.json()) as Array<{
+  const latest = (await response.json()) as {
     tag_name?: string;
     html_url?: string;
     body?: string;
-  }>;
+  };
 
-  if (releases.length === 0) {
-    return { status: "no-releases" };
-  }
-
-  const latest = releases[0];
-  const latestVersion = latest?.tag_name?.replace(/^v/, "") ?? "";
-  const releaseUrl = latest?.html_url ?? "";
-  const releaseNotes = latest?.body ?? "";
+  const latestVersion = latest.tag_name?.replace(/^v/, "") ?? "";
+  const releaseUrl = latest.html_url ?? "";
+  const releaseNotes = latest.body ?? "";
 
   if (!latestVersion || !releaseUrl) {
     throw new Error("Update check returned an invalid release payload");

@@ -62,7 +62,15 @@ export function RemoveLibraryDialog({
           />
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={() => {
+              setDeleteFolder(false);
+              onClose();
+            }}
+          >
             Cancel
           </Button>
           <Button

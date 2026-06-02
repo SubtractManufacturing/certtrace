@@ -273,7 +273,10 @@ function App() {
           open={showCreateWizard}
           busy={busy}
           onClose={() => setShowCreateWizard(false)}
-          onCreate={handleCreateLibrary}
+          onCreate={async (parentDir, options) => {
+            await handleCreateLibrary(parentDir, options);
+            setShowCreateWizard(false);
+          }}
         />
         {error || settingsError ? (
           <div className="fixed bottom-4 left-4 right-4 mx-auto max-w-lg">
