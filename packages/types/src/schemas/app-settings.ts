@@ -19,9 +19,11 @@ export const appSettingsV1Schema = z.object({
   theme: appSettingsThemeSchema,
   recentLibraries: z.array(recentLibraryEntryV1Schema),
   checkForUpdates: z.boolean(),
+  defaultLibraryOnLaunch: z.union([z.string().min(1), z.literal("all")]).nullable().default(null),
 });
 
 export type AppSettingsV1 = z.infer<typeof appSettingsV1Schema>;
+export type DefaultLibraryOnLaunch = AppSettingsV1["defaultLibraryOnLaunch"];
 
 export const APP_SETTINGS_FILENAME = "settings.json";
 
@@ -31,5 +33,6 @@ export function createDefaultAppSettingsV1(): AppSettingsV1 {
     theme: "system",
     recentLibraries: [],
     checkForUpdates: true,
+    defaultLibraryOnLaunch: null,
   };
 }

@@ -158,3 +158,10 @@ export function previewMaterialId(
     random: input.random ?? (() => 0),
   });
 }
+
+export {
+  segmentsToTemplate,
+  parseTemplateToSegments,
+  strategyFromSegments,
+  type TemplateSegment,
+} from "./template-segments.js";

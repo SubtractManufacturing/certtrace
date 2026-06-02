@@ -3,7 +3,12 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 export interface LibraryWatchEvent {
   kind: string;
+  root: string;
   paths: string[];
+}
+
+export async function syncLibraryWatch(roots: string[]): Promise<void> {
+  await invoke("sync_library_watch", { roots });
 }
 
 export async function startLibraryWatch(root: string): Promise<void> {

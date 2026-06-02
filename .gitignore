@@ -40,3 +40,6 @@ fixtures/libraries/**/materials/*
 
 # Coverage
 coverage/
+
+todos.md
+.cursor

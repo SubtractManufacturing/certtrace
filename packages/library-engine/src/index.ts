@@ -12,14 +12,8 @@ import {
   libraryFolderName,
   materialMetadataPath,
   WORD_LISTS_JSON,
-  createDefaultLibraryConfigV1,
-  defaultNamingRulesV1,
-  defaultWordListsV1,
   materialMetadataV1Schema,
-  type LibraryConfigV1,
   type MaterialMetadataV1,
-  type NamingRulesV1,
-  type WordListsV1,
 } from "@certtrace/types";
 import { createLibraryReadme } from "./readme.js";
 import {
@@ -29,49 +23,42 @@ import {
   migrateWordLists,
 } from "./migrations/index.js";
 import { LibraryError } from "./errors.js";
+import { buildCreateLibraryConfig, type CreateLibraryOptions } from "./library-config.js";
+import type { CreateMaterialInput, OpenLibraryResult, UpdateMaterialInput } from "./types.js";
 
-export { LibraryError };
+export {
+  type LibraryPaths,
+  type OpenLibraryResult,
+  type CreateMaterialInput,
+  type UpdateMaterialInput,
+} from "./types.js";
+export { LibraryError } from "./errors.js";
+export {
+  type CreateLibraryOptions,
+  updateLibraryConfig,
+  updateNamingRules,
+  updateWordLists,
+  addNamingStrategy,
+  duplicateNamingStrategy,
+  renameNamingStrategy,
+  deleteNamingStrategy,
+  validateStrategyEntropy,
+  defaultNamingRulesV1,
+  defaultWordListsV1,
+} from "./library-config.js";
+export {
+  listMaterialAttachments,
+  attachFiles,
+  removeMaterialAttachment,
+  getMaterialAttachmentPath,
+  getMaterialFolderPath,
+  attachmentKindLabel,
+  type AttachFileSource,
+} from "./attachments.js";
 
-export interface LibraryPaths {
-  root: string;
-  certtrace: string;
-  materials: string;
-  labels: string;
-  libraryJson: string;
-  namingRulesJson: string;
-  wordListsJson: string;
-}
+const METADATA_FILENAME = "metadata.json";
 
-export interface OpenLibraryResult {
-  fs: FileSystem;
-  paths: LibraryPaths;
-  config: LibraryConfigV1;
-  namingRules: NamingRulesV1;
-  wordLists: WordListsV1;
-}
-
-export interface CreateMaterialInput {
-  material?: string;
-  supplier?: string;
-  heat?: string;
-  location?: string;
-  tags?: string[];
-  notes?: string;
-  /** Prefix/code used in ID templates (`{material}` token), e.g. `AL`. */
-  materialCode?: string;
-}
-
-export interface UpdateMaterialInput {
-  material?: string;
-  supplier?: string;
-  heat?: string;
-  location?: string;
-  tags?: string[];
-  notes?: string;
-  barcode?: string;
-}
-
-export function getLibraryPaths(root: string): LibraryPaths {
+export function getLibraryPaths(root: string) {
   return {
     root,
     certtrace: joinPath(root, CERTTRACE_DIR),
@@ -101,7 +88,6 @@ async function assertNewLibraryRoot(fs: FileSystem, root: string): Promise<void>
       throw error;
     }
     if (isNotFoundError(error)) {
-      // Root does not exist yet — createLibrary will create it.
       return;
     }
     throw new LibraryError(`Unable to inspect library root at ${root}: ${String(error)}`);
@@ -111,19 +97,23 @@ async function assertNewLibraryRoot(fs: FileSystem, root: string): Promise<void>
 export async function createLibrary(
   fs: FileSystem,
   parentDir: string,
-  name: string,
+  nameOrOptions: string | CreateLibraryOptions,
 ): Promise<OpenLibraryResult> {
+  const options: CreateLibraryOptions =
+    typeof nameOrOptions === "string" ? { name: nameOrOptions } : nameOrOptions;
+
   let folderName: string;
   try {
-    folderName = libraryFolderName(name);
+    folderName = libraryFolderName(options.name);
   } catch {
     throw new LibraryError("Library name cannot be empty");
   }
 
   const root = joinPath(parentDir, folderName);
+  await fs.mkdir(parentDir, { recursive: true });
   await assertNewLibraryRoot(fs, root);
   await fs.mkdir(root, { recursive: true });
-  await fs.writeFile(joinPath(root, LIBRARY_README), createLibraryReadme(name.trim()));
+  await fs.writeFile(joinPath(root, LIBRARY_README), createLibraryReadme(options.name.trim()));
 
   const paths = getLibraryPaths(root);
 
@@ -131,9 +121,7 @@ export async function createLibrary(
   await fs.mkdir(paths.materials, { recursive: true });
   await fs.mkdir(paths.labels, { recursive: true });
 
-  const config = createDefaultLibraryConfigV1(name.trim());
-  const namingRules = defaultNamingRulesV1;
-  const wordLists = defaultWordListsV1;
+  const { config, namingRules, wordLists } = buildCreateLibraryConfig(options);
 
   await writeJson(fs, paths.libraryJson, config);
   await writeJson(fs, paths.namingRulesJson, namingRules);
@@ -269,9 +257,9 @@ export async function createMaterial(
     updatedAt: now,
   });
 
-  const materialDir = joinPath(library.paths.materials, id);
-  await library.fs.mkdir(materialDir, { recursive: true });
-  await writeJson(library.fs, joinPath(materialDir, "metadata.json"), metadata);
+  const materialDirPath = joinPath(library.paths.materials, id);
+  await library.fs.mkdir(materialDirPath, { recursive: true });
+  await writeJson(library.fs, joinPath(materialDirPath, METADATA_FILENAME), metadata);
 
   return metadata;
 }

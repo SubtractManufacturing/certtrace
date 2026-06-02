@@ -1,1 +1,154 @@
 @import "tailwindcss";
+
+@source "../../packages/ui/src/**/*.tsx";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --background: 248 250 252;
+    --foreground: 15 23 42;
+    --card: 255 255 255;
+    --card-foreground: 15 23 42;
+    --popover: 255 255 255;
+    --popover-foreground: 15 23 42;
+    --primary: 51 65 85;
+    --primary-foreground: 248 250 252;
+    --secondary: 241 245 249;
+    --secondary-foreground: 15 23 42;
+    --muted: 241 245 249;
+    --muted-foreground: 100 116 139;
+    --accent: 241 245 249;
+    --accent-foreground: 15 23 42;
+    --destructive: 239 68 68;
+    --destructive-foreground: 248 250 252;
+    --border: 226 232 240;
+    --input: 226 232 240;
+    --ring: 148 163 184;
+    --radius: 0.5rem;
+    --sidebar: 241 245 249;
+    --sidebar-foreground: 15 23 42;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --background: 2 6 23;
+    --foreground: 248 250 252;
+    --card: 15 23 42;
+    --card-foreground: 248 250 252;
+    --popover: 15 23 42;
+    --popover-foreground: 248 250 252;
+    --primary: 226 232 240;
+    --primary-foreground: 15 23 42;
+    --secondary: 30 41 59;
+    --secondary-foreground: 248 250 252;
+    --muted: 30 41 59;
+    --muted-foreground: 148 163 184;
+    --accent: 30 41 59;
+    --accent-foreground: 248 250 252;
+    --destructive: 127 29 29;
+    --destructive-foreground: 248 250 252;
+    --border: 30 41 59;
+    --input: 30 41 59;
+    --ring: 100 116 139;
+    --sidebar: 15 23 42;
+    --sidebar-foreground: 248 250 252;
+  }
+
+  * {
+    border-color: rgb(var(--border));
+  }
+
+  body {
+    background-color: rgb(var(--background));
+    color: rgb(var(--foreground));
+  }
+}
+
+@layer components {
+  .certtrace-switch {
+    display: inline-flex;
+    height: 1.75rem;
+    width: 3rem;
+    flex-shrink: 0;
+    cursor: pointer;
+    align-items: center;
+    border: none;
+    border-radius: 9999px;
+    padding: 0.125rem;
+    background-color: rgb(203 213 225);
+    transition: background-color 200ms ease-in-out;
+  }
+
+  .certtrace-switch:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgb(var(--background)), 0 0 0 4px rgb(var(--ring));
+  }
+
+  .certtrace-switch[data-state="checked"] {
+    background-color: rgb(51 65 85);
+  }
+
+  .certtrace-switch:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .certtrace-switch-thumb {
+    display: block;
+    height: 1.5rem;
+    width: 1.5rem;
+    border-radius: 9999px;
+    background-color: rgb(255 255 255);
+    box-shadow: 0 1px 3px rgb(15 23 42 / 0.15);
+    transition: transform 200ms ease-in-out;
+    transform: translateX(0);
+  }
+
+  .certtrace-switch[data-state="checked"] .certtrace-switch-thumb {
+    transform: translateX(1.25rem);
+  }
+
+  .dark .certtrace-switch {
+    background-color: rgb(71 85 105);
+  }
+
+  .dark .certtrace-switch[data-state="checked"] {
+    background-color: rgb(226 232 240);
+  }
+
+  .dark .certtrace-switch[data-state="checked"] .certtrace-switch-thumb {
+    background-color: rgb(15 23 42);
+  }
+
+  .certtrace-sheet-root {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+  }
+
+  .certtrace-sheet-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgb(0 0 0 / 0.5);
+  }
+
+  .certtrace-sheet-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    display: flex;
+    width: 100%;
+    max-width: 28rem;
+    flex-direction: column;
+    overflow-y: auto;
+    border-left: 1px solid rgb(var(--border));
+    background-color: rgb(var(--card));
+    color: rgb(var(--card-foreground));
+    padding: 1.5rem;
+    box-shadow: 0 10px 15px rgb(15 23 42 / 0.1);
+  }
+}
