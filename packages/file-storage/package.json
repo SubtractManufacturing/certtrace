@@ -24,7 +24,7 @@
     "lint": "echo \"lint: not configured yet\""
   },
   "devDependencies": {
-    "@types/node": "^22.15.32",
+    "@types/node": "^25.9.1",
     "typescript": "~5.8.3"
   }
 }
