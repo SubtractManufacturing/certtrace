@@ -104,19 +104,23 @@ export function WelcomeView({ busy = false, onOpenLibrary, onStartCreateLibrary 
           </section>
         ) : null}
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-6 flex flex-col items-center gap-3">
           <Button
             type="button"
-            variant="outline"
             disabled={busy}
-            className="flex-1"
+            className="h-11 w-full max-w-sm bg-sky-500 text-white shadow-sm hover:bg-sky-400 dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300"
+            onClick={onStartCreateLibrary}
+          >
+            Create library
+          </Button>
+          <button
+            type="button"
+            disabled={busy}
+            className="h-8 w-full max-w-sm text-xs font-medium text-slate-500 transition-colors hover:text-slate-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:pointer-events-none disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200 dark:focus-visible:ring-slate-500"
             onClick={() => void handleOpenLibrary()}
           >
             Open library
-          </Button>
-          <Button type="button" disabled={busy} className="flex-1" onClick={onStartCreateLibrary}>
-            Create library
-          </Button>
+          </button>
         </div>
 
         {error ? (
