@@ -158,7 +158,7 @@ export function DialogTitle({ className, ...props }: HTMLAttributes<HTMLHeadingE
 export function DialogDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
   const { descriptionId } = useDialogContext("DialogDescription");
   return (
-    <p id={descriptionId} className={cn("text-sm text-slate-500", className)} {...props} />
+    <p id={descriptionId} className={cn("text-sm text-slate-500 dark:text-slate-400", className)} {...props} />
   );
 }
 

@@ -2,6 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import type { FileSystem } from "@certtrace/file-storage";
 import { createNodeFileSystem } from "@certtrace/file-storage/node";
 import { createDefaultAppSettingsV1 } from "@certtrace/types";
 import {
@@ -10,6 +11,9 @@ import {
   touchRecentLibrary,
   writeAppSettings,
 } from "../src/app-settings.js";
+
+const WINDOWS_SETTINGS_READ_ERROR =
+  "failed to open file at path: C:\\Users\\test\\AppData\\Roaming\\com.subtractmanufacturing.certtrace/settings.json with error: The system cannot find the file specified. (os error 2)";
 
 describe("app settings", () => {
   it("returns defaults when settings file is missing", async () => {
@@ -22,6 +26,48 @@ describe("app settings", () => {
     } finally {
       await rm(settingsDir, { recursive: true, force: true });
     }
+  });
+
+  it("returns defaults when read throws a Windows Tauri missing-path string", async () => {
+    const fs: FileSystem = {
+      mkdir: async () => undefined,
+      readFile: async () => {
+        throw WINDOWS_SETTINGS_READ_ERROR;
+      },
+      writeFile: async () => undefined,
+      readBinary: async () => new Uint8Array(),
+      writeBinary: async () => undefined,
+      remove: async () => undefined,
+      copyFile: async () => undefined,
+      readdir: async () => [],
+    };
+
+    await expect(readAppSettings(fs, "C:\\Users\\test\\AppData\\Roaming\\com.subtractmanufacturing.certtrace")).resolves.toEqual(
+      createDefaultAppSettingsV1(),
+    );
+  });
+
+  it("ensures the settings directory exists before reading settings", async () => {
+    const calls: string[] = [];
+    const defaults = createDefaultAppSettingsV1();
+    const fs: FileSystem = {
+      mkdir: async () => {
+        calls.push("mkdir");
+      },
+      readFile: async () => {
+        calls.push("readFile");
+        return JSON.stringify(defaults);
+      },
+      writeFile: async () => undefined,
+      readBinary: async () => new Uint8Array(),
+      writeBinary: async () => undefined,
+      remove: async () => undefined,
+      copyFile: async () => undefined,
+      readdir: async () => [],
+    };
+
+    await expect(readAppSettings(fs, "/tmp/certtrace-settings")).resolves.toEqual(defaults);
+    expect(calls).toEqual(["mkdir", "readFile"]);
   });
 
   it("round-trips settings to disk", async () => {
