@@ -31,7 +31,7 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <aside className="flex h-screen w-60 shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900">
+      <aside className="flex h-screen w-60 shrink-0 flex-col overflow-x-visible overflow-y-auto border-r border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900">
         <div className="shrink-0 px-4 py-5">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">CertTrace</p>
           <p className="mt-1 text-sm font-medium text-slate-700 dark:text-slate-200">
