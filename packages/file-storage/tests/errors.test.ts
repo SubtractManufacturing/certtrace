@@ -4,6 +4,9 @@ import { isNotFoundError } from "../src/errors.js";
 const WINDOWS_SETTINGS_READ_ERROR =
   "failed to open file at path: C:\\Users\\test\\AppData\\Roaming\\com.subtractmanufacturing.certtrace/settings.json with error: The system cannot find the path specified. (os error 3)";
 
+const WINDOWS_SETTINGS_FILE_MISSING_ERROR =
+  "failed to open file at path: C:\\Users\\test\\AppData\\Roaming\\com.subtractmanufacturing.certtrace/settings.json with error: The system cannot find the file specified. (os error 2)";
+
 const WINDOWS_READDIR_ERROR =
   "failed to read directory at path: C:\\Users\\test\\Documents\\Main Shop Materials with error: The system cannot find the path specified. (os error 3)";
 
@@ -15,6 +18,7 @@ describe("isNotFoundError", () => {
 
   it("recognizes Windows Tauri missing file and directory messages", () => {
     expect(isNotFoundError(WINDOWS_SETTINGS_READ_ERROR)).toBe(true);
+    expect(isNotFoundError(WINDOWS_SETTINGS_FILE_MISSING_ERROR)).toBe(true);
     expect(isNotFoundError(WINDOWS_READDIR_ERROR)).toBe(true);
   });
 

@@ -13,7 +13,7 @@ import {
 } from "../src/app-settings.js";
 
 const WINDOWS_SETTINGS_READ_ERROR =
-  "failed to open file at path: C:\\Users\\test\\AppData\\Roaming\\com.subtractmanufacturing.certtrace/settings.json with error: The system cannot find the path specified. (os error 3)";
+  "failed to open file at path: C:\\Users\\test\\AppData\\Roaming\\com.subtractmanufacturing.certtrace/settings.json with error: The system cannot find the file specified. (os error 2)";
 
 describe("app settings", () => {
   it("returns defaults when settings file is missing", async () => {
