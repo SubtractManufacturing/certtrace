@@ -118,6 +118,6 @@ jobs:
           releaseName: ${{ needs.resolve-release.outputs.release_name }}
           releaseBody: ${{ needs.resolve-release.outputs.release_body }}
           releaseId: ${{ needs.resolve-release.outputs.release_id }}
-          uploadUpdaterJson: true
+          includeUpdaterJson: true
           updaterJsonPreferNsis: true
-          args: --config "{\"bundle\":{\"createUpdaterArtifacts\":true}}"
+          args: '--config {"bundle":{"createUpdaterArtifacts":true}}'
