@@ -7,3 +7,6 @@ onlyBuiltDependencies:
 
 allowBuilds:
   esbuild: true
+
+minimumReleaseAgeExclude:
+  - vite@8.0.16
