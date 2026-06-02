@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v1.0.0...desktop-v1.0.1) (2026-06-02)
+
+
+### Bug Fixes
+
+* Windows first-run errors and Create Library dark mode ([#24](https://github.com/SubtractManufacturing/certtrace/issues/24)) ([909f910](https://github.com/SubtractManufacturing/certtrace/commit/909f910838b142d7bdd40dde11ba8e4cbb2f38b3))
+
 ## 1.0.0 (2026-06-02)
 
 
