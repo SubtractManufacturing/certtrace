@@ -55,10 +55,16 @@ Windows code signing can be added later via SignPath or a purchased certificate.
 
 1. Merge feature work to `main`.
 2. Let release-please open or update its version PR.
-3. Merge the release-please PR to create the release tag (for example `v0.1.0`).
-4. GitHub Actions workflow `.github/workflows/release.yml` builds installers for macOS, Windows, and Linux.
+3. Merge the release-please PR to create the release tag (for example `desktop-v1.0.0`).
+4. Release Please dispatches `.github/workflows/release.yml` for the new `desktop-v*` tag. GitHub releases created by `GITHUB_TOKEN` do not trigger other workflows directly, so the build is chained via `workflow_dispatch`.
 5. The workflow uploads release assets and `latest.json` via `tauri-apps/tauri-action`.
-6. Verify the release page contains platform installers, `.sig` files, and `latest.json`.
+6. Verify the `desktop-v*` release page contains platform installers, `.sig` files, and `latest.json`.
+
+To rebuild installers for an existing release:
+
+```bash
+gh workflow run release.yml -f tag=desktop-v1.0.0
+```
 
 ## Updater dry run (`v0.1.0` → `v0.1.1`)
 
