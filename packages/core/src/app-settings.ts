@@ -22,6 +22,7 @@ export async function readAppSettings(
   const settingsPath = `${settingsDir}/${APP_SETTINGS_FILENAME}`;
 
   try {
+    await fs.mkdir(settingsDir, { recursive: true });
     const raw = await fs.readFile(settingsPath);
     let parsed: unknown;
 
