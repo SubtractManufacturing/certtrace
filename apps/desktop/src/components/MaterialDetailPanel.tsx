@@ -19,7 +19,7 @@ import {
   Textarea,
   cn,
 } from "@certtrace/ui";
-import { ExternalLink, FileText, FolderOpen, Trash2 } from "lucide-react";
+import { FileText, FolderOpen, Printer, Trash2 } from "lucide-react";
 import {
   attachFilesToMaterial,
   pickAttachmentFiles,
@@ -29,7 +29,11 @@ import {
   fetchMaterialAttachments,
   updateMaterialMetadata,
 } from "../lib/library-client";
-import { openPathWithOpener, saveLabelPdfViaDialog } from "../lib/label-client";
+import {
+  openPathWithOpener,
+  printLabelPdfFromObjectUrl,
+  saveLabelPdfViaDialog,
+} from "../lib/label-client";
 import { ErrorBanner } from "./ErrorBanner";
 
 interface MaterialDetailPanelProps {
@@ -139,6 +143,21 @@ export function MaterialDetailPanel({
     }
   }
 
+  async function handlePrintLabel() {
+    if (!labelPdfUrl) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await printLabelPdfFromObjectUrl(labelPdfUrl, material.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleRemoveAttachment(filename: string) {
     setBusy(true);
     setError(null);
@@ -236,6 +255,15 @@ export function MaterialDetailPanel({
         <Button
           type="button"
           variant="outline"
+          disabled={busy || !labelPdfUrl}
+          onClick={() => void handlePrintLabel()}
+        >
+          <Printer className="mr-2 h-4 w-4" />
+          Print label
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
           onClick={() => void openPathWithOpener(getMaterialFolderPath(library, material.id))}
         >
           <FolderOpen className="mr-2 h-4 w-4" />
@@ -300,10 +328,6 @@ export function MaterialDetailPanel({
       </section>
 
       {error ? <ErrorBanner message={error} /> : null}
-
-      <SheetClose className="static self-end">
-        <ExternalLink className="hidden" />
-      </SheetClose>
     </div>
   );
 
@@ -317,7 +341,10 @@ export function MaterialDetailPanel({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className={cn("w-full max-w-md overflow-y-auto")}>{panel}</SheetContent>
+      <SheetContent className={cn("overflow-y-auto")}>
+        <SheetClose />
+        {panel}
+      </SheetContent>
     </Sheet>
   );
 }

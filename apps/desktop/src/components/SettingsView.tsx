@@ -16,6 +16,7 @@ interface SettingsViewProps {
   updateAvailable: boolean;
   updateError: string | null;
   hasCheckedForUpdates: boolean;
+  noReleasesPublished: boolean;
   removingLibrary?: boolean;
   onThemeChange: (theme: AppSettingsTheme) => void;
   onCheckForUpdatesChange: (value: boolean) => void;
@@ -36,6 +37,7 @@ export function SettingsView({
   updateAvailable,
   updateError,
   hasCheckedForUpdates,
+  noReleasesPublished,
   removingLibrary = false,
   onThemeChange,
   onCheckForUpdatesChange,
@@ -167,10 +169,13 @@ export function SettingsView({
                   ? "Update now"
                   : "Look for updates"}
             </Button>
-            {updateError ? <p className="text-sm text-red-600 dark:text-red-400">{updateError}</p> : null}
-            {hasCheckedForUpdates && !updateError && !checkingForUpdates && !updateAvailable ? (
-              <p className="text-sm text-slate-500">You are on the latest version.</p>
-            ) : null}
+          {updateError ? <p className="text-sm text-red-600 dark:text-red-400">{updateError}</p> : null}
+          {hasCheckedForUpdates && !updateError && !checkingForUpdates && !updateAvailable && noReleasesPublished ? (
+            <p className="text-sm text-slate-500">No GitHub releases published yet.</p>
+          ) : null}
+          {hasCheckedForUpdates && !updateError && !checkingForUpdates && !updateAvailable && !noReleasesPublished ? (
+            <p className="text-sm text-slate-500">You are on the latest version.</p>
+          ) : null}
           </div>
         </section>
 

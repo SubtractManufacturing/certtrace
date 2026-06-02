@@ -16,7 +16,7 @@ import {
 import { Plus } from "lucide-react";
 import type { ActiveLibraryPath } from "../hooks/useLibrarySession";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
-import { addMaterial, fetchMaterialAttachments } from "../lib/library-client";
+import { addMaterial, fetchMaterialAttachments, openLibraryAtPath } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { MaterialDetailPanel } from "./MaterialDetailPanel";
 import { MaterialTable } from "./MaterialTable";
@@ -29,6 +29,7 @@ interface MaterialsWorkspaceProps {
   error?: string | null;
   onRefreshLibrary: (path: string) => Promise<void>;
   filterMaterials: (query: string) => IndexedMaterial[];
+  onEnsureLibrary?: (path: string) => Promise<OpenLibraryResult | undefined>;
 }
 
 export function MaterialsWorkspace({
@@ -39,9 +40,11 @@ export function MaterialsWorkspace({
   error = null,
   onRefreshLibrary,
   filterMaterials,
+  onEnsureLibrary,
 }: MaterialsWorkspaceProps) {
   const [query, setQuery] = useState("");
   const [selectedMaterial, setSelectedMaterial] = useState<IndexedMaterial | null>(null);
+  const [panelLibrary, setPanelLibrary] = useState<OpenLibraryResult | null>(null);
   const [attachmentCounts, setAttachmentCounts] = useState<Map<string, number>>(new Map());
   const [addOpen, setAddOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -64,11 +67,41 @@ export function MaterialsWorkspace({
       ? "Search all libraries…"
       : `Search ${sessionLibraries.get(activeLibraryPath ?? "")?.config.name ?? "library"}…`;
 
-  const activeLibrary = selectedMaterial
-    ? sessionLibraries.get(selectedMaterial.libraryPath)
-    : activeLibraryPath && activeLibraryPath !== "all"
-      ? sessionLibraries.get(activeLibraryPath)
-      : undefined;
+  const activeLibrary = panelLibrary;
+
+  useEffect(() => {
+    if (!selectedMaterial) {
+      setPanelLibrary(null);
+      return;
+    }
+
+    const inSession = sessionLibraries.get(selectedMaterial.libraryPath);
+    if (inSession) {
+      setPanelLibrary(inSession);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const library = onEnsureLibrary
+          ? await onEnsureLibrary(selectedMaterial.libraryPath)
+          : await openLibraryAtPath(selectedMaterial.libraryPath);
+        if (!cancelled && library) {
+          setPanelLibrary(library);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setLocalError(err instanceof Error ? err.message : String(err));
+          setSelectedMaterial(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onEnsureLibrary, selectedMaterial, sessionLibraries]);
 
   const loadAttachmentCounts = useCallback(async () => {
     const counts = new Map<string, number>();

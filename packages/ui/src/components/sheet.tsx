@@ -88,7 +88,7 @@ export function SheetOverlay({ className, ...props }: HTMLAttributes<HTMLDivElem
 
   return (
     <div
-      className={cn("fixed inset-0 z-50 bg-black/50", className)}
+      className={cn("certtrace-sheet-overlay", className)}
       onClick={() => setOpen(false)}
       {...props}
     />
@@ -110,23 +110,24 @@ export function SheetContent({ className, children, ...props }: HTMLAttributes<H
   if (!open) return null;
 
   return createPortal(
-    <>
-      <SheetOverlay />
+    <div className="certtrace-sheet-root">
+      <div
+        className="certtrace-sheet-overlay"
+        aria-hidden
+        onClick={() => setOpen(false)}
+      />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className={cn(
-          "fixed inset-y-0 right-0 z-50 flex h-full w-full max-w-sm flex-col border-l border-slate-200 bg-white p-6 shadow-lg transition-transform",
-          className,
-        )}
+        className={cn("certtrace-sheet-panel", className)}
         onClick={(event) => event.stopPropagation()}
         {...props}
       >
         {children}
       </div>
-    </>,
+    </div>,
     document.body,
   );
 }

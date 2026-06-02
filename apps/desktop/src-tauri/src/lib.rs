@@ -1,3 +1,4 @@
+mod print;
 mod watch;
 
 use tauri_plugin_fs::FsExt;
@@ -19,6 +20,7 @@ pub fn run() {
         .manage(WatchState::new())
         .invoke_handler(tauri::generate_handler![
             allow_library_directory,
+            print::print_pdf_file,
             start_library_watch,
             stop_library_watch,
             sync_library_watch

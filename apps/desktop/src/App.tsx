@@ -10,7 +10,7 @@ import { SettingsView } from "./components/SettingsView";
 import { UpdateAvailableBanner } from "./components/UpdateAvailableBanner";
 import { WelcomeView } from "./components/WelcomeView";
 import { useAppSettings } from "./hooks/useAppSettings";
-import { useLibrarySession } from "./hooks/useLibrarySession";
+import { useLibrarySession, type ActiveLibraryPath } from "./hooks/useLibrarySession";
 import { useSearchIndex } from "./hooks/useSearchIndex";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
 import { forgetRecentLibrary } from "./lib/app-settings-client";
@@ -93,13 +93,9 @@ function App() {
     recentLibraries,
   });
 
-  const libraryOptions = useMemo(
-    () =>
-      [...session.sessionLibraries.entries()].map(([path, library]) => ({
-        path,
-        name: library.config.name,
-      })),
-    [session.sessionLibraries],
+  const libraryPickerOptions = useMemo(
+    () => librariesForSettings.map((entry) => ({ path: entry.path, name: entry.name })),
+    [librariesForSettings],
   );
 
   useEffect(() => {
@@ -198,6 +194,27 @@ function App() {
     }
   }
 
+  async function handleLibraryChange(path: ActiveLibraryPath) {
+    if (path === "all") {
+      session.setActiveLibraryPath("all");
+      return;
+    }
+    if (!path) {
+      return;
+    }
+
+    setError(null);
+    try {
+      if (!session.sessionLibraries.has(path)) {
+        await session.openLibrary(path);
+      } else {
+        session.setActiveLibraryPath(path);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   async function handleRemoveLibrary(path: string, deleteFolder: boolean) {
     setRemovingLibrary(true);
     setError(null);
@@ -274,8 +291,8 @@ function App() {
 
   const settingsLibraryForMenu =
     activeLibrary ??
-    (libraryOptions.length === 1
-      ? session.sessionLibraries.get(libraryOptions[0]!.path)
+    (libraryPickerOptions.length === 1
+      ? session.sessionLibraries.get(libraryPickerOptions[0]!.path)
       : undefined);
 
   return (
@@ -283,9 +300,9 @@ function App() {
       <AppShell
         activeView={activeView}
         onViewChange={setActiveView}
-        libraries={libraryOptions}
+        libraries={libraryPickerOptions}
         activeLibraryPath={session.activeLibraryPath}
-        onLibraryChange={session.setActiveLibraryPath}
+        onLibraryChange={(path) => void handleLibraryChange(path)}
         onOpenLibrarySettings={() => setActiveView("library-settings")}
       >
         {activeView === "materials" ? (
@@ -297,6 +314,7 @@ function App() {
             error={materialsError ?? error}
             onRefreshLibrary={refreshLibraryMaterials}
             filterMaterials={filterMaterials}
+            onEnsureLibrary={(path) => session.openLibrary(path)}
           />
         ) : null}
 
@@ -310,6 +328,7 @@ function App() {
             updateAvailable={Boolean(updateCheck.updateInfo)}
             updateError={updateCheck.error}
             hasCheckedForUpdates={updateCheck.hasChecked}
+            noReleasesPublished={updateCheck.noReleasesPublished}
             removingLibrary={removingLibrary}
             onThemeChange={(theme) => void setTheme(theme)}
             onCheckForUpdatesChange={(value) => void updateSettings({ checkForUpdates: value })}

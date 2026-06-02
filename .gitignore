@@ -42,3 +42,4 @@ fixtures/libraries/**/materials/*
 coverage/
 
 todos.md
+.cursor

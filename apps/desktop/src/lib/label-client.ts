@@ -1,5 +1,7 @@
+import { invoke } from "@tauri-apps/api/core";
+import { appCacheDir, join } from "@tauri-apps/api/path";
 import { save } from "@tauri-apps/plugin-dialog";
-import { writeFile } from "@tauri-apps/plugin-fs";
+import { mkdir, writeFile } from "@tauri-apps/plugin-fs";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { generateStandardQrLabelPdf, type StandardQrLabelOptions } from "@certtrace/core";
 import type { MaterialMetadataV1 } from "@certtrace/types";
@@ -32,4 +34,26 @@ export async function saveLabelPdfViaDialog(
 
 export async function openPathWithOpener(path: string): Promise<void> {
   await openPath(path);
+}
+
+async function writeLabelPdfToCache(bytes: Uint8Array, materialId: string): Promise<string> {
+  const cacheDir = await join(await appCacheDir(), "print-labels");
+  await mkdir(cacheDir, { recursive: true });
+  const path = await join(cacheDir, `${materialId}-label.pdf`);
+  await writeFile(path, bytes);
+  return path;
+}
+
+export async function printLabelPdf(bytes: Uint8Array, materialId: string): Promise<void> {
+  const path = await writeLabelPdfToCache(bytes, materialId);
+  await invoke("print_pdf_file", { path });
+}
+
+export async function printLabelPdfFromObjectUrl(
+  objectUrl: string,
+  materialId: string,
+): Promise<void> {
+  const response = await fetch(objectUrl);
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  await printLabelPdf(bytes, materialId);
 }

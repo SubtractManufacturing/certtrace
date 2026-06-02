@@ -1,11 +1,16 @@
 export const APP_VERSION = "0.0.0";
-const RELEASES_URL = "https://api.github.com/repos/SubtractManufacturing/certtrace/releases/latest";
+const RELEASES_URL = "https://api.github.com/repos/SubtractManufacturing/certtrace/releases";
 
 export interface UpdateInfo {
   latestVersion: string;
   releaseUrl: string;
   releaseNotes: string;
 }
+
+export type UpdateCheckResult =
+  | { status: "available"; info: UpdateInfo }
+  | { status: "current" }
+  | { status: "no-releases" };
 
 function parseVersion(version: string): number[] {
   return version
@@ -32,32 +37,50 @@ export function isNewerVersion(latest: string, current: string): boolean {
   return false;
 }
 
-export async function fetchLatestRelease(): Promise<UpdateInfo | null> {
-  const response = await fetch(RELEASES_URL, {
+export async function checkForUpdates(): Promise<UpdateCheckResult> {
+  const response = await fetch(`${RELEASES_URL}?per_page=1`, {
     headers: { Accept: "application/vnd.github+json" },
   });
+
+  if (response.status === 404) {
+    return { status: "no-releases" };
+  }
 
   if (!response.ok) {
     throw new Error(`Update check failed (${response.status})`);
   }
 
-  const payload = (await response.json()) as {
+  const releases = (await response.json()) as Array<{
     tag_name?: string;
     html_url?: string;
     body?: string;
-  };
+  }>;
 
-  const latestVersion = payload.tag_name?.replace(/^v/, "") ?? "";
-  const releaseUrl = payload.html_url ?? "";
-  const releaseNotes = payload.body ?? "";
+  if (releases.length === 0) {
+    return { status: "no-releases" };
+  }
+
+  const latest = releases[0];
+  const latestVersion = latest?.tag_name?.replace(/^v/, "") ?? "";
+  const releaseUrl = latest?.html_url ?? "";
+  const releaseNotes = latest?.body ?? "";
 
   if (!latestVersion || !releaseUrl) {
     throw new Error("Update check returned an invalid release payload");
   }
 
   if (!isNewerVersion(latestVersion, APP_VERSION)) {
-    return null;
+    return { status: "current" };
   }
 
-  return { latestVersion, releaseUrl, releaseNotes };
+  return {
+    status: "available",
+    info: { latestVersion, releaseUrl, releaseNotes },
+  };
+}
+
+/** @deprecated Use checkForUpdates() for richer status handling. */
+export async function fetchLatestRelease(): Promise<UpdateInfo | null> {
+  const result = await checkForUpdates();
+  return result.status === "available" ? result.info : null;
 }

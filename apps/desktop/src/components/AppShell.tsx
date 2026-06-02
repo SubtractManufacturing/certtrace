@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Button, cn, Separator } from "@certtrace/ui";
-import { ChevronDown, Layers, Settings } from "lucide-react";
+import { cn, Separator } from "@certtrace/ui";
+import { Check, ChevronDown, Layers, Settings } from "lucide-react";
 import type { ActiveLibraryPath } from "../hooks/useLibrarySession";
 
 export type AppView = "materials" | "settings" | "library-settings";
@@ -84,51 +84,72 @@ function LibraryPicker({
   onLibraryChange: (path: ActiveLibraryPath) => void;
   onOpenLibrarySettings: () => void;
 }) {
-  const [listOpen, setListOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const multipleLibraries = libraries.length > 1;
   const activeLibrary =
     activeLibraryPath && activeLibraryPath !== "all"
       ? libraries.find((library) => library.path === activeLibraryPath)
       : undefined;
-  const displayName = activeLibraryPath === "all" ? "All libraries" : activeLibrary?.name ?? libraries[0]?.name ?? "Library";
+  const displayName =
+    activeLibraryPath === "all" ? "All libraries" : activeLibrary?.name ?? libraries[0]?.name ?? "Library";
   const canOpenLibrarySettings = activeLibraryPath !== "all" && Boolean(activeLibrary ?? libraries[0]);
 
   useEffect(() => {
-    if (!listOpen) {
+    if (!menuOpen) {
       return;
     }
 
     function onPointerDown(event: MouseEvent) {
       if (!containerRef.current?.contains(event.target as Node)) {
-        setListOpen(false);
+        setMenuOpen(false);
+      }
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
       }
     }
 
     document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [listOpen]);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
 
   if (libraries.length === 0) {
     return null;
   }
 
+  function selectLibrary(path: ActiveLibraryPath) {
+    onLibraryChange(path);
+    setMenuOpen(false);
+  }
+
   return (
-    <div className="relative mt-2 space-y-2" ref={containerRef}>
-      <div className="flex items-center gap-1 rounded-md bg-white px-3 py-2 shadow-sm dark:bg-slate-800">
+    <div className="relative mt-2" ref={containerRef}>
+      <div className="flex items-center gap-1 rounded-md bg-white px-2 py-2 shadow-sm dark:bg-slate-800">
         {multipleLibraries ? (
           <button
             type="button"
-            className="flex min-w-0 flex-1 items-center gap-1 text-left"
-            onClick={() => setListOpen((open) => !open)}
+            aria-haspopup="listbox"
+            aria-expanded={menuOpen}
+            className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-md px-1 py-0.5 text-left hover:bg-slate-100 dark:hover:bg-slate-700/60"
+            onClick={() => setMenuOpen((open) => !open)}
           >
             <span className="truncate text-sm font-medium">{displayName}</span>
             <ChevronDown
-              className={cn("h-4 w-4 shrink-0 text-slate-500 transition-transform", listOpen && "rotate-180")}
+              className={cn(
+                "h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200",
+                menuOpen && "rotate-180",
+              )}
             />
           </button>
         ) : (
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 px-1">
             <p className="truncate text-sm font-medium">{displayName}</p>
           </div>
         )}
@@ -143,36 +164,53 @@ function LibraryPicker({
         </button>
       </div>
 
-      {multipleLibraries && listOpen ? (
-        <div className="absolute bottom-full left-0 right-0 z-20 mb-1 overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
-          {libraries.map((library) => (
-            <button
-              key={library.path}
-              type="button"
-              className={cn(
-                "block w-full px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800",
-                activeLibraryPath === library.path && "bg-slate-50 font-medium dark:bg-slate-800/70",
-              )}
-              onClick={() => {
-                onLibraryChange(library.path);
-                setListOpen(false);
-              }}
-            >
-              {library.name}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {multipleLibraries ? (
-        <Button
-          type="button"
-          variant={activeLibraryPath === "all" ? "default" : "outline"}
-          className="w-full justify-start"
-          onClick={() => onLibraryChange("all")}
+      {multipleLibraries && menuOpen ? (
+        <div
+          role="listbox"
+          aria-label="Select library"
+          className="absolute bottom-full left-0 right-0 z-20 mb-2 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
         >
-          All libraries
-        </Button>
+          {libraries.map((library) => {
+            const selected = activeLibraryPath === library.path;
+            return (
+              <button
+                key={library.path}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                className={cn(
+                  "flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800",
+                  selected && "bg-slate-50 font-medium dark:bg-slate-800/70",
+                )}
+                onClick={() => selectLibrary(library.path)}
+              >
+                <Check
+                  className={cn("h-4 w-4 shrink-0 text-slate-700 dark:text-slate-200", !selected && "invisible")}
+                />
+                <span className="truncate">{library.name}</span>
+              </button>
+            );
+          })}
+          <div className="my-1 border-t border-slate-200 dark:border-slate-700" />
+          <button
+            type="button"
+            role="option"
+            aria-selected={activeLibraryPath === "all"}
+            className={cn(
+              "flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800",
+              activeLibraryPath === "all" && "bg-slate-50 font-medium dark:bg-slate-800/70",
+            )}
+            onClick={() => selectLibrary("all")}
+          >
+            <Check
+              className={cn(
+                "h-4 w-4 shrink-0 text-slate-700 dark:text-slate-200",
+                activeLibraryPath !== "all" && "invisible",
+              )}
+            />
+            <span>All libraries</span>
+          </button>
+        </div>
       ) : null}
     </div>
   );

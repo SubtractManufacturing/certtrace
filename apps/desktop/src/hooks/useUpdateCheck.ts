@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchLatestRelease, type UpdateInfo } from "../lib/update-check";
+import { checkForUpdates, type UpdateInfo } from "../lib/update-check";
 
 interface UseUpdateCheckOptions {
   enabled: boolean;
@@ -12,15 +12,20 @@ export function useUpdateCheck({ enabled, autoCheck = true }: UseUpdateCheckOpti
   const [error, setError] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
+  const [noReleasesPublished, setNoReleasesPublished] = useState(false);
 
   const checkNow = useCallback(async () => {
     setChecking(true);
     setError(null);
+    setNoReleasesPublished(false);
     try {
-      const result = await fetchLatestRelease();
-      setUpdateInfo(result);
-      if (result) {
+      const result = await checkForUpdates();
+      if (result.status === "available") {
+        setUpdateInfo(result.info);
         setDismissed(false);
+      } else {
+        setUpdateInfo(null);
+        setNoReleasesPublished(result.status === "no-releases");
       }
       setHasChecked(true);
       return result;
@@ -49,5 +54,6 @@ export function useUpdateCheck({ enabled, autoCheck = true }: UseUpdateCheckOpti
     dismiss: () => setDismissed(true),
     checkNow,
     hasChecked,
+    noReleasesPublished,
   };
 }
