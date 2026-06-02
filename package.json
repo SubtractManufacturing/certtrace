@@ -10,7 +10,8 @@
     "build:packages": "pnpm -r --filter \"@certtrace/*\" --filter \"!@certtrace/desktop\" build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm build:packages && pnpm -r typecheck",
-    "test": "pnpm build:packages && pnpm -r test"
+    "test": "pnpm build:packages && pnpm -r test",
+    "sync:version": "node scripts/sync-app-version.mjs"
   },
   "engines": {
     "node": ">=20"
