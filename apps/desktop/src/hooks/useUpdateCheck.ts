@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { checkForUpdates, type UpdateInfo } from "../lib/update-check";
+import {
+  checkForAppUpdate,
+  installAvailableUpdate,
+  canInstallInApp,
+  type AvailableUpdate,
+  type UpdateInstallState,
+} from "../lib/update-client";
+
+export type UpdateCheckPhase = "idle" | "checking" | "installing";
 
 interface UseUpdateCheckOptions {
   enabled: boolean;
@@ -7,19 +15,20 @@ interface UseUpdateCheckOptions {
 }
 
 export function useUpdateCheck({ enabled, autoCheck = true }: UseUpdateCheckOptions) {
-  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
-  const [checking, setChecking] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<AvailableUpdate | null>(null);
+  const [phase, setPhase] = useState<UpdateCheckPhase>("idle");
+  const [installState, setInstallState] = useState<UpdateInstallState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
   const [noReleasesPublished, setNoReleasesPublished] = useState(false);
 
   const checkNow = useCallback(async () => {
-    setChecking(true);
+    setPhase("checking");
     setError(null);
     setNoReleasesPublished(false);
     try {
-      const result = await checkForUpdates();
+      const result = await checkForAppUpdate();
       if (result.status === "available") {
         setUpdateInfo(result.info);
         setDismissed(false);
@@ -34,9 +43,30 @@ export function useUpdateCheck({ enabled, autoCheck = true }: UseUpdateCheckOpti
       setError(message);
       throw err;
     } finally {
-      setChecking(false);
+      setPhase("idle");
     }
   }, []);
+
+  const installNow = useCallback(async () => {
+    if (!updateInfo || !canInstallInApp(updateInfo)) {
+      return false;
+    }
+
+    setPhase("installing");
+    setInstallState("downloading");
+    setError(null);
+    try {
+      setInstallState("installing");
+      await installAvailableUpdate(updateInfo.updater);
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+      setPhase("idle");
+      setInstallState("idle");
+      return false;
+    }
+  }, [updateInfo]);
 
   useEffect(() => {
     if (!enabled || !autoCheck) {
@@ -48,12 +78,16 @@ export function useUpdateCheck({ enabled, autoCheck = true }: UseUpdateCheckOpti
 
   return {
     updateInfo,
-    checking,
+    checking: phase === "checking",
+    installing: phase === "installing",
+    installState,
     error,
     dismissed,
     dismiss: () => setDismissed(true),
     checkNow,
+    installNow,
     hasChecked,
     noReleasesPublished,
+    canInstallInApp: updateInfo ? canInstallInApp(updateInfo) : false,
   };
 }
