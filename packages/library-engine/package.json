@@ -23,7 +23,7 @@
     "@certtrace/file-storage": "workspace:*",
     "@certtrace/id-generator": "workspace:*",
     "@certtrace/types": "workspace:*",
-    "zod": "^3.25.76"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.15.32",
