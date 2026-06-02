@@ -20,11 +20,7 @@ import {
   cn,
 } from "@certtrace/ui";
 import { FileText, FolderOpen, Printer, Trash2 } from "lucide-react";
-import {
-  attachFilesToMaterial,
-  pickAttachmentFiles,
-  readBinaryFile,
-} from "../lib/attachment-client";
+import { attachFilesToMaterial, pickAttachmentFiles } from "../lib/attachment-client";
 import {
   fetchMaterialAttachments,
   updateMaterialMetadata,
@@ -55,8 +51,6 @@ export function MaterialDetailPanel({
 }: MaterialDetailPanelProps) {
   const [draft, setDraft] = useState(material);
   const [attachments, setAttachments] = useState<AttachedFile[]>([]);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewKind, setPreviewKind] = useState<"image" | "pdf" | null>(null);
   const [labelPdfUrl, setLabelPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -95,14 +89,11 @@ export function MaterialDetailPanel({
 
   useEffect(() => {
     return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
       if (labelPdfUrl) {
         URL.revokeObjectURL(labelPdfUrl);
       }
     };
-  }, [labelPdfUrl, previewUrl]);
+  }, [labelPdfUrl]);
 
   const tagsValue = useMemo(() => draft.tags.join(", "), [draft.tags]);
 
@@ -164,10 +155,6 @@ export function MaterialDetailPanel({
     try {
       await removeMaterialAttachment(library, material.id, filename);
       setAttachments(await fetchMaterialAttachments(library, material.id));
-      if (previewUrl?.includes(filename)) {
-        setPreviewUrl(null);
-        setPreviewKind(null);
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -175,25 +162,16 @@ export function MaterialDetailPanel({
     }
   }
 
-  async function handlePreviewAttachment(file: AttachedFile) {
-    const path = getMaterialAttachmentPath(library, material.id, file.name);
-    const bytes = await readBinaryFile(path);
-    const mime =
-      file.kind === "pdf"
-        ? "application/pdf"
-        : file.kind === "png"
-          ? "image/png"
-          : file.kind === "jpg" || file.kind === "jpeg"
-            ? "image/jpeg"
-            : "application/octet-stream";
-    const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
-    setPreviewUrl((current) => {
-      if (current) {
-        URL.revokeObjectURL(current);
-      }
-      return url;
-    });
-    setPreviewKind(file.kind === "pdf" ? "pdf" : "image");
+  async function handleOpenAttachment(file: AttachedFile) {
+    setBusy(true);
+    setError(null);
+    try {
+      await openPathWithOpener(getMaterialAttachmentPath(library, material.id, file.name));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
   }
 
   const header = <h2 className="text-lg font-semibold leading-none">{material.id}</h2>;
@@ -285,7 +263,7 @@ export function MaterialDetailPanel({
                 <button
                   type="button"
                   className="inline-flex min-w-0 flex-1 items-center gap-2 text-left"
-                  onClick={() => void handlePreviewAttachment(file)}
+                  onClick={() => void handleOpenAttachment(file)}
                 >
                   <FileText className="h-4 w-4 shrink-0 text-slate-500" />
                   <span className="truncate">{file.name}</span>
@@ -304,19 +282,6 @@ export function MaterialDetailPanel({
           </ul>
         )}
       </section>
-
-      {previewUrl ? (
-        <section>
-          <h3 className="text-sm font-semibold">Preview</h3>
-          <div className="mt-2 overflow-hidden rounded-md border border-slate-200 dark:border-slate-700">
-            {previewKind === "pdf" ? (
-              <iframe src={previewUrl} title="PDF preview" className="h-64 w-full bg-white" />
-            ) : (
-              <img src={previewUrl} alt="Attachment preview" className="max-h-64 w-full object-contain" />
-            )}
-          </div>
-        </section>
-      ) : null}
 
       <section>
         <h3 className="text-sm font-semibold">Label preview</h3>

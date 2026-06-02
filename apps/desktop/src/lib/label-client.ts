@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { appCacheDir, join } from "@tauri-apps/api/path";
 import { save } from "@tauri-apps/plugin-dialog";
 import { mkdir, writeFile } from "@tauri-apps/plugin-fs";
-import { openPath } from "@tauri-apps/plugin-opener";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { generateStandardQrLabelPdf, type StandardQrLabelOptions } from "@certtrace/core";
 import type { MaterialMetadataV1 } from "@certtrace/types";
 
@@ -33,7 +33,12 @@ export async function saveLabelPdfViaDialog(
 }
 
 export async function openPathWithOpener(path: string): Promise<void> {
-  await openPath(path);
+  if (/^https?:\/\//i.test(path)) {
+    await openUrl(path);
+    return;
+  }
+
+  await invoke("open_local_path", { path });
 }
 
 async function writeLabelPdfToCache(bytes: Uint8Array, materialId: string): Promise<string> {

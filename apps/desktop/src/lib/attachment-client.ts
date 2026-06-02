@@ -1,9 +1,6 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { attachFiles, type OpenLibraryResult } from "@certtrace/library-engine";
 import type { AttachedFile } from "@certtrace/types";
-import { createTauriFileSystem } from "./tauri-fs";
-
-const fs = createTauriFileSystem();
 
 export async function pickAttachmentFiles(): Promise<string[]> {
   const selected = await open({
@@ -32,8 +29,4 @@ export async function attachFilesToMaterial(
     materialId,
     sourcePaths.map((sourcePath) => ({ sourcePath })),
   );
-}
-
-export async function readBinaryFile(path: string): Promise<Uint8Array> {
-  return fs.readBinary(path);
 }
