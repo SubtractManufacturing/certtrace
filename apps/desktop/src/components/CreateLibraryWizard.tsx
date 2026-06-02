@@ -14,7 +14,7 @@ import {
   Label,
   Select,
 } from "@certtrace/ui";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { pickParentFolder } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { IdTemplateBuilder } from "./IdTemplateBuilder";
@@ -39,6 +39,7 @@ export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: C
   const [customStrategy, setCustomStrategy] = useState<NamingStrategyV1 | null>(null);
   const [labelTemplate, setLabelTemplate] = useState("standard-qr");
   const [error, setError] = useState<string | null>(null);
+  const [pickingFolder, setPickingFolder] = useState(false);
 
   const strategies = useMemo(() => {
     if (customStrategy) {
@@ -50,9 +51,17 @@ export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: C
   const activeStrategy = strategies.find((entry) => entry.id === selectedStrategyId);
 
   async function handlePickFolder() {
-    const picked = await pickParentFolder("Choose where to create the library");
-    if (picked) {
-      setParentDir(picked);
+    setPickingFolder(true);
+    setError(null);
+    try {
+      const picked = await pickParentFolder("Choose where to create the library");
+      if (picked) {
+        setParentDir(picked);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPickingFolder(false);
     }
   }
 
@@ -146,12 +155,25 @@ export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: C
                 CertTrace will create a folder named after your library inside the location you
                 choose.
               </p>
-              <Button type="button" variant="outline" onClick={() => void handlePickFolder()}>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy || pickingFolder}
+                onClick={() => void handlePickFolder()}
+              >
+                {pickingFolder ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Choose folder
               </Button>
-              {parentDir ? (
-                <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-300">
-                  {parentDir}
+              {pickingFolder || parentDir ? (
+                <p className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-300">
+                  {pickingFolder ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Applying folder selection...</span>
+                    </>
+                  ) : (
+                    parentDir
+                  )}
                 </p>
               ) : null}
             </div>
@@ -238,7 +260,11 @@ export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: C
               {step === 0 ? "Cancel" : "Back"}
             </Button>
             {step < 4 ? (
-              <Button type="button" disabled={busy} onClick={() => setStep((current) => current + 1)}>
+              <Button
+                type="button"
+                disabled={busy || (step === 1 && pickingFolder)}
+                onClick={() => setStep((current) => current + 1)}
+              >
                 Next
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>

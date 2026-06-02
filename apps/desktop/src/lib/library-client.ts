@@ -28,8 +28,15 @@ import { createTauriFileSystem } from "./tauri-fs";
 
 const fs = createTauriFileSystem();
 
-async function grantLibraryAccess(path: string): Promise<void> {
-  await allowLibraryDirectory(path);
+interface GrantLibraryAccessOptions {
+  recursive?: boolean;
+}
+
+async function grantLibraryAccess(
+  path: string,
+  options: GrantLibraryAccessOptions = {},
+): Promise<void> {
+  await allowLibraryDirectory(path, { recursive: options.recursive ?? true });
 }
 
 export async function pickParentFolder(title: string): Promise<string | null> {
@@ -43,7 +50,6 @@ export async function pickParentFolder(title: string): Promise<string | null> {
     return null;
   }
 
-  await grantLibraryAccess(selected);
   return selected;
 }
 
@@ -65,7 +71,7 @@ export async function createLibraryWithOptions(
   parentDir: string,
   options: CreateLibraryOptions,
 ): Promise<OpenLibraryResult> {
-  await grantLibraryAccess(parentDir);
+  await grantLibraryAccess(parentDir, { recursive: false });
   const root = joinPath(parentDir, libraryFolderName(options.name));
   await grantLibraryAccess(root);
   const library = await createLibrary(fs, parentDir, options);
