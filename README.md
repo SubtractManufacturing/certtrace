@@ -19,6 +19,34 @@ This is a feature, not an omission.
 
 macOS, Windows, and Linux are equally supported targets for v0.1.
 
+## Installing CertTrace
+
+Download the latest release for your platform from [GitHub Releases](https://github.com/SubtractManufacturing/certtrace/releases).
+
+### macOS
+
+1. Download the `.dmg` from the latest release.
+2. Open the disk image and drag **CertTrace** into Applications.
+3. On first launch, macOS may prompt you to approve the app if it is not notarized yet.
+
+### Windows
+
+1. Download the `.exe` installer (NSIS) from the latest release.
+2. Run the installer and follow the prompts.
+3. Launch **CertTrace** from the Start menu or desktop shortcut.
+
+### Linux
+
+1. Download the `.AppImage`, `.deb`, or distribution-specific bundle from the latest release.
+2. For AppImage: make it executable (`chmod +x CertTrace_*.AppImage`) and run it.
+3. For `.deb`: install with your package manager, for example `sudo dpkg -i certtrace_*.deb`.
+
+### In-app updates
+
+When automatic updates are enabled in Settings, CertTrace checks GitHub Releases for signed updates and can install them in-app. Update checks are optional and never block library operations.
+
+See [planning/release-runbook.md](planning/release-runbook.md) for maintainer release steps.
+
 ## Development setup
 
 ### Prerequisites

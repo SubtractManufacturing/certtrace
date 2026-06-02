@@ -7,7 +7,7 @@ import { ErrorBanner } from "./components/ErrorBanner";
 import { LibrarySettingsView } from "./components/LibrarySettingsView";
 import { MaterialsWorkspace } from "./components/MaterialsWorkspace";
 import { SettingsView } from "./components/SettingsView";
-import { UpdateAvailableBanner } from "./components/UpdateAvailableBanner";
+import { UpdateAvailableDialog } from "./components/UpdateAvailableBanner";
 import { WelcomeView } from "./components/WelcomeView";
 import { useAppSettings } from "./hooks/useAppSettings";
 import { useLibrarySession, type ActiveLibraryPath } from "./hooks/useLibrarySession";
@@ -328,7 +328,9 @@ function App() {
             defaultLibraryOnLaunch={settings.defaultLibraryOnLaunch}
             recentLibraries={librariesForSettings}
             checkingForUpdates={updateCheck.checking}
+            installingUpdate={updateCheck.installing}
             updateAvailable={Boolean(updateCheck.updateInfo)}
+            canInstallInApp={updateCheck.canInstallInApp}
             updateError={updateCheck.error}
             hasCheckedForUpdates={updateCheck.hasChecked}
             noReleasesPublished={updateCheck.noReleasesPublished}
@@ -340,7 +342,8 @@ function App() {
             onCreateLibrary={() => setShowCreateWizard(true)}
             onRemoveLibrary={(path, deleteFolder) => handleRemoveLibrary(path, deleteFolder)}
             onCheckForUpdatesNow={() => void updateCheck.checkNow()}
-            onUpdateNow={() => {
+            onInstallUpdate={() => void updateCheck.installNow()}
+            onOpenReleasePage={() => {
               if (updateCheck.updateInfo) {
                 void openPathWithOpener(updateCheck.updateInfo.releaseUrl);
               }
@@ -367,9 +370,13 @@ function App() {
       />
 
       {updateCheck.updateInfo && !updateCheck.dismissed ? (
-        <UpdateAvailableBanner
+        <UpdateAvailableDialog
           updateInfo={updateCheck.updateInfo}
+          installing={updateCheck.installing}
+          installState={updateCheck.installState}
+          installError={updateCheck.error}
           onDismiss={updateCheck.dismiss}
+          onInstall={() => void updateCheck.installNow()}
         />
       ) : null}
     </ThemeProvider>

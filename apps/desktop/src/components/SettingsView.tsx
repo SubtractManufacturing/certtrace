@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { appDataDir } from "@tauri-apps/api/path";
-import { mkdir } from "@tauri-apps/plugin-fs";
-import { openPath } from "@tauri-apps/plugin-opener";
 import type { AppSettingsTheme, DefaultLibraryOnLaunch, RecentLibraryEntryV1 } from "@certtrace/types";
 import { Button, Label, Select, Switch } from "@certtrace/ui";
 import { FolderOpen, Plus } from "lucide-react";
+import { openAppDataFolder } from "../lib/app-data-client";
 import { APP_VERSION } from "../lib/update-check";
 import { RemoveLibraryDialog } from "./RemoveLibraryDialog";
 import { ErrorBanner } from "./ErrorBanner";
@@ -15,7 +13,9 @@ interface SettingsViewProps {
   defaultLibraryOnLaunch: DefaultLibraryOnLaunch;
   recentLibraries: RecentLibraryEntryV1[];
   checkingForUpdates: boolean;
+  installingUpdate: boolean;
   updateAvailable: boolean;
+  canInstallInApp: boolean;
   updateError: string | null;
   hasCheckedForUpdates: boolean;
   noReleasesPublished: boolean;
@@ -27,7 +27,8 @@ interface SettingsViewProps {
   onCreateLibrary: () => void;
   onRemoveLibrary: (path: string, deleteFolder: boolean) => Promise<void>;
   onCheckForUpdatesNow: () => void;
-  onUpdateNow: () => void;
+  onInstallUpdate: () => void;
+  onOpenReleasePage: () => void;
 }
 
 export function SettingsView({
@@ -36,7 +37,9 @@ export function SettingsView({
   defaultLibraryOnLaunch,
   recentLibraries,
   checkingForUpdates,
+  installingUpdate,
   updateAvailable,
+  canInstallInApp,
   updateError,
   hasCheckedForUpdates,
   noReleasesPublished,
@@ -48,18 +51,17 @@ export function SettingsView({
   onCreateLibrary,
   onRemoveLibrary,
   onCheckForUpdatesNow,
-  onUpdateNow,
+  onInstallUpdate,
+  onOpenReleasePage,
 }: SettingsViewProps) {
   const [libraryToRemove, setLibraryToRemove] = useState<RecentLibraryEntryV1 | null>(null);
   const [appDataError, setAppDataError] = useState<string | null>(null);
   const [removeLibraryError, setRemoveLibraryError] = useState<string | null>(null);
 
-  async function openAppDataFolder() {
+  async function handleOpenAppDataFolder() {
     setAppDataError(null);
     try {
-      const dir = await appDataDir();
-      await mkdir(dir, { recursive: true });
-      await openPath(dir);
+      await openAppDataFolder();
     } catch (err) {
       setAppDataError(err instanceof Error ? err.message : String(err));
     }
@@ -154,14 +156,15 @@ export function SettingsView({
         <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <h2 className="text-lg font-semibold">Updates</h2>
           <div className="mt-4 flex items-center justify-between gap-4">
-            <div>
+            <div className="min-w-0 flex-1">
               <Label htmlFor="automatic-updates">Automatic updates</Label>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Notify me in the app when a newer version is available on GitHub.
+                Notify me in the app when a newer version is available.
               </p>
             </div>
             <Switch
               id="automatic-updates"
+              className="shrink-0"
               checked={checkForUpdates}
               onCheckedChange={onCheckForUpdatesChange}
             />
@@ -171,14 +174,28 @@ export function SettingsView({
             <Button
               type="button"
               variant={updateAvailable ? "default" : "outline"}
-              disabled={checkingForUpdates}
-              onClick={() => (updateAvailable ? onUpdateNow() : void onCheckForUpdatesNow())}
+              disabled={checkingForUpdates || installingUpdate}
+              onClick={() => {
+                if (updateAvailable) {
+                  if (canInstallInApp) {
+                    onInstallUpdate();
+                  } else {
+                    onOpenReleasePage();
+                  }
+                  return;
+                }
+                onCheckForUpdatesNow();
+              }}
             >
               {checkingForUpdates
                 ? "Checking…"
-                : updateAvailable
-                  ? "Update now"
-                  : "Look for updates"}
+                : installingUpdate
+                  ? "Installing…"
+                  : updateAvailable
+                    ? canInstallInApp
+                      ? "Update now"
+                      : "Download update"
+                    : "Look for updates"}
             </Button>
           {updateError ? <p className="text-sm text-red-600 dark:text-red-400">{updateError}</p> : null}
           {hasCheckedForUpdates && !updateError && !checkingForUpdates && !updateAvailable && noReleasesPublished ? (
@@ -202,7 +219,7 @@ export function SettingsView({
               <ErrorBanner message={appDataError} />
             </div>
           ) : null}
-          <Button type="button" variant="outline" className="mt-4" onClick={() => void openAppDataFolder()}>
+          <Button type="button" variant="outline" className="mt-4" onClick={() => void handleOpenAppDataFolder()}>
             <FolderOpen className="mr-2 h-4 w-4" />
             Open app data folder
           </Button>
