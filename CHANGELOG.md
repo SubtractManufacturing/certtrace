@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/SubtractManufacturing/certtrace/compare/certtrace-v1.0.1...certtrace-v1.0.2) (2026-06-02)
+
+
+### Bug Fixes
+
+* Bump for release testing ([9e95054](https://github.com/SubtractManufacturing/certtrace/commit/9e95054ecedafdf01a46bede6c8095a8245b36a7))
+
 ## [1.0.1](https://github.com/SubtractManufacturing/certtrace/compare/certtrace-v1.0.0...certtrace-v1.0.1) (2026-06-02)
 
 
