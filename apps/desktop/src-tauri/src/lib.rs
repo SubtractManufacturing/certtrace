@@ -7,9 +7,13 @@ use tauri_plugin_fs::FsExt;
 use watch::{start_library_watch, stop_library_watch, sync_library_watch, WatchState};
 
 #[tauri::command]
-fn allow_library_directory(app: tauri::AppHandle, path: String) -> Result<(), String> {
+fn allow_library_directory(
+    app: tauri::AppHandle,
+    path: String,
+    recursive: Option<bool>,
+) -> Result<(), String> {
     app.fs_scope()
-        .allow_directory(path, true)
+        .allow_directory(path, recursive.unwrap_or(true))
         .map_err(|err| err.to_string())
 }
 

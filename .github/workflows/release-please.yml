@@ -46,6 +46,18 @@ jobs:
               return;
             }
 
+            const desktopVersion = desktopRelease.tag_name.replace(/^desktop-v/, '');
+            const releaseName = `CertTrace Desktop: v${desktopVersion}`;
+
+            core.info(`Renaming ${desktopRelease.tag_name} release to ${releaseName}`);
+
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: desktopRelease.id,
+              name: releaseName,
+            });
+
             core.info(`Dispatching release build for ${desktopRelease.tag_name}`);
 
             await github.rest.actions.createWorkflowDispatch({

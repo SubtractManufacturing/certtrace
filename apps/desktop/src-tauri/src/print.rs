@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::process::Command;
 
+#[cfg(target_os = "macos")]
 fn escape_applescript_string(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
 }

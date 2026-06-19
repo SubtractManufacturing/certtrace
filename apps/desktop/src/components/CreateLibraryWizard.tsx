@@ -4,16 +4,17 @@ import { defaultNamingRulesV1, defaultWordListsV1 } from "@certtrace/types";
 import type { NamingStrategyV1 } from "@certtrace/types";
 import {
   Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Input,
   Label,
   Select,
 } from "@certtrace/ui";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { pickParentFolder } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { IdTemplateBuilder } from "./IdTemplateBuilder";
@@ -26,6 +27,7 @@ interface CreateLibraryWizardProps {
 }
 
 const LABEL_TEMPLATES = [{ id: "standard-qr", label: "Standard QR label" }] as const;
+const STEP_NAMES = ["Name", "Folder", "ID strategy", "Label template", "Create"] as const;
 
 export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: CreateLibraryWizardProps) {
   const [step, setStep] = useState(0);
@@ -37,6 +39,7 @@ export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: C
   const [customStrategy, setCustomStrategy] = useState<NamingStrategyV1 | null>(null);
   const [labelTemplate, setLabelTemplate] = useState("standard-qr");
   const [error, setError] = useState<string | null>(null);
+  const [pickingFolder, setPickingFolder] = useState(false);
 
   const strategies = useMemo(() => {
     if (customStrategy) {
@@ -47,14 +50,18 @@ export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: C
 
   const activeStrategy = strategies.find((entry) => entry.id === selectedStrategyId);
 
-  if (!open) {
-    return null;
-  }
-
   async function handlePickFolder() {
-    const picked = await pickParentFolder("Choose where to create the library");
-    if (picked) {
-      setParentDir(picked);
+    setPickingFolder(true);
+    setError(null);
+    try {
+      const picked = await pickParentFolder("Choose where to create the library");
+      if (picked) {
+        setParentDir(picked);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPickingFolder(false);
     }
   }
 
@@ -117,17 +124,24 @@ export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: C
     setSelectedStrategyId(strategy.id);
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      setStep(0);
+      setError(null);
+      onClose();
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto">
-        <CardHeader>
-          <CardTitle>Create library</CardTitle>
-          <CardDescription>
-            Step {step + 1} of 5 —{" "}
-            {["Name", "Folder", "ID strategy", "Label template", "Create"][step]}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create library</DialogTitle>
+          <DialogDescription>
+            Step {step + 1} of 5 — {STEP_NAMES[step]}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
           {step === 0 ? (
             <label className="block space-y-1 text-sm">
               <Label>Library name</Label>
@@ -141,12 +155,25 @@ export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: C
                 CertTrace will create a folder named after your library inside the location you
                 choose.
               </p>
-              <Button type="button" variant="outline" onClick={() => void handlePickFolder()}>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy || pickingFolder}
+                onClick={() => void handlePickFolder()}
+              >
+                {pickingFolder ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Choose folder
               </Button>
-              {parentDir ? (
-                <p className="rounded-md border border-slate-200 px-3 py-2 font-mono text-xs dark:border-slate-700">
-                  {parentDir}
+              {pickingFolder || parentDir ? (
+                <p className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-300">
+                  {pickingFolder ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Applying folder selection...</span>
+                    </>
+                  ) : (
+                    parentDir
+                  )}
                 </p>
               ) : null}
             </div>
@@ -196,18 +223,25 @@ export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: C
           ) : null}
 
           {step === 4 ? (
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
               <p>
-                <span className="font-medium">Name:</span> {name.trim()}
+                <span className="font-medium text-slate-900 dark:text-slate-100">Name:</span>{" "}
+                {name.trim()}
               </p>
               <p>
-                <span className="font-medium">Folder:</span> {parentDir ?? "Not selected"}
+                <span className="font-medium text-slate-900 dark:text-slate-100">Folder:</span>{" "}
+                {parentDir ?? "Not selected"}
               </p>
               <p>
-                <span className="font-medium">ID strategy:</span> {activeStrategy?.label}
+                <span className="font-medium text-slate-900 dark:text-slate-100">
+                  ID strategy:
+                </span>{" "}
+                {activeStrategy?.label}
               </p>
               <p>
-                <span className="font-medium">Label template:</span>{" "}
+                <span className="font-medium text-slate-900 dark:text-slate-100">
+                  Label template:
+                </span>{" "}
                 {LABEL_TEMPLATES.find((entry) => entry.id === labelTemplate)?.label}
               </p>
             </div>
@@ -215,7 +249,7 @@ export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: C
 
           {error ? <ErrorBanner message={error} /> : null}
 
-          <div className="flex items-center justify-between pt-2">
+          <DialogFooter className="flex-row justify-between pt-2 sm:justify-between">
             <Button
               type="button"
               variant="ghost"
@@ -226,7 +260,11 @@ export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: C
               {step === 0 ? "Cancel" : "Back"}
             </Button>
             {step < 4 ? (
-              <Button type="button" disabled={busy} onClick={() => setStep((current) => current + 1)}>
+              <Button
+                type="button"
+                disabled={busy || (step === 1 && pickingFolder)}
+                onClick={() => setStep((current) => current + 1)}
+              >
                 Next
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
@@ -235,9 +273,9 @@ export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: C
                 Create library
               </Button>
             )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </DialogFooter>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

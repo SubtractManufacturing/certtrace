@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.2](https://github.com/SubtractManufacturing/certtrace/compare/certtrace-v1.0.1...certtrace-v1.0.2) (2026-06-02)
+
+
+### Bug Fixes
+
+* Bump for release testing ([9e95054](https://github.com/SubtractManufacturing/certtrace/commit/9e95054ecedafdf01a46bede6c8095a8245b36a7))
+
+## [1.0.1](https://github.com/SubtractManufacturing/certtrace/compare/certtrace-v1.0.0...certtrace-v1.0.1) (2026-06-02)
+
+
+### Bug Fixes
+
+* Chain release builds after release-please ([76aa6a5](https://github.com/SubtractManufacturing/certtrace/commit/76aa6a5afa22bda0c9780138c098f6864f34bc19))
+* Correct tauri-action inputs for release builds ([8b65cb8](https://github.com/SubtractManufacturing/certtrace/commit/8b65cb8e5b4a6ca02fc7db110b74225bf0de75ee))
+* Windows first-run errors and Create Library dark mode ([#24](https://github.com/SubtractManufacturing/certtrace/issues/24)) ([909f910](https://github.com/SubtractManufacturing/certtrace/commit/909f910838b142d7bdd40dde11ba8e4cbb2f38b3))
+
 ## 1.0.0 (2026-06-02)
 
 

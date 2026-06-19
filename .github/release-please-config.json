@@ -4,7 +4,8 @@
     ".": {
       "release-type": "node",
       "component": "certtrace",
-      "changelog-path": "CHANGELOG.md"
+      "changelog-path": "CHANGELOG.md",
+      "skip-github-release": true
     },
     "apps/desktop": {
       "release-type": "node",

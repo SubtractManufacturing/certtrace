@@ -54,4 +54,25 @@ describe("WelcomeView", () => {
     await userEvent.click(screen.getByRole("button", { name: "Create library" }));
     expect(onStartCreateLibrary).toHaveBeenCalled();
   });
+
+  it("makes create library the primary welcome action", async () => {
+    render(
+      <WelcomeView onOpenLibrary={async () => undefined} onStartCreateLibrary={() => undefined} />,
+    );
+
+    const createButton = await screen.findByRole("button", { name: "Create library" });
+    const openButton = screen.getByRole("button", { name: "Open library" });
+
+    expect(createButton.compareDocumentPosition(openButton)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(createButton.className).toContain("w-full");
+    expect(createButton.className).toContain("max-w-sm");
+    expect(createButton.className).toContain("h-11");
+    expect(createButton.className).toContain("bg-sky-500");
+    expect(openButton.className).toContain("w-full");
+    expect(openButton.className).toContain("max-w-sm");
+    expect(openButton.className).toContain("text-xs");
+    expect(openButton.className).toContain("text-slate-500");
+    expect(openButton.className).toContain("hover:underline");
+    expect(openButton.className).not.toContain("hover:bg");
+  });
 });
