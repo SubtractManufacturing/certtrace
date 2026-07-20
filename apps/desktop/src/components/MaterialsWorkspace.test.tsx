@@ -1,7 +1,7 @@
+import type { OpenLibraryResult } from "@certtrace/library-engine";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import type { OpenLibraryResult } from "@certtrace/library-engine";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
 import { MaterialsWorkspace } from "./MaterialsWorkspace";
 
@@ -52,7 +52,9 @@ describe("MaterialsWorkspace", () => {
   it("filters materials by search query", async () => {
     const filterMaterials = vi.fn((query: string) =>
       materials.filter((entry) =>
-        `${entry.id} ${entry.material} ${entry.supplier}`.toLowerCase().includes(query.toLowerCase()),
+        `${entry.id} ${entry.material} ${entry.supplier}`
+          .toLowerCase()
+          .includes(query.toLowerCase()),
       ),
     );
 

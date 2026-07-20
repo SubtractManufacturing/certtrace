@@ -1,0 +1,2 @@
+# Keep line endings LF in the working tree so Biome CI matches locally on all OSes.
+* text=auto eol=lf

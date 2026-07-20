@@ -1,7 +1,6 @@
-import { useMemo, useState } from "react";
 import type { CreateLibraryOptions } from "@certtrace/library-engine";
-import { defaultNamingRulesV1, defaultWordListsV1 } from "@certtrace/types";
 import type { NamingStrategyV1 } from "@certtrace/types";
+import { defaultNamingRulesV1, defaultWordListsV1 } from "@certtrace/types";
 import {
   Button,
   Dialog,
@@ -15,6 +14,7 @@ import {
   Select,
 } from "@certtrace/ui";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { pickParentFolder } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { IdTemplateBuilder } from "./IdTemplateBuilder";
@@ -29,7 +29,12 @@ interface CreateLibraryWizardProps {
 const LABEL_TEMPLATES = [{ id: "standard-qr", label: "Standard QR label" }] as const;
 const STEP_NAMES = ["Name", "Folder", "ID strategy", "Label template", "Create"] as const;
 
-export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: CreateLibraryWizardProps) {
+export function CreateLibraryWizard({
+  open,
+  busy = false,
+  onClose,
+  onCreate,
+}: CreateLibraryWizardProps) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("Main Shop Materials");
   const [parentDir, setParentDir] = useState<string | null>(null);
@@ -212,7 +217,10 @@ export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: C
           {step === 3 ? (
             <label className="block space-y-1 text-sm">
               <Label>Label template</Label>
-              <Select value={labelTemplate} onChange={(event) => setLabelTemplate(event.target.value)}>
+              <Select
+                value={labelTemplate}
+                onChange={(event) => setLabelTemplate(event.target.value)}
+              >
                 {LABEL_TEMPLATES.map((template) => (
                   <option key={template.id} value={template.id}>
                     {template.label}
@@ -233,9 +241,7 @@ export function CreateLibraryWizard({ open, busy = false, onClose, onCreate }: C
                 {parentDir ?? "Not selected"}
               </p>
               <p>
-                <span className="font-medium text-slate-900 dark:text-slate-100">
-                  ID strategy:
-                </span>{" "}
+                <span className="font-medium text-slate-900 dark:text-slate-100">ID strategy:</span>{" "}
                 {activeStrategy?.label}
               </p>
               <p>

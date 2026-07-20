@@ -33,9 +33,7 @@ vi.mock("../lib/library-client", () => ({
 describe("WelcomeView", () => {
   it("shows recent libraries and opens one", async () => {
     const onOpenLibrary = vi.fn(async () => undefined);
-    render(
-      <WelcomeView onOpenLibrary={onOpenLibrary} onStartCreateLibrary={() => undefined} />,
-    );
+    render(<WelcomeView onOpenLibrary={onOpenLibrary} onStartCreateLibrary={() => undefined} />);
 
     expect(await screen.findByText("Main Shop")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: /Main Shop/i }));
@@ -45,7 +43,10 @@ describe("WelcomeView", () => {
   it("starts create library flow", async () => {
     const onStartCreateLibrary = vi.fn();
     render(
-      <WelcomeView onOpenLibrary={async () => undefined} onStartCreateLibrary={onStartCreateLibrary} />,
+      <WelcomeView
+        onOpenLibrary={async () => undefined}
+        onStartCreateLibrary={onStartCreateLibrary}
+      />,
     );
 
     await waitFor(() =>

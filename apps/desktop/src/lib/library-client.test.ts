@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { open } from "@tauri-apps/plugin-dialog";
 import { createLibrary } from "@certtrace/library-engine";
-import { allowLibraryDirectory } from "./library-scope";
+import { open } from "@tauri-apps/plugin-dialog";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createLibraryWithOptions, pickParentFolder } from "./library-client";
+import { allowLibraryDirectory } from "./library-scope";
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: vi.fn(),
@@ -52,9 +52,7 @@ describe("library-client", () => {
   it("returns the picked parent folder without granting scope during selection", async () => {
     vi.mocked(open).mockResolvedValue("C:\\Users\\jkkic\\Documents");
 
-    await expect(pickParentFolder("Choose a folder")).resolves.toBe(
-      "C:\\Users\\jkkic\\Documents",
-    );
+    await expect(pickParentFolder("Choose a folder")).resolves.toBe("C:\\Users\\jkkic\\Documents");
 
     expect(allowLibraryDirectory).not.toHaveBeenCalled();
   });
@@ -67,11 +65,9 @@ describe("library-client", () => {
 
     await createLibraryWithOptions("C:\\Users\\jkkic\\Documents", { name: "Main Shop" });
 
-    expect(allowLibraryDirectory).toHaveBeenNthCalledWith(
-      1,
-      "C:\\Users\\jkkic\\Documents",
-      { recursive: false },
-    );
+    expect(allowLibraryDirectory).toHaveBeenNthCalledWith(1, "C:\\Users\\jkkic\\Documents", {
+      recursive: false,
+    });
     expect(allowLibraryDirectory).toHaveBeenNthCalledWith(
       2,
       "C:\\Users\\jkkic\\Documents/Main Shop",

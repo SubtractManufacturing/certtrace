@@ -19,7 +19,10 @@ export const appSettingsV1Schema = z.object({
   theme: appSettingsThemeSchema,
   recentLibraries: z.array(recentLibraryEntryV1Schema),
   checkForUpdates: z.boolean(),
-  defaultLibraryOnLaunch: z.union([z.string().min(1), z.literal("all")]).nullable().default(null),
+  defaultLibraryOnLaunch: z
+    .union([z.string().min(1), z.literal("all")])
+    .nullable()
+    .default(null),
 });
 
 export type AppSettingsV1 = z.infer<typeof appSettingsV1Schema>;

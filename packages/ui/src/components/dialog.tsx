@@ -1,14 +1,14 @@
 import {
+  type ButtonHTMLAttributes,
   createContext,
+  type HTMLAttributes,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
   useId,
   useMemo,
   useState,
-  type ButtonHTMLAttributes,
-  type HTMLAttributes,
-  type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../lib/utils.js";
@@ -37,7 +37,12 @@ export interface DialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-export function Dialog({ children, open: openProp, defaultOpen = false, onOpenChange }: DialogProps) {
+export function Dialog({
+  children,
+  open: openProp,
+  defaultOpen = false,
+  onOpenChange,
+}: DialogProps) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
   const open = openProp ?? uncontrolledOpen;
   const titleId = useId();
@@ -111,11 +116,7 @@ export function DialogContent({ className, children, ...props }: HTMLAttributes<
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/50"
-        aria-hidden
-        onClick={() => setOpen(false)}
-      />
+      <div className="absolute inset-0 bg-black/50" aria-hidden onClick={() => setOpen(false)} />
       <div
         role="dialog"
         aria-modal="true"
@@ -136,7 +137,9 @@ export function DialogContent({ className, children, ...props }: HTMLAttributes<
 }
 
 export function DialogHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex flex-col gap-1.5 text-center sm:text-left", className)} {...props} />;
+  return (
+    <div className={cn("flex flex-col gap-1.5 text-center sm:text-left", className)} {...props} />
+  );
 }
 
 export function DialogFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
@@ -158,7 +161,11 @@ export function DialogTitle({ className, ...props }: HTMLAttributes<HTMLHeadingE
 export function DialogDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
   const { descriptionId } = useDialogContext("DialogDescription");
   return (
-    <p id={descriptionId} className={cn("text-sm text-slate-500 dark:text-slate-400", className)} {...props} />
+    <p
+      id={descriptionId}
+      className={cn("text-sm text-slate-500 dark:text-slate-400", className)}
+      {...props}
+    />
   );
 }
 

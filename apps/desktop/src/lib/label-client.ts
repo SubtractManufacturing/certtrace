@@ -1,10 +1,10 @@
+import { generateStandardQrLabelPdf, type StandardQrLabelOptions } from "@certtrace/core";
+import type { MaterialMetadataV1 } from "@certtrace/types";
 import { invoke } from "@tauri-apps/api/core";
 import { appCacheDir, join } from "@tauri-apps/api/path";
 import { save } from "@tauri-apps/plugin-dialog";
 import { mkdir, writeFile } from "@tauri-apps/plugin-fs";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { generateStandardQrLabelPdf, type StandardQrLabelOptions } from "@certtrace/core";
-import type { MaterialMetadataV1 } from "@certtrace/types";
 
 export async function generateStandardQrLabelPdfBytes(
   material: MaterialMetadataV1,

@@ -1,4 +1,8 @@
-import { inferAttachmentKind, uniqueAttachmentName } from "@certtrace/file-storage";
+import {
+  type DirectoryEntry,
+  inferAttachmentKind,
+  uniqueAttachmentName,
+} from "@certtrace/file-storage";
 import type { AttachedFile, AttachedFileKind } from "@certtrace/types";
 import { joinPath } from "@certtrace/types";
 import { LibraryError } from "./errors.js";
@@ -23,7 +27,7 @@ export async function listMaterialAttachments(
   materialId: string,
 ): Promise<AttachedFile[]> {
   const folder = getMaterialFolderPath(library, materialId);
-  let entries;
+  let entries: DirectoryEntry[];
   try {
     entries = await library.fs.readdir(folder);
   } catch {
@@ -64,8 +68,7 @@ export async function attachFiles(
   const added: AttachedFile[] = [];
 
   for (const source of sources) {
-    const baseName =
-      source.filename ?? source.sourcePath.split(/[/\\]/).pop() ?? "attachment";
+    const baseName = source.filename ?? source.sourcePath.split(/[/\\]/).pop() ?? "attachment";
     const targetName = uniqueAttachmentName(baseName, existing);
     const targetPath = getMaterialAttachmentPath(library, materialId, targetName);
 

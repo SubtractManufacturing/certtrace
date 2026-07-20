@@ -1,5 +1,5 @@
-import { BACKUPS_DIR, joinPath } from "@certtrace/types";
 import type { FileSystem } from "@certtrace/file-storage";
+import { BACKUPS_DIR, joinPath } from "@certtrace/types";
 
 const MAX_BACKUPS = 5;
 

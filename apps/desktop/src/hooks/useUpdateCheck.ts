@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  type AvailableUpdate,
+  canInstallInApp,
   checkForAppUpdate,
   installAvailableUpdate,
-  canInstallInApp,
-  type AvailableUpdate,
   type UpdateInstallState,
 } from "../lib/update-client";
 

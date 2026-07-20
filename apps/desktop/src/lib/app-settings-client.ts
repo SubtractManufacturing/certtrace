@@ -1,4 +1,3 @@
-import { appDataDir } from "@tauri-apps/api/path";
 import {
   readAppSettings,
   removeRecentLibrary,
@@ -6,6 +5,7 @@ import {
   writeAppSettings,
 } from "@certtrace/core";
 import type { AppSettingsV1 } from "@certtrace/types";
+import { appDataDir } from "@tauri-apps/api/path";
 import { createTauriFileSystem } from "./tauri-fs";
 
 const fs = createTauriFileSystem();

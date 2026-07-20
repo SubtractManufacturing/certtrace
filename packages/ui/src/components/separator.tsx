@@ -5,11 +5,7 @@ export interface SeparatorProps extends HTMLAttributes<HTMLDivElement> {
   orientation?: "horizontal" | "vertical";
 }
 
-export function Separator({
-  className,
-  orientation = "horizontal",
-  ...props
-}: SeparatorProps) {
+export function Separator({ className, orientation = "horizontal", ...props }: SeparatorProps) {
   return (
     <div
       role="separator"

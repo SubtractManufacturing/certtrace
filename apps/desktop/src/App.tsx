@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ThemeProvider } from "@certtrace/ui";
 import type { DefaultLibraryOnLaunch } from "@certtrace/types";
+import { ThemeProvider } from "@certtrace/ui";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell, type AppView } from "./components/AppShell";
 import { CreateLibraryWizard } from "./components/CreateLibraryWizard";
 import { ErrorBanner } from "./components/ErrorBanner";
@@ -10,13 +10,13 @@ import { SettingsView } from "./components/SettingsView";
 import { UpdateAvailableDialog } from "./components/UpdateAvailableBanner";
 import { WelcomeView } from "./components/WelcomeView";
 import { useAppSettings } from "./hooks/useAppSettings";
-import { useLibrarySession, type ActiveLibraryPath } from "./hooks/useLibrarySession";
+import { type ActiveLibraryPath, useLibrarySession } from "./hooks/useLibrarySession";
 import { useSearchIndex } from "./hooks/useSearchIndex";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
 import { forgetRecentLibrary } from "./lib/app-settings-client";
-import { onLibraryFsChanged, syncLibraryWatch } from "./lib/library-watch";
 import { openPathWithOpener } from "./lib/label-client";
-import { pickParentFolder, deleteLibraryFolder } from "./lib/library-client";
+import { deleteLibraryFolder, pickParentFolder } from "./lib/library-client";
+import { onLibraryFsChanged, syncLibraryWatch } from "./lib/library-watch";
 
 async function bootstrapLibraries(
   defaultLibraryOnLaunch: DefaultLibraryOnLaunch,
@@ -38,8 +38,7 @@ async function bootstrapLibraries(
     return;
   }
 
-  const targetPath =
-    defaultLibraryOnLaunch ?? recentLibraries[0]?.path;
+  const targetPath = defaultLibraryOnLaunch ?? recentLibraries[0]?.path;
 
   if (!targetPath) {
     return;
@@ -49,8 +48,15 @@ async function bootstrapLibraries(
 }
 
 function App() {
-  const { settings, resolvedTheme, loading: settingsLoading, error: settingsError, setTheme, updateSettings, refresh: refreshSettings } =
-    useAppSettings();
+  const {
+    settings,
+    resolvedTheme,
+    loading: settingsLoading,
+    error: settingsError,
+    setTheme,
+    updateSettings,
+    refresh: refreshSettings,
+  } = useAppSettings();
   const session = useLibrarySession();
   const [activeView, setActiveView] = useState<AppView>("materials");
   const [showCreateWizard, setShowCreateWizard] = useState(false);
@@ -132,9 +138,14 @@ function App() {
       return;
     }
     session.setActiveLibraryPath(
-      session.sessionLibraries.size > 1 ? "all" : [...session.sessionLibraries.keys()][0] ?? null,
+      session.sessionLibraries.size > 1 ? "all" : ([...session.sessionLibraries.keys()][0] ?? null),
     );
-  }, [session.hasSession, session.activeLibraryPath, session.sessionLibraries, session.setActiveLibraryPath]);
+  }, [
+    session.hasSession,
+    session.activeLibraryPath,
+    session.sessionLibraries,
+    session.setActiveLibraryPath,
+  ]);
 
   useEffect(() => {
     const roots = [...session.sessionLibraries.keys()];
@@ -166,7 +177,7 @@ function App() {
       mounted = false;
       unlisten?.();
     };
-  }, [refreshLibraryMaterials, session.sessionLibraries]);
+  }, [refreshLibraryMaterials, session.refreshLibrary, session.sessionLibraries]);
 
   async function handleOpenLibrary(path: string) {
     setBusy(true);
@@ -236,7 +247,10 @@ function App() {
     }
   }
 
-  async function handleCreateLibrary(parentDir: string, options: Parameters<typeof session.createLibrary>[1]) {
+  async function handleCreateLibrary(
+    parentDir: string,
+    options: Parameters<typeof session.createLibrary>[1],
+  ) {
     setBusy(true);
     setError(null);
     try {
@@ -337,7 +351,9 @@ function App() {
             removingLibrary={removingLibrary}
             onThemeChange={(theme) => void setTheme(theme)}
             onCheckForUpdatesChange={(value) => void updateSettings({ checkForUpdates: value })}
-            onDefaultLibraryChange={(value) => void updateSettings({ defaultLibraryOnLaunch: value })}
+            onDefaultLibraryChange={(value) =>
+              void updateSettings({ defaultLibraryOnLaunch: value })
+            }
             onAddLibrary={() => void handleAddLibraryFromSettings()}
             onCreateLibrary={() => setShowCreateWizard(true)}
             onRemoveLibrary={(path, deleteFolder) => handleRemoveLibrary(path, deleteFolder)}

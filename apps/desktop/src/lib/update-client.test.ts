@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Update } from "@tauri-apps/plugin-updater";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { checkMock, relaunchMock } = vi.hoisted(() => ({
   checkMock: vi.fn(),
@@ -14,7 +14,7 @@ vi.mock("@tauri-apps/plugin-process", () => ({
   relaunch: relaunchMock,
 }));
 
-import { checkForAppUpdate, canInstallInApp, installAvailableUpdate } from "./update-client";
+import { canInstallInApp, checkForAppUpdate, installAvailableUpdate } from "./update-client";
 
 describe("checkForAppUpdate", () => {
   beforeEach(() => {

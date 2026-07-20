@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn, Separator } from "@certtrace/ui";
 import { Check, ChevronDown, Layers, Settings } from "lucide-react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ActiveLibraryPath } from "../hooks/useLibrarySession";
 
 export type AppView = "materials" | "settings" | "library-settings";
@@ -92,8 +92,11 @@ function LibraryPicker({
       ? libraries.find((library) => library.path === activeLibraryPath)
       : undefined;
   const displayName =
-    activeLibraryPath === "all" ? "All libraries" : activeLibrary?.name ?? libraries[0]?.name ?? "Library";
-  const canOpenLibrarySettings = activeLibraryPath !== "all" && Boolean(activeLibrary ?? libraries[0]);
+    activeLibraryPath === "all"
+      ? "All libraries"
+      : (activeLibrary?.name ?? libraries[0]?.name ?? "Library");
+  const canOpenLibrarySettings =
+    activeLibraryPath !== "all" && Boolean(activeLibrary ?? libraries[0]);
 
   useEffect(() => {
     if (!menuOpen) {
@@ -185,7 +188,10 @@ function LibraryPicker({
                 onClick={() => selectLibrary(library.path)}
               >
                 <Check
-                  className={cn("h-4 w-4 shrink-0 text-slate-700 dark:text-slate-200", !selected && "invisible")}
+                  className={cn(
+                    "h-4 w-4 shrink-0 text-slate-700 dark:text-slate-200",
+                    !selected && "invisible",
+                  )}
                 />
                 <span className="truncate">{library.name}</span>
               </button>

@@ -1,8 +1,8 @@
 import { Button } from "@certtrace/ui";
 import { X } from "lucide-react";
+import { openPathWithOpener } from "../lib/label-client";
 import type { AvailableUpdate } from "../lib/update-client";
 import { canInstallInApp, type UpdateInstallState } from "../lib/update-client";
-import { openPathWithOpener } from "../lib/label-client";
 
 interface UpdateAvailableDialogProps {
   updateInfo: AvailableUpdate;
@@ -102,7 +102,13 @@ export function UpdateAvailableDialog({
               Download update
             </Button>
           )}
-          <Button type="button" size="sm" variant="outline" disabled={installing} onClick={onDismiss}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={installing}
+            onClick={onDismiss}
+          >
             Later
           </Button>
         </div>

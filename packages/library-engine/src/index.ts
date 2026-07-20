@@ -1,60 +1,60 @@
+import { type FileSystem, isNotFoundError } from "@certtrace/file-storage";
 import { generateMaterialId } from "@certtrace/id-generator";
-import { isNotFoundError, type FileSystem } from "@certtrace/file-storage";
 import {
   CERTTRACE_DIR,
+  joinPath,
   LABELS_DIR,
   LIBRARY_JSON,
   LIBRARY_PATHS,
   LIBRARY_README,
-  MATERIALS_DIR,
-  NAMING_RULES_JSON,
-  joinPath,
   libraryFolderName,
-  materialMetadataPath,
-  WORD_LISTS_JSON,
-  materialMetadataV1Schema,
+  MATERIALS_DIR,
   type MaterialMetadataV1,
+  materialMetadataPath,
+  materialMetadataV1Schema,
+  NAMING_RULES_JSON,
+  WORD_LISTS_JSON,
 } from "@certtrace/types";
-import { createLibraryReadme } from "./readme.js";
+import { LibraryError } from "./errors.js";
+import { buildCreateLibraryConfig, type CreateLibraryOptions } from "./library-config.js";
 import {
   migrateLibraryConfig,
   migrateMaterialMetadata,
   migrateNamingRules,
   migrateWordLists,
 } from "./migrations/index.js";
-import { LibraryError } from "./errors.js";
-import { buildCreateLibraryConfig, type CreateLibraryOptions } from "./library-config.js";
+import { createLibraryReadme } from "./readme.js";
 import type { CreateMaterialInput, OpenLibraryResult, UpdateMaterialInput } from "./types.js";
 
 export {
-  type LibraryPaths,
-  type OpenLibraryResult,
-  type CreateMaterialInput,
-  type UpdateMaterialInput,
-} from "./types.js";
+  type AttachFileSource,
+  attachFiles,
+  attachmentKindLabel,
+  getMaterialAttachmentPath,
+  getMaterialFolderPath,
+  listMaterialAttachments,
+  removeMaterialAttachment,
+} from "./attachments.js";
 export { LibraryError } from "./errors.js";
 export {
+  addNamingStrategy,
   type CreateLibraryOptions,
+  defaultNamingRulesV1,
+  defaultWordListsV1,
+  deleteNamingStrategy,
+  duplicateNamingStrategy,
+  renameNamingStrategy,
   updateLibraryConfig,
   updateNamingRules,
   updateWordLists,
-  addNamingStrategy,
-  duplicateNamingStrategy,
-  renameNamingStrategy,
-  deleteNamingStrategy,
   validateStrategyEntropy,
-  defaultNamingRulesV1,
-  defaultWordListsV1,
 } from "./library-config.js";
-export {
-  listMaterialAttachments,
-  attachFiles,
-  removeMaterialAttachment,
-  getMaterialAttachmentPath,
-  getMaterialFolderPath,
-  attachmentKindLabel,
-  type AttachFileSource,
-} from "./attachments.js";
+export type {
+  CreateMaterialInput,
+  LibraryPaths,
+  OpenLibraryResult,
+  UpdateMaterialInput,
+} from "./types.js";
 
 const METADATA_FILENAME = "metadata.json";
 
@@ -77,9 +77,7 @@ async function writeJson(fs: FileSystem, path: string, value: unknown): Promise<
 async function assertNewLibraryRoot(fs: FileSystem, root: string): Promise<void> {
   try {
     const entries = await fs.readdir(root);
-    const hasCerttrace = entries.some(
-      (entry) => entry.name === CERTTRACE_DIR && entry.isDirectory,
-    );
+    const hasCerttrace = entries.some((entry) => entry.name === CERTTRACE_DIR && entry.isDirectory);
     if (hasCerttrace) {
       throw new LibraryError(`A CertTrace library already exists at ${root}`);
     }
@@ -198,7 +196,10 @@ function getActiveStrategy(library: OpenLibraryResult) {
 export async function listMaterialIds(library: OpenLibraryResult): Promise<string[]> {
   try {
     const entries = await library.fs.readdir(library.paths.materials);
-    return entries.filter((entry) => entry.isDirectory).map((entry) => entry.name).sort();
+    return entries
+      .filter((entry) => entry.isDirectory)
+      .map((entry) => entry.name)
+      .sort();
   } catch (error: unknown) {
     if (isNotFoundError(error)) {
       return [];

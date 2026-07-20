@@ -83,7 +83,9 @@
 
   .certtrace-switch:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px rgb(var(--background)), 0 0 0 4px rgb(var(--ring));
+    box-shadow:
+      0 0 0 2px rgb(var(--background)),
+      0 0 0 4px rgb(var(--ring));
   }
 
   .certtrace-switch[data-state="checked"] {

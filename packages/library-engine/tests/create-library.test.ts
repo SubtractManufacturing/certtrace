@@ -1,7 +1,6 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
 import type { FileSystem } from "@certtrace/file-storage";
 import { createNodeFileSystem } from "@certtrace/file-storage/node";
 import {
@@ -13,6 +12,7 @@ import {
   NAMING_RULES_JSON,
   WORD_LISTS_JSON,
 } from "@certtrace/types";
+import { describe, expect, it } from "vitest";
 import { createLibrary, openLibrary } from "../src/index.js";
 
 describe("createLibrary", () => {

@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import type { MaterialMetadataV1 } from "@certtrace/types";
+import { describe, expect, it } from "vitest";
 import { buildSearchIndex, rankSearchResults, searchMaterials } from "../src/search/index.js";
 
 function sampleMaterial(overrides: Partial<MaterialMetadataV1> = {}): MaterialMetadataV1 {

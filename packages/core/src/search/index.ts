@@ -15,20 +15,19 @@ export interface SearchResult {
 }
 
 const normalizeQuery = (query: string): string[] =>
-  query
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean);
+  query.trim().toLowerCase().split(/\s+/).filter(Boolean);
 
-export function materialSearchText(
-  material: MaterialMetadataV1,
-  searchAllFields: boolean,
-): string {
+export function materialSearchText(material: MaterialMetadataV1, searchAllFields: boolean): string {
   const parts = [material.id, material.material, material.barcode];
 
   if (searchAllFields) {
-    parts.push(material.supplier, material.heat, material.location, material.notes, ...material.tags);
+    parts.push(
+      material.supplier,
+      material.heat,
+      material.location,
+      material.notes,
+      ...material.tags,
+    );
   }
 
   return parts.join(" ").toLowerCase();
