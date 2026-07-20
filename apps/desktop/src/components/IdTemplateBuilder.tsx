@@ -103,6 +103,8 @@ export function IdTemplateBuilder({
       <div className="space-y-2">
         {segments.map((segment, index) => (
           <div
+            // Template segments are an ordered list without stable ids; index is identity.
+            // biome-ignore lint/suspicious/noArrayIndexKey: ordered segment list
             key={`${segment.type}-${index}`}
             className="flex flex-wrap items-end gap-2 rounded-md border border-slate-200 p-3 dark:border-slate-700"
           >

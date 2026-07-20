@@ -77,7 +77,7 @@ pnpm lint          # Biome check (lint + format + import sorting)
 pnpm format        # apply Biome formatting
 pnpm format:check  # verify formatting without writing
 pnpm typecheck     # TypeScript check
-pnpm test          # run tests
+pnpm test          # run tests (when configured)
 ```
 
 ## Project structure
