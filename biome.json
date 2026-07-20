@@ -15,7 +15,8 @@
       "!CHANGELOG.md",
       "!**/*.rtf",
       "!**/*.svg",
-      "!planning"
+      "!planning",
+      "!.agents"
     ]
   },
   "formatter": {
