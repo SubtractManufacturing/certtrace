@@ -71,11 +71,13 @@ Rust installs `cargo` under `~/.cargo/bin`; make sure `~/.cargo/env` is sourced 
 
 ```bash
 pnpm install
-pnpm dev          # start desktop app in dev mode
-pnpm build        # production build
-pnpm lint         # lint (when configured)
-pnpm typecheck    # TypeScript check
-pnpm test         # run tests (when configured)
+pnpm dev           # start desktop app in dev mode
+pnpm build         # production build
+pnpm lint          # Biome check (lint + format + import sorting)
+pnpm format        # apply Biome formatting
+pnpm format:check  # verify formatting without writing
+pnpm typecheck     # TypeScript check
+pnpm test          # run tests
 ```
 
 ## Project structure
