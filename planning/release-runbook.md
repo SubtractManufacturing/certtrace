@@ -8,17 +8,20 @@ release-please bumps:
 
 - root `package.json`
 - `apps/desktop/package.json`
+- `apps/desktop/src-tauri/tauri.conf.json` (via `extra-files`)
+- `apps/desktop/src-tauri/Cargo.toml` (via `extra-files` + `x-release-please-version`)
 
-After those bumps, sync Tauri/Cargo versions:
+CI fails if those Tauri/Cargo versions drift from `apps/desktop/package.json`:
+
+```bash
+pnpm sync:version:check
+```
+
+After a manual version bump (or if release-please did not touch Tauri/Cargo), sync and commit:
 
 ```bash
 pnpm sync:version
 ```
-
-This updates:
-
-- `apps/desktop/src-tauri/tauri.conf.json`
-- `apps/desktop/src-tauri/Cargo.toml`
 
 ## Updater signing keys
 

@@ -12,8 +12,10 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "typecheck": "pnpm build:packages && pnpm -r typecheck",
-    "test": "pnpm build:packages && pnpm -r test",
-    "sync:version": "node scripts/sync-app-version.mjs"
+    "test": "pnpm build:packages && pnpm -r test && pnpm test:scripts",
+    "test:scripts": "node --test scripts/*.test.mjs",
+    "sync:version": "node scripts/sync-app-version.mjs",
+    "sync:version:check": "node scripts/sync-app-version.mjs --check"
   },
   "engines": {
     "node": ">=20"
