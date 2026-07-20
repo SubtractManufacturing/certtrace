@@ -19,7 +19,7 @@ jobs:
       release_name: ${{ steps.release.outputs.release_name }}
       release_body: ${{ steps.release.outputs.release_body }}
     steps:
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v9
         id: release
         with:
           script: |
