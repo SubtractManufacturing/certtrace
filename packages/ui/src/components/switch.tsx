@@ -1,4 +1,4 @@
-import { useState, type ButtonHTMLAttributes } from "react";
+import { type ButtonHTMLAttributes, useState } from "react";
 import { cn } from "../lib/utils.js";
 
 export interface SwitchProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onChange"> {

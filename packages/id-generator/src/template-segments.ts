@@ -92,7 +92,6 @@ export function strategyFromSegments(
     template: segmentsToTemplate(segments),
     case: options.case ?? "lower",
     numberPad: numberSegment?.type === "number" ? numberSegment.numberPad : options.numberPad,
-    numberStart:
-      numberSegment?.type === "number" ? numberSegment.numberStart : options.numberStart,
+    numberStart: numberSegment?.type === "number" ? numberSegment.numberStart : options.numberStart,
   };
 }

@@ -16,9 +16,9 @@ export {
   DialogFooter,
   DialogHeader,
   DialogOverlay,
+  type DialogProps,
   DialogTitle,
   DialogTrigger,
-  type DialogProps,
 } from "./components/dialog.js";
 export { Input, type InputProps } from "./components/input.js";
 export { Label, type LabelProps } from "./components/label.js";
@@ -34,9 +34,9 @@ export {
   SheetFooter,
   SheetHeader,
   SheetOverlay,
+  type SheetProps,
   SheetTitle,
   SheetTrigger,
-  type SheetProps,
 } from "./components/sheet.js";
 export { Switch, type SwitchProps } from "./components/switch.js";
 export {
@@ -50,5 +50,10 @@ export {
   TableRow,
 } from "./components/table.js";
 export { Textarea, type TextareaProps } from "./components/textarea.js";
-export { ThemeProvider, useTheme, type Theme, type ThemeProviderProps } from "./components/theme-provider.js";
+export {
+  type Theme,
+  ThemeProvider,
+  type ThemeProviderProps,
+  useTheme,
+} from "./components/theme-provider.js";
 export { cn } from "./lib/utils.js";

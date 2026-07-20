@@ -1,14 +1,14 @@
 import {
+  type ButtonHTMLAttributes,
   createContext,
+  type HTMLAttributes,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
   useId,
   useMemo,
   useState,
-  type ButtonHTMLAttributes,
-  type HTMLAttributes,
-  type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../lib/utils.js";
@@ -111,11 +111,7 @@ export function SheetContent({ className, children, ...props }: HTMLAttributes<H
 
   return createPortal(
     <div className="certtrace-sheet-root">
-      <div
-        className="certtrace-sheet-overlay"
-        aria-hidden
-        onClick={() => setOpen(false)}
-      />
+      <div className="certtrace-sheet-overlay" aria-hidden onClick={() => setOpen(false)} />
       <div
         role="dialog"
         aria-modal="true"
@@ -149,9 +145,7 @@ export function SheetTitle({ className, ...props }: HTMLAttributes<HTMLHeadingEl
 
 export function SheetDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
   const { descriptionId } = useSheetContext("SheetDescription");
-  return (
-    <p id={descriptionId} className={cn("text-sm text-slate-500", className)} {...props} />
-  );
+  return <p id={descriptionId} className={cn("text-sm text-slate-500", className)} {...props} />;
 }
 
 export function SheetClose({

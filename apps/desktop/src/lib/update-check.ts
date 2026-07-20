@@ -1,6 +1,5 @@
 export const APP_VERSION = __APP_VERSION__;
-const RELEASES_URL =
-  "https://api.github.com/repos/SubtractManufacturing/certtrace/releases/latest";
+const RELEASES_URL = "https://api.github.com/repos/SubtractManufacturing/certtrace/releases/latest";
 
 export interface UpdateInfo {
   latestVersion: string;

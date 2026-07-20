@@ -1,13 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
 import { createNodeFileSystem } from "@certtrace/file-storage/node";
-import {
-  migrateLibraryConfig,
-  migrateMaterialMetadata,
-} from "../src/migrations/index.js";
+import { describe, expect, it } from "vitest";
 import { LibraryError, listMaterialIds, openLibrary } from "../src/index.js";
+import { migrateLibraryConfig, migrateMaterialMetadata } from "../src/migrations/index.js";
 
 const fixturesRoot = join(dirname(fileURLToPath(import.meta.url)), "../../../fixtures/libraries");
 

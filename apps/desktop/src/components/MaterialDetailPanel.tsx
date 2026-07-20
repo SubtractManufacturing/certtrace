@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
 import {
   attachmentKindLabel,
   getMaterialAttachmentPath,
   getMaterialFolderPath,
-  removeMaterialAttachment,
   type OpenLibraryResult,
+  removeMaterialAttachment,
 } from "@certtrace/library-engine";
 import type { AttachedFile, MaterialMetadataV1 } from "@certtrace/types";
 import {
   Button,
+  cn,
   Input,
   Label,
   Sheet,
@@ -17,19 +17,16 @@ import {
   SheetHeader,
   SheetTitle,
   Textarea,
-  cn,
 } from "@certtrace/ui";
 import { FileText, FolderOpen, Printer, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { attachFilesToMaterial, pickAttachmentFiles } from "../lib/attachment-client";
-import {
-  fetchMaterialAttachments,
-  updateMaterialMetadata,
-} from "../lib/library-client";
 import {
   openPathWithOpener,
   printLabelPdfFromObjectUrl,
   saveLabelPdfViaDialog,
 } from "../lib/label-client";
+import { fetchMaterialAttachments, updateMaterialMetadata } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
 
 interface MaterialDetailPanelProps {
@@ -192,18 +189,40 @@ export function MaterialDetailPanel({
 
   const panel = (
     <div className="flex h-full flex-col gap-4 overflow-y-auto">
-      {wideLayout ? header : (
+      {wideLayout ? (
+        header
+      ) : (
         <SheetHeader>
           <SheetTitle>{material.id}</SheetTitle>
         </SheetHeader>
       )}
 
       <div className="grid gap-3">
-        <Field label="Material" value={draft.material} onChange={(value) => setDraft({ ...draft, material: value })} />
-        <Field label="Supplier" value={draft.supplier} onChange={(value) => setDraft({ ...draft, supplier: value })} />
-        <Field label="Heat" value={draft.heat} onChange={(value) => setDraft({ ...draft, heat: value })} />
-        <Field label="Location" value={draft.location} onChange={(value) => setDraft({ ...draft, location: value })} />
-        <Field label="Barcode" value={draft.barcode} onChange={(value) => setDraft({ ...draft, barcode: value })} />
+        <Field
+          label="Material"
+          value={draft.material}
+          onChange={(value) => setDraft({ ...draft, material: value })}
+        />
+        <Field
+          label="Supplier"
+          value={draft.supplier}
+          onChange={(value) => setDraft({ ...draft, supplier: value })}
+        />
+        <Field
+          label="Heat"
+          value={draft.heat}
+          onChange={(value) => setDraft({ ...draft, heat: value })}
+        />
+        <Field
+          label="Location"
+          value={draft.location}
+          onChange={(value) => setDraft({ ...draft, location: value })}
+        />
+        <Field
+          label="Barcode"
+          value={draft.barcode}
+          onChange={(value) => setDraft({ ...draft, barcode: value })}
+        />
         <label className="space-y-1 text-sm">
           <Label>Tags</Label>
           <Input
@@ -233,7 +252,12 @@ export function MaterialDetailPanel({
         <Button type="button" disabled={busy} onClick={() => void handleSave()}>
           Save changes
         </Button>
-        <Button type="button" variant="outline" disabled={busy} onClick={() => void handleAddFiles()}>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={busy}
+          onClick={() => void handleAddFiles()}
+        >
           Add files
         </Button>
         <Button

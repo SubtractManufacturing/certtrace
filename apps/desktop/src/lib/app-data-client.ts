@@ -1,5 +1,5 @@
-import { appDataDir } from "@tauri-apps/api/path";
 import { invoke } from "@tauri-apps/api/core";
+import { appDataDir } from "@tauri-apps/api/path";
 import { mkdir } from "@tauri-apps/plugin-fs";
 
 export async function openAppDataFolder(): Promise<void> {

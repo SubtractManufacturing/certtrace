@@ -1,6 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { OpenLibraryResult } from "@certtrace/library-engine";
-import type { CreateMaterialInput } from "@certtrace/library-engine";
+import type { CreateMaterialInput, OpenLibraryResult } from "@certtrace/library-engine";
 import {
   Button,
   Dialog,
@@ -14,6 +12,7 @@ import {
   Textarea,
 } from "@certtrace/ui";
 import { Plus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ActiveLibraryPath } from "../hooks/useLibrarySession";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
 import { addMaterial, fetchMaterialAttachments, openLibraryAtPath } from "../lib/library-client";
@@ -126,11 +125,12 @@ export function MaterialsWorkspace({
     function onKeyDown(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null;
       const isTyping =
-        target?.tagName === "INPUT" ||
-        target?.tagName === "TEXTAREA" ||
-        target?.isContentEditable;
+        target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
 
-      if ((event.key === "/" && !isTyping) || ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k")) {
+      if (
+        (event.key === "/" && !isTyping) ||
+        ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k")
+      ) {
         event.preventDefault();
         document.getElementById(searchInputId)?.focus();
       }
@@ -259,7 +259,10 @@ export function MaterialsWorkspace({
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1 text-sm">
               <Label>Material code</Label>
-              <Input value={materialCode} onChange={(event) => setMaterialCode(event.target.value)} />
+              <Input
+                value={materialCode}
+                onChange={(event) => setMaterialCode(event.target.value)}
+              />
             </label>
             <label className="space-y-1 text-sm">
               <Label>Material</Label>

@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import {
   parseTemplateToSegments,
   previewMaterialId,
@@ -10,6 +9,7 @@ import type { NamingStrategyV1, WordListsV1 } from "@certtrace/types";
 import { defaultWordListsV1 } from "@certtrace/types";
 import { Button, Input, Label, Select } from "@certtrace/ui";
 import { Plus, Trash2 } from "lucide-react";
+import { useMemo } from "react";
 
 interface IdTemplateBuilderProps {
   strategy: NamingStrategyV1;
@@ -32,10 +32,7 @@ export function IdTemplateBuilder({
   wordLists = defaultWordListsV1,
   onChange,
 }: IdTemplateBuilderProps) {
-  const segments = useMemo(
-    () => parseTemplateToSegments(strategy.template),
-    [strategy.template],
-  );
+  const segments = useMemo(() => parseTemplateToSegments(strategy.template), [strategy.template]);
 
   const preview = useMemo(() => {
     try {

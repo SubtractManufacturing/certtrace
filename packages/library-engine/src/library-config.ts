@@ -1,26 +1,22 @@
 import {
-  NAMING_RULES_JSON,
-  WORD_LISTS_JSON,
   createDefaultLibraryConfigV1,
   defaultNamingRulesV1,
   defaultWordListsV1,
-  libraryConfigV1Schema,
-  namingRulesV1Schema,
-  wordListsV1Schema,
   type LibraryConfigV1,
+  libraryConfigV1Schema,
+  NAMING_RULES_JSON,
   type NamingRulesV1,
   type NamingStrategyV1,
+  namingRulesV1Schema,
+  WORD_LISTS_JSON,
   type WordListsV1,
+  wordListsV1Schema,
 } from "@certtrace/types";
-import { LibraryError } from "./errors.js";
 import { backupConfigFile } from "./config-backup.js";
+import { LibraryError } from "./errors.js";
 import type { OpenLibraryResult } from "./types.js";
 
-async function writeJson(
-  fs: OpenLibraryResult["fs"],
-  path: string,
-  value: unknown,
-): Promise<void> {
+async function writeJson(fs: OpenLibraryResult["fs"], path: string, value: unknown): Promise<void> {
   await fs.writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
@@ -77,9 +73,7 @@ export function validateStrategyEntropy(
     return null;
   }
 
-  const wordTokens = [...strategy.template.matchAll(/\{word:([^}]+)\}/g)].map(
-    (match) => match[1]!,
-  );
+  const wordTokens = [...strategy.template.matchAll(/\{word:([^}]+)\}/g)].map((match) => match[1]!);
   if (wordTokens.length === 0) {
     return "Template should include a sequential number or word categories for uniqueness.";
   }
@@ -96,10 +90,7 @@ export function validateStrategyEntropy(
   return null;
 }
 
-export function addNamingStrategy(
-  rules: NamingRulesV1,
-  strategy: NamingStrategyV1,
-): NamingRulesV1 {
+export function addNamingStrategy(rules: NamingRulesV1, strategy: NamingStrategyV1): NamingRulesV1 {
   if (rules.strategies.some((entry) => entry.id === strategy.id)) {
     throw new LibraryError(`Strategy id already exists: ${strategy.id}`);
   }
