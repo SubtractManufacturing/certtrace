@@ -8,7 +8,9 @@
     "dev": "pnpm --filter @certtrace/desktop tauri dev",
     "build": "pnpm -w build:packages && pnpm --filter @certtrace/desktop tauri build",
     "build:packages": "pnpm -r --filter \"@certtrace/*\" --filter \"!@certtrace/desktop\" build",
-    "lint": "pnpm -r lint",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "format:check": "biome format --check .",
     "typecheck": "pnpm build:packages && pnpm -r typecheck",
     "test": "pnpm build:packages && pnpm -r test",
     "sync:version": "node scripts/sync-app-version.mjs"

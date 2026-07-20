@@ -8,7 +8,6 @@
     "build": "pnpm -w build:packages && tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "lint": "echo \"lint: not configured yet\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
