@@ -52,7 +52,54 @@ Never commit the private key file. Add the private key contents to GitHub Action
 | `APPLE_PASSWORD` | App-specific password for notarization |
 | `APPLE_TEAM_ID` | Apple Developer Team ID |
 
+macOS release builds use `--target universal-apple-darwin` (Apple Silicon + Intel) on `macos-latest`. After each macOS publish, spot-check Gatekeeper on a clean install:
+
+```bash
+# Mount the DMG, then find the app (volume name can vary):
+find /Volumes -name 'CertTrace.app' 2>/dev/null
+APP="$(find /Volumes -name 'CertTrace.app' 2>/dev/null | head -1)"
+codesign -dv --verbose=4 "$APP"
+spctl -a -vv "$APP"
+# Expect Developer ID + notarized / accepted
+```
+
 Windows code signing can be added later via SignPath or a purchased certificate. Unsigned Windows builds may still publish, but SmartScreen warnings are expected until signing is configured.
+
+## Desktop preview builds (`/build`)
+
+Use **Desktop preview** to produce downloadable installers from a PR **before** merging or cutting a release-please release. Artifacts are kept for **7 days** and are **not** published to GitHub Releases / `latest.json`.
+
+### From a PR comment (same-repo branches only)
+
+Comment on the PR (OWNERS / MEMBERS / COLLABORATORS):
+
+```text
+/build
+```
+
+Builds macOS (universal, signed/notarized when Apple secrets are set), Windows, and Linux.
+
+Scope platforms to save minutes:
+
+```text
+/build --mac
+/build --macos
+/build --windows
+/build --linux
+/build --mac --windows
+```
+
+`--win` is accepted as an alias for `--windows`.
+
+The command must be on its own line. Fork PRs are refused (signing secrets must not run on untrusted heads).
+
+### From the Actions tab
+
+Run **Desktop preview** via `workflow_dispatch`: choose platforms, optionally a PR number (otherwise builds the selected branch ref).
+
+### First-time enablement
+
+`issue_comment` workflows load from the **default branch**. Merge this workflow to `main` once; after that, `/build` on open PRs will trigger.
 
 ## Release flow
 
