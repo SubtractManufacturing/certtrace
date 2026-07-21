@@ -113,4 +113,26 @@ describe("syncAppVersions", () => {
     );
     assert.equal(checkAppVersions(root).ok, true);
   });
+
+  it("succeeds when Tauri and Cargo are already at the desktop version", () => {
+    const root = createFixture({
+      desktopVersion: "1.0.2",
+      tauriVersion: "1.0.2",
+      cargoVersion: "1.0.2",
+    });
+    const cargoPath = path.join(root, "apps/desktop/src-tauri/Cargo.toml");
+    writeFileSync(
+      cargoPath,
+      `[package]\nname = "certtrace-desktop"\nversion = "1.0.2" # x-release-please-version\n`,
+    );
+
+    const result = syncAppVersions(root);
+
+    assert.equal(result.version, "1.0.2");
+    assert.equal(
+      readFileSync(cargoPath, "utf8"),
+      `[package]\nname = "certtrace-desktop"\nversion = "1.0.2" # x-release-please-version\n`,
+    );
+    assert.equal(checkAppVersions(root).ok, true);
+  });
 });
