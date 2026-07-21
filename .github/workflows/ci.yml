@@ -16,7 +16,8 @@ jobs:
   # Ship builds belong only in release.yml (dispatched once per desktop tag).
   build-release-please:
     name: Build (${{ matrix.platform }})
-    if: ${{ (github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please--branches--')) || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore: release')) }}
+    # Quoted: bare `chore: …` breaks YAML parsing (colon-space).
+    if: "${{ (github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please--branches--')) || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore: release')) }}"
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -29,7 +30,7 @@ jobs:
     name: Build (${{ matrix.platform }})
     # Skip on release-please PRs and their merge commits to main.
     # Those only bump versions/changelogs; tauri-action ship builds run in release.yml.
-    if: ${{ !((github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please--branches--')) || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore: release'))) }}
+    if: "${{ !((github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please--branches--')) || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore: release'))) }}"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
