@@ -4,12 +4,16 @@ This runbook covers updater signing, CI secrets, version bumps, and the beta upd
 
 ## Version synchronization
 
+release-please tracks a single shippable package: `apps/desktop` (component `desktop`, tags `desktop-vX.Y.Z`). Release PRs are titled `chore: release desktop-vX.Y.Z`. The private workspace root `package.json` is not versioned.
+
 release-please bumps:
 
-- root `package.json`
 - `apps/desktop/package.json`
+- `apps/desktop/CHANGELOG.md`
 - `apps/desktop/src-tauri/tauri.conf.json` (via `extra-files`)
 - `apps/desktop/src-tauri/Cargo.toml` (via `extra-files` + `x-release-please-version`)
+
+Root `CHANGELOG.md` is a historical archive only.
 
 CI fails if those Tauri/Cargo versions drift from `apps/desktop/package.json`:
 
@@ -121,9 +125,9 @@ spctl -a -vv "$APP"
 ## Release flow
 
 1. Merge feature work to `main`.
-2. Let release-please open or update its version PR.
-3. Merge the release-please PR to create a single desktop GitHub release. The tag remains `desktop-vX.Y.Z` (for example `desktop-v1.0.0`), and the release is renamed to `CertTrace Desktop: vX.Y.Z`.
-4. Release Please skips publishing the root `certtrace-v*` GitHub release. When `apps/desktop` is released, `.github/workflows/release-please.yml` reads the exact `apps/desktop--tag_name` output from that run (not a newest-release lookup), renames that release, and dispatches `.github/workflows/release.yml` with `tag` set to that same tag. GitHub releases created by `GITHUB_TOKEN` do not trigger other workflows directly, so the build is chained via `workflow_dispatch`.
+2. Let release-please open or update its version PR (`chore: release desktop-vX.Y.Z`).
+3. Merge that PR to create the desktop GitHub release. The tag remains `desktop-vX.Y.Z` (for example `desktop-v1.0.0`), and the release is renamed to `CertTrace Desktop: vX.Y.Z`.
+4. `.github/workflows/release-please.yml` reads the exact `apps/desktop--tag_name` output from that run (not a newest-release lookup), renames that release, and dispatches `.github/workflows/release.yml` with `tag` set to that same tag. GitHub releases created by `GITHUB_TOKEN` do not trigger other workflows directly, so the build is chained via `workflow_dispatch`.
 5. `release.yml` resolves that tag with `getReleaseByTag` and uploads assets / `latest.json` only for that release via `tauri-apps/tauri-action`.
 6. Verify the `CertTrace Desktop: vX.Y.Z` release page contains platform installers, `.sig` files, and `latest.json`.
 
@@ -132,6 +136,10 @@ To rebuild installers for an existing release:
 ```bash
 gh workflow run release.yml -f tag=desktop-v1.0.0
 ```
+
+### Future install targets
+
+When another shippable app exists (for example `apps/web`), add it as a second path under `.github/release-please-config.json` with its own `component` and changelog. Prefer `"separate-pull-requests": true` so each target gets a clear PR title (`chore: release desktop-v…` vs `chore: release web-v…`). Dispatch/build for the new target should follow the same exact `--tag_name` / `--release_created` pattern as desktop. Do not reintroduce a root umbrella package as a fake “core” release.
 
 ## Updater dry run (`v0.1.0` → `v0.1.1`)
 

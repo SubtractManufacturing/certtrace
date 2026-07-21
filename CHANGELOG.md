@@ -1,5 +1,7 @@
 # Changelog
 
+> **Historical archive.** New release notes are written to [`apps/desktop/CHANGELOG.md`](apps/desktop/CHANGELOG.md). This root file is no longer updated by release-please.
+
 ## [1.0.2](https://github.com/SubtractManufacturing/certtrace/compare/certtrace-v1.0.1...certtrace-v1.0.2) (2026-06-02)
 
 
