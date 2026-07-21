@@ -64,10 +64,10 @@ fn open_with_default_app(path: &Path) -> Result<(), String> {
             return Ok(());
         }
 
-        return Err(format!(
+        Err(format!(
             "Could not open file (exit code {:?})",
             status.code()
-        ));
+        ))
     }
 
     #[cfg(target_os = "linux")]
@@ -81,10 +81,10 @@ fn open_with_default_app(path: &Path) -> Result<(), String> {
             return Ok(());
         }
 
-        return Err(format!(
+        Err(format!(
             "Could not open file (exit code {:?})",
             status.code()
-        ));
+        ))
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
