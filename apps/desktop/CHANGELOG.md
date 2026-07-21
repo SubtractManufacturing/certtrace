@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v1.0.4...desktop-v1.0.5) (2026-07-21)
+
+
+### Bug Fixes
+
+* **updater:** Trim whitespace from GitHub release notes ([7d7c41d](https://github.com/SubtractManufacturing/certtrace/commit/7d7c41d5ced8284676c76cf4fa0c171b6285e15d))
+
 ## [1.0.4](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v1.0.3...desktop-v1.0.4) (2026-07-21)
 
 
