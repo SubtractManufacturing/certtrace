@@ -30,7 +30,23 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "dmg": {
+        "background": "../branding/installer/dmg-background.png"
+      }
+    },
+    "windows": {
+      "nsis": {
+        "sidebarImage": "../branding/installer/nsis-sidebar.bmp",
+        "headerImage": "../branding/installer/nsis-header.bmp",
+        "installerIcon": "icons/icon.ico"
+      },
+      "wix": {
+        "bannerPath": "../branding/installer/wix-banner.bmp",
+        "dialogImagePath": "../branding/installer/wix-dialog.bmp"
+      }
+    }
   },
   "plugins": {
     "fs": {
