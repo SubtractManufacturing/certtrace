@@ -13,6 +13,9 @@ concurrency:
 jobs:
   build:
     name: Build (${{ matrix.platform }})
+    # Release Please PRs only bump versions/changelogs; skip the full matrix.
+    # Still runs on pushes to main (including after a release PR merges).
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please--branches--') }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

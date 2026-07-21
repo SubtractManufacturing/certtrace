@@ -125,7 +125,7 @@ spctl -a -vv "$APP"
 ## Release flow
 
 1. Merge feature work to `main`.
-2. Let release-please open or update its version PR (`chore: release desktop-vX.Y.Z`).
+2. Let release-please open or update its version PR (`chore: release desktop-vX.Y.Z`). The CI build matrix does not run on that PR (version/changelog bumps only); it still runs after the PR merges to `main`.
 3. Merge that PR to create the desktop GitHub release. The tag remains `desktop-vX.Y.Z` (for example `desktop-v1.0.0`), and the release is renamed to `CertTrace Desktop: vX.Y.Z`.
 4. `.github/workflows/release-please.yml` reads the exact `apps/desktop--tag_name` output from that run (not a newest-release lookup), renames that release, and dispatches `.github/workflows/release.yml` with `tag` set to that same tag. GitHub releases created by `GITHUB_TOKEN` do not trigger other workflows directly, so the build is chained via `workflow_dispatch`.
 5. `release.yml` resolves that tag with `getReleaseByTag` and uploads assets / `latest.json` only for that release via `tauri-apps/tauri-action`.
