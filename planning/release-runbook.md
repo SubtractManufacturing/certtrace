@@ -59,8 +59,8 @@ Windows code signing can be added later via SignPath or a purchased certificate.
 1. Merge feature work to `main`.
 2. Let release-please open or update its version PR.
 3. Merge the release-please PR to create a single desktop GitHub release. The tag remains `desktop-vX.Y.Z` (for example `desktop-v1.0.0`), and the release is renamed to `CertTrace Desktop: vX.Y.Z`.
-4. Release Please skips publishing the root `certtrace-v*` GitHub release, then dispatches `.github/workflows/release.yml` for the new `desktop-v*` tag. GitHub releases created by `GITHUB_TOKEN` do not trigger other workflows directly, so the build is chained via `workflow_dispatch`.
-5. The workflow uploads release assets and `latest.json` via `tauri-apps/tauri-action`.
+4. Release Please skips publishing the root `certtrace-v*` GitHub release. When `apps/desktop` is released, `.github/workflows/release-please.yml` reads the exact `apps/desktop--tag_name` output from that run (not a newest-release lookup), renames that release, and dispatches `.github/workflows/release.yml` with `tag` set to that same tag. GitHub releases created by `GITHUB_TOKEN` do not trigger other workflows directly, so the build is chained via `workflow_dispatch`.
+5. `release.yml` resolves that tag with `getReleaseByTag` and uploads assets / `latest.json` only for that release via `tauri-apps/tauri-action`.
 6. Verify the `CertTrace Desktop: vX.Y.Z` release page contains platform installers, `.sig` files, and `latest.json`.
 
 To rebuild installers for an existing release:
