@@ -1,11 +1,15 @@
-import { useState } from "react";
-import type { AppSettingsTheme, DefaultLibraryOnLaunch, RecentLibraryEntryV1 } from "@certtrace/types";
+import type {
+  AppSettingsTheme,
+  DefaultLibraryOnLaunch,
+  RecentLibraryEntryV1,
+} from "@certtrace/types";
 import { Button, Label, Select, Switch } from "@certtrace/ui";
 import { FolderOpen, Plus } from "lucide-react";
+import { useState } from "react";
 import { openAppDataFolder } from "../lib/app-data-client";
 import { APP_VERSION } from "../lib/update-check";
-import { RemoveLibraryDialog } from "./RemoveLibraryDialog";
 import { ErrorBanner } from "./ErrorBanner";
+import { RemoveLibraryDialog } from "./RemoveLibraryDialog";
 
 interface SettingsViewProps {
   theme: AppSettingsTheme;
@@ -83,7 +87,10 @@ export function SettingsView({
           <h2 className="text-lg font-semibold">Appearance</h2>
           <label className="mt-4 block max-w-xs space-y-1 text-sm">
             <Label>Theme</Label>
-            <Select value={theme} onChange={(event) => onThemeChange(event.target.value as AppSettingsTheme)}>
+            <Select
+              value={theme}
+              onChange={(event) => onThemeChange(event.target.value as AppSettingsTheme)}
+            >
               <option value="system">System</option>
               <option value="light">Light</option>
               <option value="dark">Dark</option>
@@ -197,13 +204,23 @@ export function SettingsView({
                       : "Download update"
                     : "Look for updates"}
             </Button>
-          {updateError ? <p className="text-sm text-red-600 dark:text-red-400">{updateError}</p> : null}
-          {hasCheckedForUpdates && !updateError && !checkingForUpdates && !updateAvailable && noReleasesPublished ? (
-            <p className="text-sm text-slate-500">No GitHub releases published yet.</p>
-          ) : null}
-          {hasCheckedForUpdates && !updateError && !checkingForUpdates && !updateAvailable && !noReleasesPublished ? (
-            <p className="text-sm text-slate-500">You are on the latest version.</p>
-          ) : null}
+            {updateError ? (
+              <p className="text-sm text-red-600 dark:text-red-400">{updateError}</p>
+            ) : null}
+            {hasCheckedForUpdates &&
+            !updateError &&
+            !checkingForUpdates &&
+            !updateAvailable &&
+            noReleasesPublished ? (
+              <p className="text-sm text-slate-500">No GitHub releases published yet.</p>
+            ) : null}
+            {hasCheckedForUpdates &&
+            !updateError &&
+            !checkingForUpdates &&
+            !updateAvailable &&
+            !noReleasesPublished ? (
+              <p className="text-sm text-slate-500">You are on the latest version.</p>
+            ) : null}
           </div>
         </section>
 
@@ -219,7 +236,12 @@ export function SettingsView({
               <ErrorBanner message={appDataError} />
             </div>
           ) : null}
-          <Button type="button" variant="outline" className="mt-4" onClick={() => void handleOpenAppDataFolder()}>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-4"
+            onClick={() => void handleOpenAppDataFolder()}
+          >
             <FolderOpen className="mr-2 h-4 w-4" />
             Open app data folder
           </Button>

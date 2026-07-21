@@ -1,23 +1,9 @@
-import { useMemo, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  cn,
-} from "@certtrace/ui";
+import { cn, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@certtrace/ui";
 import { ArrowDown, ArrowUp, ArrowUpDown, Paperclip } from "lucide-react";
+import { useMemo, useState } from "react";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
 
-export type MaterialSortKey =
-  | "id"
-  | "material"
-  | "supplier"
-  | "heat"
-  | "location"
-  | "libraryName";
+export type MaterialSortKey = "id" | "material" | "supplier" | "heat" | "location" | "libraryName";
 
 interface MaterialTableProps {
   materials: IndexedMaterial[];
@@ -62,7 +48,12 @@ export function MaterialTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <SortableHead label="ID" active={sortKey === "id"} direction={sortDirection} onClick={() => toggleSort("id")} />
+            <SortableHead
+              label="ID"
+              active={sortKey === "id"}
+              direction={sortDirection}
+              onClick={() => toggleSort("id")}
+            />
             <SortableHead
               label="Material"
               active={sortKey === "material"}

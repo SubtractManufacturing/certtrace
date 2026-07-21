@@ -1,6 +1,6 @@
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import QRCode from "qrcode";
 import type { MaterialMetadataV1 } from "@certtrace/types";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import QRCode from "qrcode";
 
 const LABEL_WIDTH = 288;
 const LABEL_HEIGHT = 144;

@@ -39,7 +39,6 @@ function applyCase(value: string, casing: NamingCase | undefined): string {
       return value.toUpperCase();
     case "lower":
       return value.toLowerCase();
-    case "preserve":
     default:
       return value;
   }
@@ -54,11 +53,7 @@ function pickWord(listId: string, wordLists: WordListsV1, random: () => number):
   return entry.words[index] ?? entry.words[0]!;
 }
 
-function resolveToken(
-  token: string,
-  input: GenerateMaterialIdInput,
-  numberValue: number,
-): string {
+function resolveToken(token: string, input: GenerateMaterialIdInput, numberValue: number): string {
   if (token === "number") {
     const pad = input.strategy.numberPad ?? 0;
     return padNumber(numberValue, pad);
@@ -95,7 +90,11 @@ function resolveToken(
   throw new IdGeneratorError(`Unknown template token: {${token}}`);
 }
 
-function renderTemplate(template: string, input: GenerateMaterialIdInput, numberValue: number): string {
+function renderTemplate(
+  template: string,
+  input: GenerateMaterialIdInput,
+  numberValue: number,
+): string {
   return template.replace(TOKEN_PATTERN, (_match, token: string) =>
     resolveToken(token, input, numberValue),
   );
@@ -122,7 +121,6 @@ function assertFilesystemSafe(id: string): void {
 }
 
 export function generateMaterialId(input: GenerateMaterialIdInput): string {
-  const random = input.random ?? Math.random;
   const maxAttempts = input.maxAttempts ?? 100;
   let numberValue = nextNumberStart(input.strategy, input.existingIds);
 
@@ -160,8 +158,8 @@ export function previewMaterialId(
 }
 
 export {
-  segmentsToTemplate,
   parseTemplateToSegments,
+  segmentsToTemplate,
   strategyFromSegments,
   type TemplateSegment,
 } from "./template-segments.js";

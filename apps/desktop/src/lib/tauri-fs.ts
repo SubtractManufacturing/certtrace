@@ -1,5 +1,14 @@
-import { copyFile, mkdir, readDir, readFile, readTextFile, remove, writeFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import type { FileSystem } from "@certtrace/file-storage";
+import {
+  copyFile,
+  mkdir,
+  readDir,
+  readFile,
+  readTextFile,
+  remove,
+  writeFile,
+  writeTextFile,
+} from "@tauri-apps/plugin-fs";
 
 export function createTauriFileSystem(): FileSystem {
   return {

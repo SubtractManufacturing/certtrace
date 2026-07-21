@@ -12,12 +12,13 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "lint": "echo \"lint: not configured yet\""
+    "test": "vitest run"
   },
   "dependencies": {
     "@certtrace/file-storage": "workspace:*",

@@ -10,7 +10,18 @@
     "apps/desktop": {
       "release-type": "node",
       "component": "desktop",
-      "changelog-path": "CHANGELOG.md"
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "src-tauri/tauri.conf.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "generic",
+          "path": "src-tauri/Cargo.toml"
+        }
+      ]
     }
   },
   "plugins": ["sentence-case"]

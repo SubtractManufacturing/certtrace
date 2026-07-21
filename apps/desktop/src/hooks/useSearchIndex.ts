@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { buildSearchIndex, searchMaterials, type SearchIndex } from "@certtrace/core";
-import type { MaterialMetadataV1, RecentLibraryEntryV1 } from "@certtrace/types";
+import { buildSearchIndex, type SearchIndex, searchMaterials } from "@certtrace/core";
 import type { OpenLibraryResult } from "@certtrace/library-engine";
+import type { MaterialMetadataV1, RecentLibraryEntryV1 } from "@certtrace/types";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchMaterials, openLibraryAtPath } from "../lib/library-client";
 
 export interface IndexedMaterial extends MaterialMetadataV1 {

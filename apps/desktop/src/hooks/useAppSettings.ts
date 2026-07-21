@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Theme } from "@certtrace/ui";
 import type { AppSettingsTheme, AppSettingsV1 } from "@certtrace/types";
+import type { Theme } from "@certtrace/ui";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { loadAppSettings, saveAppSettings } from "../lib/app-settings-client";
 
 function resolveTheme(theme: AppSettingsTheme, prefersDark: boolean): Theme {

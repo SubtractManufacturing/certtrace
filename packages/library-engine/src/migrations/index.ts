@@ -1,12 +1,12 @@
 import {
-  libraryConfigV1Schema,
-  materialMetadataV1Schema,
-  namingRulesV1Schema,
-  wordListsV1Schema,
   type LibraryConfigV1,
+  libraryConfigV1Schema,
   type MaterialMetadataV1,
+  materialMetadataV1Schema,
   type NamingRulesV1,
+  namingRulesV1Schema,
   type WordListsV1,
+  wordListsV1Schema,
 } from "@certtrace/types";
 import { migrateToCurrent } from "./shared.js";
 

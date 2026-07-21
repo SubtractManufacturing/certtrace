@@ -2,12 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import {
-  LIBRARY_JSON,
-  MATERIALS_DIR,
-  NAMING_RULES_JSON,
-  WORD_LISTS_JSON,
-} from "../src/paths.js";
+import { LIBRARY_JSON, MATERIALS_DIR, NAMING_RULES_JSON, WORD_LISTS_JSON } from "../src/paths.js";
 import {
   libraryConfigV1Schema,
   materialMetadataV1Schema,
@@ -57,9 +52,7 @@ describe("namingRulesV1Schema", () => {
 
 describe("wordListsV1Schema", () => {
   it("validates default word lists", () => {
-    expect(Object.keys(wordListsV1Schema.parse(defaultWordListsV1).lists)).toContain(
-      "animals",
-    );
+    expect(Object.keys(wordListsV1Schema.parse(defaultWordListsV1).lists)).toContain("animals");
   });
 });
 

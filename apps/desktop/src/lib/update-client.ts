@@ -70,6 +70,8 @@ export async function installAvailableUpdate(update: Update): Promise<void> {
   await relaunch();
 }
 
-export function canInstallInApp(info: AvailableUpdate): info is AvailableUpdate & { updater: Update } {
+export function canInstallInApp(
+  info: AvailableUpdate,
+): info is AvailableUpdate & { updater: Update } {
   return Boolean(info.updater);
 }

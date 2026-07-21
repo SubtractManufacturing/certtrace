@@ -1,9 +1,9 @@
-import { isNotFoundError, type FileSystem } from "@certtrace/file-storage";
+import { type FileSystem, isNotFoundError } from "@certtrace/file-storage";
 import {
   APP_SETTINGS_FILENAME,
+  type AppSettingsV1,
   appSettingsV1Schema,
   createDefaultAppSettingsV1,
-  type AppSettingsV1,
 } from "@certtrace/types";
 
 export class AppSettingsError extends Error {
@@ -15,10 +15,7 @@ export class AppSettingsError extends Error {
 
 export { APP_SETTINGS_FILENAME };
 
-export async function readAppSettings(
-  fs: FileSystem,
-  settingsDir: string,
-): Promise<AppSettingsV1> {
+export async function readAppSettings(fs: FileSystem, settingsDir: string): Promise<AppSettingsV1> {
   const settingsPath = `${settingsDir}/${APP_SETTINGS_FILENAME}`;
 
   try {

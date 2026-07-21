@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import { defaultNamingRulesV1, defaultWordListsV1 } from "@certtrace/types";
+import { describe, expect, it } from "vitest";
 import { generateMaterialId, IdGeneratorError, previewMaterialId } from "../src/index.js";
 
 const strategy = (id: string) => {

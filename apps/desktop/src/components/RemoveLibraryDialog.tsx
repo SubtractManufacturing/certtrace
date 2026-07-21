@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { RecentLibraryEntryV1 } from "@certtrace/types";
 import {
   Button,
@@ -10,6 +9,7 @@ import {
   Label,
   Switch,
 } from "@certtrace/ui";
+import { useState } from "react";
 
 interface RemoveLibraryDialogProps {
   entry: RecentLibraryEntryV1 | null;

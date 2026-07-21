@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import type { MaterialMetadataV1 } from "@certtrace/types";
+import { describe, expect, it } from "vitest";
 import { generateStandardQrLabelPdf } from "../src/labels/standard-qr.js";
 
 const material: MaterialMetadataV1 = {

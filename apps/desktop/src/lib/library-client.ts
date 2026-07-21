@@ -1,20 +1,18 @@
-import { open } from "@tauri-apps/plugin-dialog";
 import {
+  type CreateLibraryOptions,
+  type CreateMaterialInput,
   createLibrary,
   createMaterial,
   listMaterialAttachments,
   listMaterials,
+  type OpenLibraryResult,
   openLibrary,
+  type UpdateMaterialInput,
   updateLibraryConfig,
   updateMaterial,
   updateNamingRules,
   updateWordLists,
-  type CreateLibraryOptions,
-  type CreateMaterialInput,
-  type OpenLibraryResult,
-  type UpdateMaterialInput,
 } from "@certtrace/library-engine";
-import { joinPath, libraryFolderName } from "@certtrace/types";
 import type {
   AttachedFile,
   LibraryConfigV1,
@@ -22,6 +20,8 @@ import type {
   NamingRulesV1,
   WordListsV1,
 } from "@certtrace/types";
+import { joinPath, libraryFolderName } from "@certtrace/types";
+import { open } from "@tauri-apps/plugin-dialog";
 import { recordRecentLibrary } from "./app-settings-client";
 import { allowLibraryDirectory } from "./library-scope";
 import { createTauriFileSystem } from "./tauri-fs";
@@ -84,9 +84,7 @@ export async function reloadLibraryAtPath(root: string): Promise<OpenLibraryResu
   return openLibrary(fs, root);
 }
 
-export async function fetchMaterials(
-  library: OpenLibraryResult,
-): Promise<MaterialMetadataV1[]> {
+export async function fetchMaterials(library: OpenLibraryResult): Promise<MaterialMetadataV1[]> {
   return listMaterials(library);
 }
 

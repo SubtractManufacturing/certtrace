@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import {
   parseTemplateToSegments,
   previewMaterialId,
@@ -10,6 +9,7 @@ import type { NamingStrategyV1, WordListsV1 } from "@certtrace/types";
 import { defaultWordListsV1 } from "@certtrace/types";
 import { Button, Input, Label, Select } from "@certtrace/ui";
 import { Plus, Trash2 } from "lucide-react";
+import { useMemo } from "react";
 
 interface IdTemplateBuilderProps {
   strategy: NamingStrategyV1;
@@ -32,10 +32,7 @@ export function IdTemplateBuilder({
   wordLists = defaultWordListsV1,
   onChange,
 }: IdTemplateBuilderProps) {
-  const segments = useMemo(
-    () => parseTemplateToSegments(strategy.template),
-    [strategy.template],
-  );
+  const segments = useMemo(() => parseTemplateToSegments(strategy.template), [strategy.template]);
 
   const preview = useMemo(() => {
     try {
@@ -106,6 +103,8 @@ export function IdTemplateBuilder({
       <div className="space-y-2">
         {segments.map((segment, index) => (
           <div
+            // Template segments are an ordered list without stable ids; index is identity.
+            // biome-ignore lint/suspicious/noArrayIndexKey: ordered segment list
             key={`${segment.type}-${index}`}
             className="flex flex-wrap items-end gap-2 rounded-md border border-slate-200 p-3 dark:border-slate-700"
           >

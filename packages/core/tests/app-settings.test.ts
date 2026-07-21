@@ -1,10 +1,10 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
 import type { FileSystem } from "@certtrace/file-storage";
 import { createNodeFileSystem } from "@certtrace/file-storage/node";
 import { createDefaultAppSettingsV1 } from "@certtrace/types";
+import { describe, expect, it } from "vitest";
 import {
   readAppSettings,
   removeRecentLibrary,
@@ -42,9 +42,9 @@ describe("app settings", () => {
       readdir: async () => [],
     };
 
-    await expect(readAppSettings(fs, "C:\\Users\\test\\AppData\\Roaming\\com.subtractmanufacturing.certtrace")).resolves.toEqual(
-      createDefaultAppSettingsV1(),
-    );
+    await expect(
+      readAppSettings(fs, "C:\\Users\\test\\AppData\\Roaming\\com.subtractmanufacturing.certtrace"),
+    ).resolves.toEqual(createDefaultAppSettingsV1());
   });
 
   it("ensures the settings directory exists before reading settings", async () => {

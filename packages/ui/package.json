@@ -12,12 +12,13 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"test: not configured yet\"",
-    "lint": "echo \"lint: not configured yet\""
+    "test": "echo \"test: not configured yet\""
   },
   "peerDependencies": {
     "react": "^19.0.0",
@@ -29,10 +30,10 @@
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
-    "@types/react": "^19.1.8",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.1.6",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "typescript": "~5.8.3"
   }
 }

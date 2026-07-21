@@ -49,9 +49,7 @@ export function WordListEditor({ wordLists, onChange }: WordListEditorProps) {
                 <Label>Display name</Label>
                 <Input
                   value={entry.label}
-                  onChange={(event) =>
-                    updateList(listId, { ...entry, label: event.target.value })
-                  }
+                  onChange={(event) => updateList(listId, { ...entry, label: event.target.value })}
                 />
               </label>
             </div>

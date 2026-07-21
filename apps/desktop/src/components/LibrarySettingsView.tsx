@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { OpenLibraryResult } from "@certtrace/library-engine";
 import {
   addNamingStrategy,
@@ -8,6 +7,7 @@ import {
 } from "@certtrace/library-engine";
 import type { NamingRulesV1, WordListsV1 } from "@certtrace/types";
 import { Button, Label, Select, Switch } from "@certtrace/ui";
+import { useState } from "react";
 import {
   updateLibraryConfigPartial,
   updateLibraryNamingRules,
@@ -60,9 +60,7 @@ export function LibrarySettingsView({ library, onLibraryUpdated }: LibrarySettin
   function updateSelectedStrategy(next: typeof selectedStrategy) {
     setNamingRules({
       ...namingRules,
-      strategies: namingRules.strategies.map((entry) =>
-        entry.id === next.id ? next : entry,
-      ),
+      strategies: namingRules.strategies.map((entry) => (entry.id === next.id ? next : entry)),
     });
   }
 

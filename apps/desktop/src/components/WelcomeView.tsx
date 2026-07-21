@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import type { RecentLibraryEntryV1 } from "@certtrace/types";
 import { Button } from "@certtrace/ui";
+import { useEffect, useState } from "react";
 import { forgetRecentLibrary, loadAppSettings } from "../lib/app-settings-client";
 import { pickParentFolder } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
@@ -11,7 +11,11 @@ interface WelcomeViewProps {
   onStartCreateLibrary: () => void;
 }
 
-export function WelcomeView({ busy = false, onOpenLibrary, onStartCreateLibrary }: WelcomeViewProps) {
+export function WelcomeView({
+  busy = false,
+  onOpenLibrary,
+  onStartCreateLibrary,
+}: WelcomeViewProps) {
   const [recentLibraries, setRecentLibraries] = useState<RecentLibraryEntryV1[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loadingRecent, setLoadingRecent] = useState(true);
@@ -65,8 +69,8 @@ export function WelcomeView({ busy = false, onOpenLibrary, onStartCreateLibrary 
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">CertTrace</h1>
         <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-          Open an existing library folder, or create a new one in the location you choose.
-          CertTrace creates a folder named after your library and writes a README inside.
+          Open an existing library folder, or create a new one in the location you choose. CertTrace
+          creates a folder named after your library and writes a README inside.
         </p>
 
         {!loadingRecent && recentLibraries.length > 0 ? (

@@ -1,6 +1,6 @@
-import { open } from "@tauri-apps/plugin-dialog";
 import { attachFiles, type OpenLibraryResult } from "@certtrace/library-engine";
 import type { AttachedFile } from "@certtrace/types";
+import { open } from "@tauri-apps/plugin-dialog";
 
 export async function pickAttachmentFiles(): Promise<string[]> {
   const selected = await open({

@@ -18,13 +18,7 @@ describe("CreateLibraryWizard", () => {
         }),
     );
 
-    render(
-      <CreateLibraryWizard
-        open
-        onClose={() => undefined}
-        onCreate={async () => undefined}
-      />,
-    );
+    render(<CreateLibraryWizard open onClose={() => undefined} onCreate={async () => undefined} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Next" }));
     await userEvent.click(screen.getByRole("button", { name: "Choose folder" }));
@@ -37,9 +31,7 @@ describe("CreateLibraryWizard", () => {
 
     resolvePick("C:\\Users\\jkkic\\Documents");
 
-    await waitFor(() =>
-      expect(screen.getByText("C:\\Users\\jkkic\\Documents")).toBeTruthy(),
-    );
+    await waitFor(() => expect(screen.getByText("C:\\Users\\jkkic\\Documents")).toBeTruthy());
     expect(screen.queryByText("Applying folder selection...")).toBeNull();
     expect(screen.getByRole<HTMLButtonElement>("button", { name: "Choose folder" }).disabled).toBe(
       false,

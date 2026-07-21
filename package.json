@@ -8,12 +8,19 @@
     "dev": "pnpm --filter @certtrace/desktop tauri dev",
     "build": "pnpm -w build:packages && pnpm --filter @certtrace/desktop tauri build",
     "build:packages": "pnpm -r --filter \"@certtrace/*\" --filter \"!@certtrace/desktop\" build",
-    "lint": "pnpm -r lint",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
     "typecheck": "pnpm build:packages && pnpm -r typecheck",
-    "test": "pnpm build:packages && pnpm -r test",
-    "sync:version": "node scripts/sync-app-version.mjs"
+    "test": "pnpm build:packages && pnpm -r test && pnpm test:scripts",
+    "test:scripts": "node --test scripts/*.test.mjs",
+    "sync:version": "node scripts/sync-app-version.mjs",
+    "sync:version:check": "node scripts/sync-app-version.mjs --check"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.4"
   }
 }
