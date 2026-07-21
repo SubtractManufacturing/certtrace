@@ -99,7 +99,24 @@ Run **Desktop preview** via `workflow_dispatch`: choose platforms, optionally a 
 
 ### First-time enablement
 
-`issue_comment` workflows load from the **default branch**. Merge this workflow to `main` once; after that, `/build` on open PRs will trigger.
+`issue_comment` workflows load from the **default branch**. The Desktop preview workflow is on `main`; `/build` on open same-repo PRs will trigger.
+
+### macOS Gatekeeper QA (issue #43)
+
+Before treating Developer ID signing/notarization as confirmed:
+
+1. On a PR, comment `/build --mac` and wait for the Desktop preview run.
+2. Download the macOS DMG artifact from the run.
+3. Mount it, then verify:
+
+```bash
+APP="$(find /Volumes -name 'CertTrace.app' 2>/dev/null | head -1)"
+codesign -dv --verbose=4 "$APP"
+spctl -a -vv "$APP"
+```
+
+4. Copy the app to `/Applications` and open it from Finder (not Terminal). Confirm Gatekeeper does not require ad-hoc workarounds.
+5. Close [#43](https://github.com/SubtractManufacturing/certtrace/issues/43) when steps 3–4 pass.
 
 ## Release flow
 
