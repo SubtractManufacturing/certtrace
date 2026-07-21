@@ -61,12 +61,15 @@ function syncJson(repoRoot, relativePath, version) {
 function syncToml(repoRoot, relativePath, version) {
   const filePath = path.join(repoRoot, relativePath);
   const contents = readFileSync(filePath, "utf8");
-  // Preserve trailing comments (e.g. release-please annotations).
-  const next = contents.replace(/^version = "[^"]*"/m, `version = "${version}"`);
-  if (next === contents) {
+  if (!/^version = "[^"]*"/m.test(contents)) {
     throw new Error(`Could not find version field in ${relativePath}`);
   }
-  writeFileSync(filePath, next);
+  // Preserve trailing comments (e.g. release-please annotations).
+  // When already in sync, replace is a no-op — that is success, not an error.
+  const next = contents.replace(/^version = "[^"]*"/m, `version = "${version}"`);
+  if (next !== contents) {
+    writeFileSync(filePath, next);
+  }
 }
 
 export function syncAppVersions(repoRoot) {
