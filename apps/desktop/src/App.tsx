@@ -346,8 +346,6 @@ function App() {
             canInstallInApp={updateCheck.canInstallInApp}
             updateError={updateCheck.error}
             hasCheckedForUpdates={updateCheck.hasChecked}
-            noReleasesPublished={updateCheck.noReleasesPublished}
-            artifactsPending={updateCheck.artifactsPending}
             removingLibrary={removingLibrary}
             onThemeChange={(theme) => void setTheme(theme)}
             onCheckForUpdatesChange={(value) => void updateSettings({ checkForUpdates: value })}
@@ -380,7 +378,9 @@ function App() {
         }}
       />
 
-      {updateCheck.updateInfo && !updateCheck.dismissed ? (
+      {updateCheck.updateInfo &&
+      updateCheck.canInstallInApp &&
+      !updateCheck.dismissed ? (
         <UpdateAvailableDialog
           updateInfo={updateCheck.updateInfo}
           installing={updateCheck.installing}

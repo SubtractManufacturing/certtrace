@@ -4,10 +4,12 @@ import type {
   RecentLibraryEntryV1,
 } from "@certtrace/types";
 import { Button, Label, Select, Switch } from "@certtrace/ui";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { FolderOpen, Plus } from "lucide-react";
 import { useState } from "react";
 import { openAppDataFolder } from "../lib/app-data-client";
 import { APP_VERSION } from "../lib/update-check";
+import { LATEST_RELEASE_PAGE_URL } from "../lib/update-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { RemoveLibraryDialog } from "./RemoveLibraryDialog";
 
@@ -22,8 +24,6 @@ interface SettingsViewProps {
   canInstallInApp: boolean;
   updateError: string | null;
   hasCheckedForUpdates: boolean;
-  noReleasesPublished: boolean;
-  artifactsPending?: boolean;
   removingLibrary?: boolean;
   onThemeChange: (theme: AppSettingsTheme) => void;
   onCheckForUpdatesChange: (value: boolean) => void;
@@ -46,8 +46,6 @@ export function SettingsView({
   canInstallInApp,
   updateError,
   hasCheckedForUpdates,
-  noReleasesPublished,
-  artifactsPending = false,
   removingLibrary = false,
   onThemeChange,
   onCheckForUpdatesChange,
@@ -203,29 +201,23 @@ export function SettingsView({
                     ? "Update now"
                     : "Look for updates"}
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-slate-300 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+              onClick={() => {
+                void openUrl(LATEST_RELEASE_PAGE_URL);
+              }}
+            >
+              Open in browser
+            </Button>
             {updateError ? (
               <p className="text-sm text-red-600 dark:text-red-400">{updateError}</p>
             ) : null}
-            {artifactsPending ? (
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                A newer release is publishing. Try again in a few minutes once installers for this
-                platform are available.
-              </p>
-            ) : null}
             {hasCheckedForUpdates &&
             !updateError &&
             !checkingForUpdates &&
-            !updateAvailable &&
-            !artifactsPending &&
-            noReleasesPublished ? (
-              <p className="text-sm text-slate-500">No GitHub releases published yet.</p>
-            ) : null}
-            {hasCheckedForUpdates &&
-            !updateError &&
-            !checkingForUpdates &&
-            !updateAvailable &&
-            !artifactsPending &&
-            !noReleasesPublished ? (
+            !updateAvailable ? (
               <p className="text-sm text-slate-500">You are on the latest version.</p>
             ) : null}
           </div>
