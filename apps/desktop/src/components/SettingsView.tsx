@@ -214,10 +214,7 @@ export function SettingsView({
             {updateError ? (
               <p className="text-sm text-red-600 dark:text-red-400">{updateError}</p>
             ) : null}
-            {hasCheckedForUpdates &&
-            !updateError &&
-            !checkingForUpdates &&
-            !updateAvailable ? (
+            {hasCheckedForUpdates && !updateError && !checkingForUpdates && !updateAvailable ? (
               <p className="text-sm text-slate-500">You are on the latest version.</p>
             ) : null}
           </div>
