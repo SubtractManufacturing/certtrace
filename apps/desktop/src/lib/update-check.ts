@@ -61,7 +61,7 @@ export async function checkForUpdates(): Promise<UpdateCheckResult> {
 
   const latestVersion = latest.tag_name ? normalizeReleaseVersion(latest.tag_name) : "";
   const releaseUrl = latest.html_url ?? "";
-  const releaseNotes = latest.body ?? "";
+  const releaseNotes = (latest.body ?? "").trim();
 
   if (!latestVersion || !releaseUrl) {
     throw new Error("Update check returned an invalid release payload");
