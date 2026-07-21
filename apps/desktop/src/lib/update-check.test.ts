@@ -10,6 +10,10 @@ describe("isNewerVersion", () => {
     expect(isNewerVersion("v1.0.1", "1.0.0")).toBe(true);
   });
 
+  it("returns true when latest uses desktop-v release tag prefix", () => {
+    expect(isNewerVersion("desktop-v1.0.3", "1.0.2")).toBe(true);
+  });
+
   it("returns false when versions are equal", () => {
     expect(isNewerVersion("1.0.0", "1.0.0")).toBe(false);
     expect(isNewerVersion("v1.0.0", "1.0.0")).toBe(false);
@@ -80,6 +84,29 @@ describe("checkForUpdates", () => {
       info: {
         latestVersion: "9.9.9",
         releaseUrl: "https://github.com/SubtractManufacturing/certtrace/releases/tag/v9.9.9",
+        releaseNotes: "New features",
+      },
+    });
+  });
+
+  it("normalizes desktop-v release tags from GitHub", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        tag_name: "desktop-v9.9.9",
+        html_url:
+          "https://github.com/SubtractManufacturing/certtrace/releases/tag/desktop-v9.9.9",
+        body: "New features",
+      }),
+    } as Response);
+
+    await expect(checkForUpdates()).resolves.toEqual({
+      status: "available",
+      info: {
+        latestVersion: "9.9.9",
+        releaseUrl:
+          "https://github.com/SubtractManufacturing/certtrace/releases/tag/desktop-v9.9.9",
         releaseNotes: "New features",
       },
     });

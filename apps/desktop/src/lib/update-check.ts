@@ -12,9 +12,12 @@ export type UpdateCheckResult =
   | { status: "current" }
   | { status: "no-releases" };
 
+function normalizeReleaseVersion(tagOrVersion: string): string {
+  return tagOrVersion.replace(/^desktop-v/, "").replace(/^v/, "");
+}
+
 function parseVersion(version: string): number[] {
-  return version
-    .replace(/^v/, "")
+  return normalizeReleaseVersion(version)
     .split(".")
     .map((part) => Number.parseInt(part, 10) || 0);
 }
@@ -56,7 +59,7 @@ export async function checkForUpdates(): Promise<UpdateCheckResult> {
     body?: string;
   };
 
-  const latestVersion = latest.tag_name?.replace(/^v/, "") ?? "";
+  const latestVersion = latest.tag_name ? normalizeReleaseVersion(latest.tag_name) : "";
   const releaseUrl = latest.html_url ?? "";
   const releaseNotes = latest.body ?? "";
 
