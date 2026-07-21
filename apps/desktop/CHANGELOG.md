@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.3](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v1.0.2...desktop-v1.0.3) (2026-07-21)
+
+
+### Bug Fixes
+
+* Rotate tauri signing pub keys ([b60d9a3](https://github.com/SubtractManufacturing/certtrace/commit/b60d9a30397f33fc33e244d98f07cea2a1602dfa))
+* Sync Tauri/Cargo versions with desktop package.json ([6443f3c](https://github.com/SubtractManufacturing/certtrace/commit/6443f3cd84859d4bf59a586d8d3c58ccb20ec0f4))
+
 ## [1.0.2](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v1.0.1...desktop-v1.0.2) (2026-06-02)
 
 
