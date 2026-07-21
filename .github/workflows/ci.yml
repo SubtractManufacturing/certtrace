@@ -53,6 +53,8 @@ jobs:
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
 
       - name: Cache Rust/Cargo
         uses: actions/cache@v6
@@ -91,6 +93,14 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Clippy
+        working-directory: apps/desktop/src-tauri
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Cargo test
+        working-directory: apps/desktop/src-tauri
+        run: cargo test
 
       - name: Build desktop app
         run: pnpm build

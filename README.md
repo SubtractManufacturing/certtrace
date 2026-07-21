@@ -78,6 +78,11 @@ pnpm format        # apply Biome formatting
 pnpm format:check  # verify formatting without writing
 pnpm typecheck     # TypeScript check
 pnpm test          # run tests (when configured)
+
+# Rust checks for the Tauri crate (apps/desktop/src-tauri)
+cd apps/desktop/src-tauri
+cargo clippy --all-targets -- -D warnings
+cargo test
 ```
 
 ## Project structure
