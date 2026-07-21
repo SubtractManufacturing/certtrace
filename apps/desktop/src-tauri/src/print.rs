@@ -107,3 +107,16 @@ pub fn print_pdf_file(path: String) -> Result<(), String> {
     #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
     Err("Printing is not supported on this platform.".to_string())
 }
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn escape_applescript_string_escapes_backslash_and_quote() {
+        assert_eq!(
+            escape_applescript_string(r#"C:\certs\"quote".pdf"#),
+            r#"C:\\certs\\\"quote\".pdf"#
+        );
+    }
+}

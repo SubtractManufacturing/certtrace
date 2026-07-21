@@ -43,11 +43,11 @@ fn open_with_default_app(path: &Path) -> Result<(), String> {
             });
         }
 
-        return Err(if stderr.is_empty() {
+        Err(if stderr.is_empty() {
             "Could not open this file.".to_string()
         } else {
             stderr
-        });
+        })
     }
 
     #[cfg(target_os = "windows")]

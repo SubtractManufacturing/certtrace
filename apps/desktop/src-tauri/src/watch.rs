@@ -126,3 +126,39 @@ pub fn stop_library_watch(state: State<'_, WatchState>) -> Result<(), String> {
     *state.watcher.lock().map_err(|error| error.to_string())? = None;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::{Path, PathBuf};
+
+    fn path_string(path: &Path) -> String {
+        path.to_string_lossy().into_owned()
+    }
+
+    fn roots(paths: &[&Path]) -> HashSet<String> {
+        paths.iter().map(|path| path_string(path)).collect()
+    }
+
+    #[test]
+    fn matching_root_picks_longest_prefix() {
+        let parent = PathBuf::from("libs");
+        let nested_root = PathBuf::from("libs").join("shop-a");
+        let changed = PathBuf::from("libs")
+            .join("shop-a")
+            .join("certs")
+            .join("a.pdf");
+        let watched = roots(&[&parent, &nested_root]);
+
+        assert_eq!(matching_root(&watched, &changed), path_string(&nested_root));
+    }
+
+    #[test]
+    fn matching_root_falls_back_to_changed_path() {
+        let nested_root = PathBuf::from("libs").join("shop-a");
+        let watched = roots(&[&nested_root]);
+        let changed = PathBuf::from("other").join("file.pdf");
+
+        assert_eq!(matching_root(&watched, &changed), path_string(&changed));
+    }
+}

@@ -39,6 +39,8 @@ CertTrace has **no telemetry**. Do not add analytics, crash reporting, or networ
 
 See [README.md](README.md) for setup. Run `pnpm dev` from the repo root to start the desktop app.
 
+CI also runs Rust quality gates for `apps/desktop/src-tauri`. Local commands are listed under Development setup → Commands in [README.md](README.md).
+
 ## Issues
 
 When filing bugs, paste any error trace from the app (copy-to-clipboard) — nothing is uploaded automatically.
