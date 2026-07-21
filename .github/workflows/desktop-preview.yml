@@ -198,12 +198,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          body=$(cat <<EOF
+          > *Desktop preview started* for${{ steps.parse.outputs.platforms }} @ \`${{ steps.parse.outputs.head_sha }}\`.
+          >
+          > Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          >
+          > Download installers from the run **Artifacts** (retained 7 days).
+          EOF
+          )
+          # strip the leading spaces from the indented heredoc lines
+          body=$(printf '%s\n' "$body" | sed 's/^          //')
           gh api "repos/${{ github.repository }}/issues/${{ steps.parse.outputs.pr_number }}/comments" \
-            -f body="> *Desktop preview started* for${{ steps.parse.outputs.platforms }} @ \`${{ steps.parse.outputs.head_sha }}\`.
->
-> Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
->
-> Download installers from the run **Artifacts** (retained 7 days)."
+            -f body="$body"
 
   build:
     name: Build (${{ matrix.platform }})
@@ -302,8 +308,13 @@ jobs:
           else
             status="finished with result \`${result}\`"
           fi
+          body=$(cat <<EOF
+          > *Desktop preview ${status}* (${{ needs.gate.outputs.platforms }}).
+          >
+          > Artifacts: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts
+          > (retained 7 days)
+          EOF
+          )
+          body=$(printf '%s\n' "$body" | sed 's/^          //')
           gh api "repos/${{ github.repository }}/issues/${{ needs.gate.outputs.pr_number }}/comments" \
-            -f body="> *Desktop preview ${status}* (${{ needs.gate.outputs.platforms }}).
->
-> Artifacts: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts
-> (retained 7 days)"
+            -f body="$body"
