@@ -170,9 +170,10 @@ async function createDmgBackground() {
   const arrowY = Math.round(DMG_APP_ICON.y - arrow.height / 2);
   canvas.composite(arrow, arrowX, arrowY);
 
-  const submark = await fitWithin(await readPng(renderSvg("submark.svg", 640)), 280, 48);
+  // ~15% smaller than the first pass; extra bottom inset clears Finder's status bar.
+  const submark = await fitWithin(await readPng(renderSvg("submark.svg", 640)), 240, 40);
   const submarkX = Math.round((DMG_WIDTH - submark.width) / 2);
-  const submarkY = DMG_HEIGHT - submark.height - 36;
+  const submarkY = DMG_HEIGHT - submark.height - 72;
   canvas.composite(submark, submarkX, submarkY);
 
   return canvas;
