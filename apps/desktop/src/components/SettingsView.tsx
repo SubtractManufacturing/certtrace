@@ -23,6 +23,7 @@ interface SettingsViewProps {
   updateError: string | null;
   hasCheckedForUpdates: boolean;
   noReleasesPublished: boolean;
+  artifactsPending?: boolean;
   removingLibrary?: boolean;
   onThemeChange: (theme: AppSettingsTheme) => void;
   onCheckForUpdatesChange: (value: boolean) => void;
@@ -32,7 +33,6 @@ interface SettingsViewProps {
   onRemoveLibrary: (path: string, deleteFolder: boolean) => Promise<void>;
   onCheckForUpdatesNow: () => void;
   onInstallUpdate: () => void;
-  onOpenReleasePage: () => void;
 }
 
 export function SettingsView({
@@ -47,6 +47,7 @@ export function SettingsView({
   updateError,
   hasCheckedForUpdates,
   noReleasesPublished,
+  artifactsPending = false,
   removingLibrary = false,
   onThemeChange,
   onCheckForUpdatesChange,
@@ -56,7 +57,6 @@ export function SettingsView({
   onRemoveLibrary,
   onCheckForUpdatesNow,
   onInstallUpdate,
-  onOpenReleasePage,
 }: SettingsViewProps) {
   const [libraryToRemove, setLibraryToRemove] = useState<RecentLibraryEntryV1 | null>(null);
   const [appDataError, setAppDataError] = useState<string | null>(null);
@@ -180,15 +180,16 @@ export function SettingsView({
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Button
               type="button"
-              variant={updateAvailable ? "default" : "outline"}
+              variant={updateAvailable && canInstallInApp ? "default" : "outline"}
+              className={
+                updateAvailable && canInstallInApp
+                  ? "bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+                  : "border-slate-300 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+              }
               disabled={checkingForUpdates || installingUpdate}
               onClick={() => {
-                if (updateAvailable) {
-                  if (canInstallInApp) {
-                    onInstallUpdate();
-                  } else {
-                    onOpenReleasePage();
-                  }
+                if (updateAvailable && canInstallInApp) {
+                  onInstallUpdate();
                   return;
                 }
                 onCheckForUpdatesNow();
@@ -198,19 +199,24 @@ export function SettingsView({
                 ? "Checking…"
                 : installingUpdate
                   ? "Installing…"
-                  : updateAvailable
-                    ? canInstallInApp
-                      ? "Update now"
-                      : "Download update"
+                  : updateAvailable && canInstallInApp
+                    ? "Update now"
                     : "Look for updates"}
             </Button>
             {updateError ? (
               <p className="text-sm text-red-600 dark:text-red-400">{updateError}</p>
             ) : null}
+            {artifactsPending ? (
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                A newer release is publishing. Try again in a few minutes once installers for this
+                platform are available.
+              </p>
+            ) : null}
             {hasCheckedForUpdates &&
             !updateError &&
             !checkingForUpdates &&
             !updateAvailable &&
+            !artifactsPending &&
             noReleasesPublished ? (
               <p className="text-sm text-slate-500">No GitHub releases published yet.</p>
             ) : null}
@@ -218,6 +224,7 @@ export function SettingsView({
             !updateError &&
             !checkingForUpdates &&
             !updateAvailable &&
+            !artifactsPending &&
             !noReleasesPublished ? (
               <p className="text-sm text-slate-500">You are on the latest version.</p>
             ) : null}

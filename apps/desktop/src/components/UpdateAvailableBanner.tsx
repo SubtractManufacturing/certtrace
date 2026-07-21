@@ -1,6 +1,5 @@
 import { Button } from "@certtrace/ui";
 import { X } from "lucide-react";
-import { openPathWithOpener } from "../lib/label-client";
 import type { AvailableUpdate } from "../lib/update-client";
 import { canInstallInApp, type UpdateInstallState } from "../lib/update-client";
 
@@ -40,6 +39,9 @@ export function UpdateAvailableDialog({
         ? "Installing…"
         : "Update now";
 
+  const primaryActionClassName =
+    "bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100";
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
@@ -50,22 +52,25 @@ export function UpdateAvailableDialog({
         role="dialog"
         aria-labelledby="update-dialog-title"
         aria-describedby="update-dialog-description"
-        className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900"
+        className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 text-slate-900 shadow-xl dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p id="update-dialog-title" className="text-lg font-semibold">
+            <p
+              id="update-dialog-title"
+              className="text-lg font-semibold text-slate-900 dark:text-slate-50"
+            >
               Update available
             </p>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
               CertTrace {updateInfo.latestVersion} is ready.
             </p>
           </div>
           <button
             type="button"
             aria-label="Dismiss update dialog"
-            className="rounded-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            className="rounded-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
             onClick={onDismiss}
             disabled={installing}
           >
@@ -75,7 +80,7 @@ export function UpdateAvailableDialog({
 
         <p
           id="update-dialog-description"
-          className="mt-4 max-h-40 overflow-auto whitespace-pre-wrap text-sm leading-relaxed text-slate-600 dark:text-slate-400"
+          className="mt-4 max-h-40 overflow-auto whitespace-pre-wrap text-sm leading-relaxed text-slate-700 dark:text-slate-300"
         >
           {releaseNotesSnippet(updateInfo.releaseNotes)}
         </p>
@@ -86,26 +91,21 @@ export function UpdateAvailableDialog({
 
         <div className="mt-5 flex flex-wrap gap-2">
           {inAppInstall ? (
-            <Button type="button" size="sm" disabled={installing} onClick={onInstall}>
-              {installLabel}
-            </Button>
-          ) : (
             <Button
               type="button"
               size="sm"
-              onClick={() => {
-                void openPathWithOpener(updateInfo.releaseUrl).catch((err) => {
-                  console.error("Failed to open update URL:", err);
-                });
-              }}
+              className={primaryActionClassName}
+              disabled={installing}
+              onClick={onInstall}
             >
-              Download update
+              {installLabel}
             </Button>
-          )}
+          ) : null}
           <Button
             type="button"
             size="sm"
             variant="outline"
+            className="border-slate-300 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
             disabled={installing}
             onClick={onDismiss}
           >

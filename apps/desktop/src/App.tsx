@@ -14,7 +14,6 @@ import { type ActiveLibraryPath, useLibrarySession } from "./hooks/useLibrarySes
 import { useSearchIndex } from "./hooks/useSearchIndex";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
 import { forgetRecentLibrary } from "./lib/app-settings-client";
-import { openPathWithOpener } from "./lib/label-client";
 import { deleteLibraryFolder, pickParentFolder } from "./lib/library-client";
 import { onLibraryFsChanged, syncLibraryWatch } from "./lib/library-watch";
 
@@ -348,6 +347,7 @@ function App() {
             updateError={updateCheck.error}
             hasCheckedForUpdates={updateCheck.hasChecked}
             noReleasesPublished={updateCheck.noReleasesPublished}
+            artifactsPending={updateCheck.artifactsPending}
             removingLibrary={removingLibrary}
             onThemeChange={(theme) => void setTheme(theme)}
             onCheckForUpdatesChange={(value) => void updateSettings({ checkForUpdates: value })}
@@ -359,11 +359,6 @@ function App() {
             onRemoveLibrary={(path, deleteFolder) => handleRemoveLibrary(path, deleteFolder)}
             onCheckForUpdatesNow={() => void updateCheck.checkNow()}
             onInstallUpdate={() => void updateCheck.installNow()}
-            onOpenReleasePage={() => {
-              if (updateCheck.updateInfo) {
-                void openPathWithOpener(updateCheck.updateInfo.releaseUrl);
-              }
-            }}
           />
         ) : null}
 

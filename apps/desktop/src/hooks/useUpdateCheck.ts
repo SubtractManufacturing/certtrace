@@ -22,11 +22,13 @@ export function useUpdateCheck({ enabled, autoCheck = true }: UseUpdateCheckOpti
   const [dismissed, setDismissed] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
   const [noReleasesPublished, setNoReleasesPublished] = useState(false);
+  const [artifactsPending, setArtifactsPending] = useState(false);
 
   const checkNow = useCallback(async () => {
     setPhase("checking");
     setError(null);
     setNoReleasesPublished(false);
+    setArtifactsPending(false);
     try {
       const result = await checkForAppUpdate();
       if (result.status === "available") {
@@ -35,6 +37,7 @@ export function useUpdateCheck({ enabled, autoCheck = true }: UseUpdateCheckOpti
       } else {
         setUpdateInfo(null);
         setNoReleasesPublished(result.status === "no-releases");
+        setArtifactsPending(result.status === "pending-artifacts");
       }
       setHasChecked(true);
       return result;
@@ -88,6 +91,7 @@ export function useUpdateCheck({ enabled, autoCheck = true }: UseUpdateCheckOpti
     installNow,
     hasChecked,
     noReleasesPublished,
+    artifactsPending,
     canInstallInApp: updateInfo ? canInstallInApp(updateInfo) : false,
   };
 }
