@@ -41,7 +41,7 @@ describe("checkForAppUpdate", () => {
       info: {
         latestVersion: "1.0.1",
         releaseNotes: "Bug fixes",
-        releaseUrl: "https://github.com/SubtractManufacturing/certtrace/releases/tag/v1.0.1",
+        releaseUrl: "https://github.com/SubtractManufacturing/certtrace/releases/tag/desktop-v1.0.1",
         updater,
       },
     });
@@ -53,26 +53,39 @@ describe("checkForAppUpdate", () => {
     await expect(checkForAppUpdate()).resolves.toEqual({ status: "current" });
   });
 
-  it("falls back to GitHub release metadata when the updater is unavailable", async () => {
-    checkMock.mockRejectedValue(new Error("updater unavailable"));
+  it("does not advertise an update when platform artifacts are not ready yet", async () => {
+    checkMock.mockRejectedValue(new Error("Could not find platform darwin-aarch64"));
     vi.mocked(fetch).mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({
-        tag_name: "v9.9.9",
-        html_url: "https://github.com/SubtractManufacturing/certtrace/releases/tag/v9.9.9",
+        tag_name: "desktop-v1.0.5",
+        html_url:
+          "https://github.com/SubtractManufacturing/certtrace/releases/tag/desktop-v1.0.5",
         body: "Release notes",
       }),
     } as Response);
 
     await expect(checkForAppUpdate()).resolves.toEqual({
-      status: "available",
-      info: {
-        latestVersion: "9.9.9",
-        releaseUrl: "https://github.com/SubtractManufacturing/certtrace/releases/tag/v9.9.9",
-        releaseNotes: "Release notes",
-      },
+      status: "pending-artifacts",
+      reason: "Could not find platform darwin-aarch64",
     });
+  });
+
+  it("returns current when the updater fails and GitHub has no newer release", async () => {
+    checkMock.mockRejectedValue(new Error("updater unavailable"));
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        tag_name: "desktop-v0.0.0",
+        html_url:
+          "https://github.com/SubtractManufacturing/certtrace/releases/tag/desktop-v0.0.0",
+        body: "Old",
+      }),
+    } as Response);
+
+    await expect(checkForAppUpdate()).resolves.toEqual({ status: "current" });
   });
 });
 

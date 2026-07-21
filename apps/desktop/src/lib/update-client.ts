@@ -9,10 +9,14 @@ export interface AvailableUpdate extends UpdateInfo {
   updater?: Update;
 }
 
+const RELEASE_TAG_PREFIX = "desktop-v";
+
 export type AppUpdateCheckResult =
   | { status: "available"; info: AvailableUpdate }
   | { status: "current" }
-  | { status: "no-releases" };
+  | { status: "no-releases" }
+  /** Newer release exists on GitHub, but this platform's updater artifacts are not ready. */
+  | { status: "pending-artifacts"; reason: string };
 
 async function enrichWithGithubMetadata(info: AvailableUpdate): Promise<AvailableUpdate> {
   try {
@@ -45,7 +49,7 @@ export async function checkForAppUpdate(): Promise<AppUpdateCheckResult> {
     const info: AvailableUpdate = {
       latestVersion: update.version,
       releaseNotes: update.body ?? "",
-      releaseUrl: `https://github.com/SubtractManufacturing/certtrace/releases/tag/v${update.version}`,
+      releaseUrl: `https://github.com/SubtractManufacturing/certtrace/releases/tag/${RELEASE_TAG_PREFIX}${update.version}`,
       updater: update,
     };
 
@@ -53,15 +57,25 @@ export async function checkForAppUpdate(): Promise<AppUpdateCheckResult> {
       status: "available",
       info: await enrichWithGithubMetadata(info),
     };
-  } catch {
-    const github = await checkGithubRelease();
-    if (github.status === "available") {
-      return github;
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    console.error("Tauri updater check failed:", reason);
+
+    // Only advertise an update when the Tauri updater can install it for this
+    // platform. During multi-platform releases, latest.json may list a newer
+    // version before this OS's artifacts are uploaded.
+    try {
+      const github = await checkGithubRelease();
+      if (github.status === "available") {
+        return { status: "pending-artifacts", reason };
+      }
+      if (github.status === "no-releases") {
+        return github;
+      }
+      return { status: "current" };
+    } catch {
+      return { status: "current" };
     }
-    if (github.status === "no-releases") {
-      return github;
-    }
-    return github;
   }
 }
 
