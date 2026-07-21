@@ -11,6 +11,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # No-op with the same check names so required status checks stay green
+  # when the real matrix is skipped on release-please PRs.
+  build-release-please:
+    name: Build (${{ matrix.platform }})
+    if: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please--branches--') }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [macos, windows, linux]
+    steps:
+      - name: Skip full CI for release-please
+        run: echo "Skipping build matrix on release-please PR (version/changelog only)."
+
   build:
     name: Build (${{ matrix.platform }})
     # Release Please PRs only bump versions/changelogs; skip the full matrix.
