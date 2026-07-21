@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.6](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v1.0.5...desktop-v1.0.6) (2026-07-21)
+
+
+### Bug Fixes
+
+* Add CertTrace branding and installer artwork ([#69](https://github.com/SubtractManufacturing/certtrace/issues/69)) ([2195c3a](https://github.com/SubtractManufacturing/certtrace/commit/2195c3a0c2a6d80b4dbec01e36be4b962bb62e8f))
+* **desktop:** Clarify update UX while release artifacts publish ([6c15f4a](https://github.com/SubtractManufacturing/certtrace/commit/6c15f4a837466967fdfc43b9ee0d0ab978fcb14c))
+* **desktop:** Simplify Settings update actions ([f033ee8](https://github.com/SubtractManufacturing/certtrace/commit/f033ee88d0404bcc6268e659f8a0406cc53451ef))
+* **updater:** Gate installs on age and Tauri readiness ([4534488](https://github.com/SubtractManufacturing/certtrace/commit/453448899c6e6b769bbfe82801cababf5330c06d))
+* **updater:** Only advertise updates when platform artifacts are ready ([318c3ba](https://github.com/SubtractManufacturing/certtrace/commit/318c3ba7882f2ba3f0beee6e43e72336e1a2724e))
+* **updater:** Poll hourly and honor Later for 24 hours ([66f6d93](https://github.com/SubtractManufacturing/certtrace/commit/66f6d93e65ce6cbc21849c0662c3a58e4ff383f2))
+
 ## [1.0.5](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v1.0.4...desktop-v1.0.5) (2026-07-21)
 
 
