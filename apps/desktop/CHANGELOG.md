@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v1.0.3...desktop-v1.0.4) (2026-07-21)
+
+
+### Bug Fixes
+
+* **updater:** Normalize desktop-v tags in GitHub fallback check ([1c8d18a](https://github.com/SubtractManufacturing/certtrace/commit/1c8d18a2d616afd75608b8c2d7506914243eb6a3))
+
 ## [1.0.3](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v1.0.2...desktop-v1.0.3) (2026-07-21)
 
 
