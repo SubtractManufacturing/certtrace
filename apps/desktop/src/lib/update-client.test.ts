@@ -14,29 +14,53 @@ vi.mock("@tauri-apps/plugin-process", () => ({
   relaunch: relaunchMock,
 }));
 
-import { canInstallInApp, checkForAppUpdate, installAvailableUpdate } from "./update-client";
+import {
+  canInstallInApp,
+  checkForAppUpdate,
+  installAvailableUpdate,
+  isReleaseReady,
+} from "./update-client";
+
+describe("isReleaseReady", () => {
+  const now = new Date("2026-07-21T12:00:00.000Z");
+
+  it("returns false when the release is younger than 30 minutes", () => {
+    expect(isReleaseReady("2026-07-21T11:45:00.000Z", now)).toBe(false);
+  });
+
+  it("returns true when the release is at least 30 minutes old", () => {
+    expect(isReleaseReady("2026-07-21T11:30:00.000Z", now)).toBe(true);
+  });
+
+  it("returns false when the publish date is missing or invalid", () => {
+    expect(isReleaseReady(undefined, now)).toBe(false);
+    expect(isReleaseReady("not-a-date", now)).toBe(false);
+  });
+});
 
 describe("checkForAppUpdate", () => {
+  const now = new Date("2026-07-21T12:00:00.000Z");
+
   beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn());
     checkMock.mockReset();
     relaunchMock.mockReset();
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
-  it("returns available when the Tauri updater finds a newer build", async () => {
+  it("returns available when Tauri finds a ready newer build", async () => {
     const updater = {
       version: "1.0.1",
       body: "Bug fixes",
+      date: "2026-07-21T11:00:00.000Z",
       downloadAndInstall: vi.fn(),
     } as unknown as Update;
 
     checkMock.mockResolvedValue(updater);
 
-    await expect(checkForAppUpdate()).resolves.toEqual({
+    await expect(checkForAppUpdate(now)).resolves.toEqual({
       status: "available",
       info: {
         latestVersion: "1.0.1",
@@ -50,42 +74,26 @@ describe("checkForAppUpdate", () => {
   it("returns current when the Tauri updater finds no update", async () => {
     checkMock.mockResolvedValue(null);
 
-    await expect(checkForAppUpdate()).resolves.toEqual({ status: "current" });
+    await expect(checkForAppUpdate(now)).resolves.toEqual({ status: "current" });
   });
 
-  it("does not advertise an update when platform artifacts are not ready yet", async () => {
+  it("returns current when a newer build is within the age gate", async () => {
+    const updater = {
+      version: "1.0.6",
+      body: "Still publishing",
+      date: "2026-07-21T11:45:00.000Z",
+      downloadAndInstall: vi.fn(),
+    } as unknown as Update;
+
+    checkMock.mockResolvedValue(updater);
+
+    await expect(checkForAppUpdate(now)).resolves.toEqual({ status: "current" });
+  });
+
+  it("returns current when the Tauri updater cannot install for this platform", async () => {
     checkMock.mockRejectedValue(new Error("Could not find platform darwin-aarch64"));
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        tag_name: "desktop-v1.0.5",
-        html_url:
-          "https://github.com/SubtractManufacturing/certtrace/releases/tag/desktop-v1.0.5",
-        body: "Release notes",
-      }),
-    } as Response);
 
-    await expect(checkForAppUpdate()).resolves.toEqual({
-      status: "pending-artifacts",
-      reason: "Could not find platform darwin-aarch64",
-    });
-  });
-
-  it("returns current when the updater fails and GitHub has no newer release", async () => {
-    checkMock.mockRejectedValue(new Error("updater unavailable"));
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        tag_name: "desktop-v0.0.0",
-        html_url:
-          "https://github.com/SubtractManufacturing/certtrace/releases/tag/desktop-v0.0.0",
-        body: "Old",
-      }),
-    } as Response);
-
-    await expect(checkForAppUpdate()).resolves.toEqual({ status: "current" });
+    await expect(checkForAppUpdate(now)).resolves.toEqual({ status: "current" });
   });
 });
 
