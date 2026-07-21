@@ -95,8 +95,7 @@ describe("checkForUpdates", () => {
       status: 200,
       json: async () => ({
         tag_name: "desktop-v9.9.9",
-        html_url:
-          "https://github.com/SubtractManufacturing/certtrace/releases/tag/desktop-v9.9.9",
+        html_url: "https://github.com/SubtractManufacturing/certtrace/releases/tag/desktop-v9.9.9",
         body: "New features",
       }),
     } as Response);

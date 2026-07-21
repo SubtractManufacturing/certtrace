@@ -1,8 +1,9 @@
 name: Release
 
+# Only workflow_dispatch — release-please.yml dispatches once when a desktop
+# release is created. Do not also listen for `release: published` or a PAT-backed
+# release-please run would start a second ship build for the same tag.
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -23,21 +24,12 @@ jobs:
         id: release
         with:
           script: |
-            let tagName;
-            let release;
-
-            if (context.eventName === 'workflow_dispatch') {
-              tagName = '${{ inputs.tag }}';
-              const { data } = await github.rest.repos.getReleaseByTag({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag: tagName,
-              });
-              release = data;
-            } else {
-              release = context.payload.release;
-              tagName = release.tag_name;
-            }
+            const tagName = '${{ inputs.tag }}';
+            const { data: release } = await github.rest.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: tagName,
+            });
 
             if (!tagName.startsWith('desktop-v')) {
               core.setFailed(`Unsupported release tag: ${tagName}. Expected a desktop-v* tag.`);

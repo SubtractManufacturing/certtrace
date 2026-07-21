@@ -12,23 +12,24 @@ concurrency:
 
 jobs:
   # No-op with the same check names so required status checks stay green
-  # when the real matrix is skipped on release-please PRs.
+  # when the real matrix is skipped for release-please PRs / merge commits.
+  # Ship builds belong only in release.yml (dispatched once per desktop tag).
   build-release-please:
     name: Build (${{ matrix.platform }})
-    if: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please--branches--') }}
+    if: ${{ (github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please--branches--')) || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore: release')) }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
         platform: [macos, windows, linux]
     steps:
       - name: Skip full CI for release-please
-        run: echo "Skipping build matrix on release-please PR (version/changelog only)."
+        run: echo "Skipping CI build matrix for release-please (ship build is Release workflow only)."
 
   build:
     name: Build (${{ matrix.platform }})
-    # Release Please PRs only bump versions/changelogs; skip the full matrix.
-    # Still runs on pushes to main (including after a release PR merges).
-    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please--branches--') }}
+    # Skip on release-please PRs and their merge commits to main.
+    # Those only bump versions/changelogs; tauri-action ship builds run in release.yml.
+    if: ${{ !((github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please--branches--')) || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore: release'))) }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
