@@ -431,7 +431,7 @@ dependencies = [
 
 [[package]]
 name = "certtrace-desktop"
-version = "1.0.2"
+version = "1.0.5"
 dependencies = [
  "notify",
  "serde",
