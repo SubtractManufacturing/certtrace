@@ -4,7 +4,7 @@ This runbook covers updater signing, CI secrets, version bumps, and the beta upd
 
 ## Version synchronization
 
-release-please tracks a single shippable package: `apps/desktop` (component `desktop`, tags `desktop-vX.Y.Z`). Release PRs are titled `chore: release desktop-vX.Y.Z`. The private workspace root `package.json` is not versioned.
+release-please tracks a single shippable package: `apps/desktop` (component `desktop`, tags `desktop-vX.Y.Z`) with `"separate-pull-requests": true`. Release PRs are titled `chore: release desktop-vX.Y.Z`. The private workspace root `package.json` is not versioned.
 
 release-please bumps:
 
@@ -139,7 +139,7 @@ gh workflow run release.yml -f tag=desktop-v1.0.0
 
 ### Future install targets
 
-When another shippable app exists (for example `apps/web`), add it as a second path under `.github/release-please-config.json` with its own `component` and changelog. Prefer `"separate-pull-requests": true` so each target gets a clear PR title (`chore: release desktop-v…` vs `chore: release web-v…`). Dispatch/build for the new target should follow the same exact `--tag_name` / `--release_created` pattern as desktop. Do not reintroduce a root umbrella package as a fake “core” release.
+When another shippable app exists (for example `apps/web`), add it under both `.github/release-please-config.json` (path, `component`, changelog) and `.github/release-please-manifest.json` (path → initial version). Keep `"separate-pull-requests": true` so each target gets a clear PR title (`chore: release desktop-v…` vs `chore: release web-v…`). Dispatch/build for the new target should follow the same `--tag_name` / `--release_created` pattern as desktop. Do not reintroduce a root umbrella package as a fake “core” release.
 
 ## Updater dry run (`v0.1.0` → `v0.1.1`)
 
