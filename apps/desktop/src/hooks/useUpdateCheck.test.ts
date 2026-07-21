@@ -7,7 +7,8 @@ const { checkForAppUpdateMock, installAvailableUpdateMock } = vi.hoisted(() => (
 }));
 
 vi.mock("../lib/update-client", async () => {
-  const actual = await vi.importActual<typeof import("../lib/update-client")>("../lib/update-client");
+  const actual =
+    await vi.importActual<typeof import("../lib/update-client")>("../lib/update-client");
   return {
     ...actual,
     checkForAppUpdate: checkForAppUpdateMock,

@@ -378,9 +378,7 @@ function App() {
         }}
       />
 
-      {updateCheck.updateInfo &&
-      updateCheck.canInstallInApp &&
-      !updateCheck.dismissed ? (
+      {updateCheck.updateInfo && updateCheck.canInstallInApp && !updateCheck.dismissed ? (
         <UpdateAvailableDialog
           updateInfo={updateCheck.updateInfo}
           installing={updateCheck.installing}

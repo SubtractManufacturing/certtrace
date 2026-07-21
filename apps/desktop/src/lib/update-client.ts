@@ -20,10 +20,7 @@ export type AppUpdateCheckResult =
   | { status: "current" };
 
 /** True when publish time is known and at least 30 minutes in the past. */
-export function isReleaseReady(
-  publishedAt: string | undefined,
-  now: Date = new Date(),
-): boolean {
+export function isReleaseReady(publishedAt: string | undefined, now: Date = new Date()): boolean {
   if (!publishedAt) {
     return false;
   }
@@ -34,9 +31,7 @@ export function isReleaseReady(
   return now.getTime() - publishedMs >= RELEASE_READY_AGE_MS;
 }
 
-export async function checkForAppUpdate(
-  now: Date = new Date(),
-): Promise<AppUpdateCheckResult> {
+export async function checkForAppUpdate(now: Date = new Date()): Promise<AppUpdateCheckResult> {
   try {
     const update = await check();
     if (!update) {
