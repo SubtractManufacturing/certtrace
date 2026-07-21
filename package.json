@@ -18,7 +18,7 @@
     "sync:version:check": "node scripts/sync-app-version.mjs --check"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.4"
