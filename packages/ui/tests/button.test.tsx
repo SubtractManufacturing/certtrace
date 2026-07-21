@@ -32,7 +32,7 @@ describe("Button", () => {
     render(<Button variant="outline">Edit</Button>);
 
     const className = screen.getByRole("button", { name: "Edit" }).className;
-    expect(className).toContain("border-slate-200");
+    expect(className).toContain("border-slate-300");
     expect(className).toContain("bg-white");
   });
 });
