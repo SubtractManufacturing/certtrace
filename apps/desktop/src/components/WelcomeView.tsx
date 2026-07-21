@@ -64,11 +64,10 @@ export function WelcomeView({
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-6 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-          Subtract Manufacturing
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">CertTrace</h1>
-        <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+        <div className="dark:w-fit dark:rounded-md dark:bg-white dark:px-3 dark:py-2">
+          <img src="/logo-horizontal.svg" alt="CertTrace" className="h-8 w-auto max-w-full" />
+        </div>
+        <p className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
           Open an existing library folder, or create a new one in the location you choose. CertTrace
           creates a folder named after your library and writes a README inside.
         </p>
