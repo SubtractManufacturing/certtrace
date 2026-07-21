@@ -1,0 +1,309 @@
+name: Desktop preview
+
+# Opt-in signed/notarized (macOS) installers for PR validation.
+# Trigger from a PR comment: `/build` (all platforms) or `/build --mac --windows --linux`
+# Also runnable via workflow_dispatch from the Actions tab.
+#
+# Note: issue_comment workflows use the workflow file from the default branch.
+# Merge this workflow to main once before `/build` comments will fire.
+
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to build (leave empty to build the selected branch ref)
+        required: false
+        type: string
+      macos:
+        description: Build macOS (universal)
+        required: false
+        type: boolean
+        default: true
+      windows:
+        description: Build Windows
+        required: false
+        type: boolean
+        default: true
+      linux:
+        description: Build Linux
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: desktop-preview-${{ github.event.issue.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  gate:
+    name: Parse trigger
+    runs-on: ubuntu-latest
+    outputs:
+      run_build: ${{ steps.parse.outputs.run_build }}
+      matrix: ${{ steps.parse.outputs.matrix }}
+      pr_number: ${{ steps.parse.outputs.pr_number }}
+      head_sha: ${{ steps.parse.outputs.head_sha }}
+      head_repo: ${{ steps.parse.outputs.head_repo }}
+      checkout_ref: ${{ steps.parse.outputs.checkout_ref }}
+      platforms: ${{ steps.parse.outputs.platforms }}
+    steps:
+      - name: Parse comment or dispatch inputs
+        id: parse
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          COMMENT_BODY: ${{ github.event_name == 'issue_comment' && github.event.comment.body || '' }}
+          COMMENT_ASSOCIATION: ${{ github.event_name == 'issue_comment' && github.event.comment.author_association || '' }}
+          ISSUE_NUMBER: ${{ github.event_name == 'issue_comment' && github.event.issue.number || '' }}
+          HAS_PR: ${{ github.event_name == 'issue_comment' && github.event.issue.pull_request != null && 'true' || 'false' }}
+          DISPATCH_PR: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_number || '' }}
+          DISPATCH_MACOS: ${{ github.event_name == 'workflow_dispatch' && inputs.macos || false }}
+          DISPATCH_WINDOWS: ${{ github.event_name == 'workflow_dispatch' && inputs.windows || false }}
+          DISPATCH_LINUX: ${{ github.event_name == 'workflow_dispatch' && inputs.linux || false }}
+          REPO: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+
+          run_build=false
+          macos=false
+          windows=false
+          linux=false
+          pr_number=""
+          head_sha=""
+          head_repo=""
+          checkout_ref=""
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            run_build=true
+            [ "$DISPATCH_MACOS" = "true" ] && macos=true
+            [ "$DISPATCH_WINDOWS" = "true" ] && windows=true
+            [ "$DISPATCH_LINUX" = "true" ] && linux=true
+            pr_number="$DISPATCH_PR"
+            if [ -n "$pr_number" ]; then
+              pr_json=$(gh api "repos/${REPO}/pulls/${pr_number}")
+              head_sha=$(echo "$pr_json" | jq -r .head.sha)
+              head_repo=$(echo "$pr_json" | jq -r .head.repo.full_name)
+              checkout_ref="$head_sha"
+            else
+              head_repo="$REPO"
+              checkout_ref="$GITHUB_REF"
+            fi
+          else
+            # PR comment only
+            if [ "$HAS_PR" != "true" ]; then
+              echo "Ignoring non-PR issue comment"
+              echo "run_build=false" >> "$GITHUB_OUTPUT"
+              echo "matrix=" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            case "$COMMENT_ASSOCIATION" in
+              OWNER|MEMBER|COLLABORATOR) ;;
+              *)
+                echo "Ignoring comment from association=$COMMENT_ASSOCIATION"
+                echo "run_build=false" >> "$GITHUB_OUTPUT"
+                echo "matrix=" >> "$GITHUB_OUTPUT"
+                exit 0
+                ;;
+            esac
+
+            cmd_line=$(printf '%s\n' "$COMMENT_BODY" | grep -E '^[[:space:]]*/build([[:space:]]|$)' | head -1 | sed 's/^[[:space:]]*//' || true)
+            if [ -z "$cmd_line" ]; then
+              echo "No /build command on its own line"
+              echo "run_build=false" >> "$GITHUB_OUTPUT"
+              echo "matrix=" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            run_build=true
+            pr_number="$ISSUE_NUMBER"
+            any_flag=false
+            printf '%s' "$cmd_line" | grep -Eq -- '(^|[[:space:]])--mac(os)?([[:space:]]|$)' && macos=true && any_flag=true
+            printf '%s' "$cmd_line" | grep -Eq -- '(^|[[:space:]])--windows([[:space:]]|$)|(^|[[:space:]])--win([[:space:]]|$)' && windows=true && any_flag=true
+            printf '%s' "$cmd_line" | grep -Eq -- '(^|[[:space:]])--linux([[:space:]]|$)' && linux=true && any_flag=true
+            if [ "$any_flag" = false ]; then
+              macos=true
+              windows=true
+              linux=true
+            fi
+
+            pr_json=$(gh api "repos/${REPO}/pulls/${pr_number}")
+            head_sha=$(echo "$pr_json" | jq -r .head.sha)
+            head_repo=$(echo "$pr_json" | jq -r .head.repo.full_name)
+            checkout_ref="$head_sha"
+          fi
+
+          if [ "$run_build" = true ] && [ "$head_repo" != "$REPO" ]; then
+            echo "Refusing to build fork head ($head_repo) with repo secrets"
+            echo "run_build=false" >> "$GITHUB_OUTPUT"
+            echo "matrix=" >> "$GITHUB_OUTPUT"
+            if [ "$EVENT_NAME" = "issue_comment" ]; then
+              gh api "repos/${REPO}/issues/${pr_number}/comments" \
+                -f body="> Desktop preview refused: \`/build\` only runs for same-repo PR branches (not forks), so signing secrets stay safe."
+            fi
+            exit 0
+          fi
+
+          if [ "$macos" != true ] && [ "$windows" != true ] && [ "$linux" != true ]; then
+            echo "No platforms selected"
+            echo "run_build=false" >> "$GITHUB_OUTPUT"
+            echo "matrix=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          matrix='{"include":['
+          sep=""
+          platforms=""
+          if [ "$macos" = true ]; then
+            matrix="${matrix}${sep}{\"os\":\"macos-latest\",\"platform\":\"macos\",\"args\":\"--target universal-apple-darwin --config {\\\"bundle\\\":{\\\"createUpdaterArtifacts\\\":true}}\"}"
+            sep=","
+            platforms="${platforms} macOS"
+          fi
+          if [ "$windows" = true ]; then
+            matrix="${matrix}${sep}{\"os\":\"windows-latest\",\"platform\":\"windows\",\"args\":\"--config {\\\"bundle\\\":{\\\"createUpdaterArtifacts\\\":true}}\"}"
+            sep=","
+            platforms="${platforms} Windows"
+          fi
+          if [ "$linux" = true ]; then
+            matrix="${matrix}${sep}{\"os\":\"ubuntu-latest\",\"platform\":\"linux\",\"args\":\"--config {\\\"bundle\\\":{\\\"createUpdaterArtifacts\\\":true}}\"}"
+            sep=","
+            platforms="${platforms} Linux"
+          fi
+          matrix="${matrix}]}"
+
+          {
+            echo "run_build=true"
+            echo "pr_number=${pr_number}"
+            echo "head_sha=${head_sha}"
+            echo "head_repo=${head_repo}"
+            echo "checkout_ref=${checkout_ref}"
+            echo "platforms=${platforms}"
+            echo "matrix<<EOF"
+            echo "${matrix}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Will build:${platforms} ref=${checkout_ref}"
+
+      - name: Acknowledge PR comment
+        if: steps.parse.outputs.run_build == 'true' && github.event_name == 'issue_comment'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/${{ github.repository }}/issues/${{ steps.parse.outputs.pr_number }}/comments" \
+            -f body="> *Desktop preview started* for${{ steps.parse.outputs.platforms }} @ \`${{ steps.parse.outputs.head_sha }}\`.
+>
+> Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+>
+> Download installers from the run **Artifacts** (retained 7 days)."
+
+  build:
+    name: Build (${{ matrix.platform }})
+    needs: gate
+    if: needs.gate.outputs.run_build == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.gate.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ needs.gate.outputs.head_repo }}
+          ref: ${{ needs.gate.outputs.checkout_ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add macOS universal build targets
+        if: matrix.platform == 'macos'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync app version
+        run: pnpm sync:version
+
+      - name: Build desktop bundles
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          projectPath: apps/desktop
+          tauriScript: pnpm tauri
+          args: ${{ matrix.args }}
+
+      - name: Upload installer artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: certtrace-${{ matrix.platform }}-${{ github.run_id }}
+          path: |
+            apps/desktop/src-tauri/target/**/release/bundle/dmg/*.dmg
+            apps/desktop/src-tauri/target/**/release/bundle/macos/*.tar.gz
+            apps/desktop/src-tauri/target/**/release/bundle/nsis/*.exe
+            apps/desktop/src-tauri/target/**/release/bundle/msi/*.msi
+            apps/desktop/src-tauri/target/**/release/bundle/appimage/*.AppImage
+            apps/desktop/src-tauri/target/**/release/bundle/deb/*.deb
+            apps/desktop/src-tauri/target/**/release/bundle/rpm/*.rpm
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.sig
+          if-no-files-found: error
+          retention-days: 7
+
+  notify:
+    name: Notify PR
+    needs: [gate, build]
+    if: always() && needs.gate.outputs.run_build == 'true' && needs.gate.outputs.pr_number != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post result on PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          result="${{ needs.build.result }}"
+          if [ "$result" = "success" ]; then
+            status="succeeded"
+          else
+            status="finished with result \`${result}\`"
+          fi
+          gh api "repos/${{ github.repository }}/issues/${{ needs.gate.outputs.pr_number }}/comments" \
+            -f body="> *Desktop preview ${status}* (${{ needs.gate.outputs.platforms }}).
+>
+> Artifacts: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts
+> (retained 7 days)"

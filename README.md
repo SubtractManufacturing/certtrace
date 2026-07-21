@@ -17,7 +17,7 @@ This is a feature, not an omission.
 
 ## Platforms
 
-macOS, Windows, and Linux are equally supported targets for v0.1.
+macOS (Apple Silicon and Intel via a universal DMG), Windows, and Linux are supported.
 
 ## Installing CertTrace
 
@@ -25,9 +25,9 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 ### macOS
 
-1. Download the `.dmg` from the latest release.
+1. Download the `.dmg` from the latest release (universal: Apple Silicon and Intel).
 2. Open the disk image and drag **CertTrace** into Applications.
-3. On first launch, macOS may prompt you to approve the app if it is not notarized yet.
+3. Open **CertTrace** from Applications. A notarized build should pass Gatekeeper; if macOS still blocks the app, use **System Settings → Privacy & Security** to allow it and report the release tag.
 
 ### Windows
 
