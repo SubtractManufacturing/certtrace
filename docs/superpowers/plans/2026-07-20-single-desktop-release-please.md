@@ -34,7 +34,7 @@
 - [x] **Step 3:** Archive note on root CHANGELOG; update runbook
 - [x] **Step 4:** Confirm `release-please.yml` still uses `apps/desktop--*` outputs
 - [x] **Step 5:** Run `pnpm test:scripts` (sync-version tests unrelated but smoke)
-- [ ] **Step 6:** Commit
+- [x] **Step 6:** Commit
 
 ### Task 2: Cutover notes (post-merge, manual)
 
