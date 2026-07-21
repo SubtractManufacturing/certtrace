@@ -65,7 +65,6 @@ describe("checkForAppUpdate", () => {
       info: {
         latestVersion: "1.0.1",
         releaseNotes: "Bug fixes",
-        releaseUrl: "https://github.com/SubtractManufacturing/certtrace/releases/tag/desktop-v1.0.1",
         updater,
       },
     });
@@ -115,7 +114,6 @@ describe("canInstallInApp", () => {
     expect(
       canInstallInApp({
         latestVersion: "1.0.1",
-        releaseUrl: "https://example.com",
         releaseNotes: "",
         updater,
       }),

@@ -9,7 +9,6 @@ export interface AvailableUpdate extends UpdateInfo {
   updater?: Update;
 }
 
-const RELEASE_TAG_PREFIX = "desktop-v";
 const RELEASE_READY_AGE_MS = 30 * 60 * 1000;
 
 /** Hard-coded browser destination — no GitHub API call from the app. */
@@ -53,7 +52,6 @@ export async function checkForAppUpdate(
       info: {
         latestVersion: update.version,
         releaseNotes: update.body ?? "",
-        releaseUrl: `https://github.com/SubtractManufacturing/certtrace/releases/tag/${RELEASE_TAG_PREFIX}${update.version}`,
         updater: update,
       },
     };

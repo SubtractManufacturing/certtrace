@@ -22,7 +22,6 @@ const readyUpdate = {
   info: {
     latestVersion: "1.0.6",
     releaseNotes: "Notes",
-    releaseUrl: "https://example.com",
     updater: { downloadAndInstall: vi.fn() },
   },
 };
