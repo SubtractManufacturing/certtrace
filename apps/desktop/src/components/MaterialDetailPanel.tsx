@@ -83,7 +83,9 @@ export function MaterialDetailPanel({
     async function loadLabelPreview() {
       const { generateStandardQrLabelPdfBytes } = await import("../lib/label-client");
       const bytes = await generateStandardQrLabelPdfBytes(material);
-      objectUrl = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      objectUrl = URL.createObjectURL(
+        new Blob([Uint8Array.from(bytes)], { type: "application/pdf" }),
+      );
       if (!cancelled) {
         setLabelPdfUrl(objectUrl);
       }
