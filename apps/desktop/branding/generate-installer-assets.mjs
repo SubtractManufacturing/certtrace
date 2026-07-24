@@ -229,10 +229,6 @@ async function main() {
   copyFileSync(join(SOURCE, "app-icon.svg"), join(PUBLIC, "app-icon.svg"));
   copyFileSync(join(SOURCE, "installer-mark.svg"), join(PUBLIC, "installer-mark.svg"));
   copyFileSync(join(SOURCE, "logo-horizontal.svg"), join(PUBLIC, "logo-horizontal.svg"));
-  copyFileSync(
-    join(SOURCE, "logo-horizontal-on-dark.svg"),
-    join(PUBLIC, "logo-horizontal-on-dark.svg"),
-  );
 }
 
 main().catch((error) => {
