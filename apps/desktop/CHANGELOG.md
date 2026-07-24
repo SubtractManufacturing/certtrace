@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.7](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v1.0.6...desktop-v1.0.7) (2026-07-24)
+
+
+### Bug Fixes
+
+* Improve installer branding and refresh desktop app icons ([#71](https://github.com/SubtractManufacturing/certtrace/issues/71)) ([71d17c0](https://github.com/SubtractManufacturing/certtrace/commit/71d17c0680d8e86b762f62cdcc01dc430dd6eaaa))
+* Inset and mask MacOS dock icon ([5f6b034](https://github.com/SubtractManufacturing/certtrace/commit/5f6b03444b23449924e4a7c7fbb2822fd88a7dc6))
+* Polish welcome page logo and add sky theme toggle ([#76](https://github.com/SubtractManufacturing/certtrace/issues/76)) ([9b0d67d](https://github.com/SubtractManufacturing/certtrace/commit/9b0d67d03f80689763741cd106d2ac374d4c76dd))
+
 ## [1.0.6](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v1.0.5...desktop-v1.0.6) (2026-07-21)
 
 
