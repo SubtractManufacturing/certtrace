@@ -2,6 +2,9 @@
 node_modules/
 .pnpm-store/
 
+# Nested git worktrees
+.worktrees/
+
 # Build outputs
 dist/
 build/
