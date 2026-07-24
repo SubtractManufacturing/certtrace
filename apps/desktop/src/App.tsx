@@ -276,7 +276,7 @@ function App() {
 
   if (!session.hasSession) {
     return (
-      <ThemeProvider theme={resolvedTheme}>
+      <ThemeProvider theme={resolvedTheme} onThemeChange={(theme) => void setTheme(theme)}>
         <WelcomeView
           busy={busy}
           onOpenLibrary={handleOpenLibrary}

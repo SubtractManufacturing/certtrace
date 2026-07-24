@@ -5,6 +5,7 @@ import { forgetRecentLibrary, loadAppSettings } from "../lib/app-settings-client
 import { pickParentFolder } from "../lib/library-client";
 import { AppLogo } from "./AppLogo";
 import { ErrorBanner } from "./ErrorBanner";
+import { SkyThemeToggle } from "./SkyThemeToggle";
 
 interface WelcomeViewProps {
   busy?: boolean;
@@ -63,8 +64,12 @@ export function WelcomeView({
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-6 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <main className="relative flex min-h-screen flex-col items-center justify-center bg-slate-50 px-6 text-slate-900 transition-[background-color] duration-500 ease-in-out dark:bg-slate-950 dark:text-slate-100">
+      <div className="absolute top-4 right-4 z-10 sm:top-5 sm:right-5">
+        <SkyThemeToggle />
+      </div>
+
+      <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-8 shadow-sm transition-[background-color,border-color] duration-500 ease-in-out dark:border-slate-800 dark:bg-slate-900">
         <h1>
           <AppLogo variant="welcome" />
         </h1>
@@ -112,7 +117,7 @@ export function WelcomeView({
           <Button
             type="button"
             disabled={busy}
-            className="h-11 w-full max-w-sm bg-sky-500 text-white shadow-sm hover:bg-sky-400 dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300"
+            className="h-11 w-full max-w-sm bg-sky-500 text-white shadow-sm transition-[background-color,color] duration-500 ease-in-out hover:bg-sky-400 dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300"
             onClick={onStartCreateLibrary}
           >
             Create library
@@ -120,7 +125,7 @@ export function WelcomeView({
           <button
             type="button"
             disabled={busy}
-            className="h-8 w-full max-w-sm text-xs font-medium text-slate-500 transition-colors hover:text-slate-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:pointer-events-none disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200 dark:focus-visible:ring-slate-500"
+            className="h-8 w-full max-w-sm text-xs font-medium text-slate-500 hover:text-slate-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:pointer-events-none disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200 dark:focus-visible:ring-slate-500"
             onClick={() => void handleOpenLibrary()}
           >
             Open library

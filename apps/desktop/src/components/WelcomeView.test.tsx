@@ -1,7 +1,13 @@
+import { ThemeProvider } from "@certtrace/ui";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { WelcomeView } from "./WelcomeView";
+
+function renderWelcome(ui: ReactElement) {
+  return render(<ThemeProvider defaultTheme="light">{ui}</ThemeProvider>);
+}
 
 vi.mock("../lib/app-settings-client", () => ({
   loadAppSettings: vi.fn(async () => ({
@@ -33,7 +39,9 @@ vi.mock("../lib/library-client", () => ({
 describe("WelcomeView", () => {
   it("shows recent libraries and opens one", async () => {
     const onOpenLibrary = vi.fn(async () => undefined);
-    render(<WelcomeView onOpenLibrary={onOpenLibrary} onStartCreateLibrary={() => undefined} />);
+    renderWelcome(
+      <WelcomeView onOpenLibrary={onOpenLibrary} onStartCreateLibrary={() => undefined} />,
+    );
 
     expect(await screen.findByText("Main Shop")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: /Main Shop/i }));
@@ -42,7 +50,7 @@ describe("WelcomeView", () => {
 
   it("starts create library flow", async () => {
     const onStartCreateLibrary = vi.fn();
-    render(
+    renderWelcome(
       <WelcomeView
         onOpenLibrary={async () => undefined}
         onStartCreateLibrary={onStartCreateLibrary}
@@ -57,7 +65,7 @@ describe("WelcomeView", () => {
   });
 
   it("makes create library the primary welcome action", async () => {
-    render(
+    renderWelcome(
       <WelcomeView onOpenLibrary={async () => undefined} onStartCreateLibrary={() => undefined} />,
     );
 
@@ -75,5 +83,26 @@ describe("WelcomeView", () => {
     expect(openButton.className).toContain("text-slate-500");
     expect(openButton.className).toContain("hover:underline");
     expect(openButton.className).not.toContain("hover:bg");
+  });
+
+  it("shows a theme toggle in the welcome chrome", async () => {
+    renderWelcome(
+      <WelcomeView onOpenLibrary={async () => undefined} onStartCreateLibrary={() => undefined} />,
+    );
+
+    const toggle = await screen.findByRole("switch", { name: /switch to dark mode/i });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    await userEvent.click(toggle);
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    expect(toggle.getAttribute("aria-label")).toMatch(/switch to light mode/i);
+  });
+
+  it("renders a prominent CertTrace logo", async () => {
+    renderWelcome(
+      <WelcomeView onOpenLibrary={async () => undefined} onStartCreateLibrary={() => undefined} />,
+    );
+
+    const logo = await screen.findByRole("img", { name: "CertTrace" });
+    expect(logo.className).toContain("h-14");
   });
 });

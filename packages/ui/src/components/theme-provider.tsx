@@ -3,7 +3,7 @@ import {
   type ReactNode,
   useCallback,
   useContext,
-  useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
 } from "react";
@@ -48,7 +48,9 @@ export function ThemeProvider({
     setTheme(theme === "light" ? "dark" : "light");
   }, [theme, setTheme]);
 
-  useEffect(() => {
+  // Apply before paint so dark: utilities and JS-driven theme UI (e.g. toggles)
+  // start CSS transitions in the same frame.
+  useLayoutEffect(() => {
     const root = document.documentElement;
     root.classList.remove("light", "dark");
     root.classList.add(theme);
