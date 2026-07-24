@@ -14,10 +14,12 @@ const MACOS_SVG = join(SOURCE, "macos-icon.svg");
 const WINDOWS_SVG = join(SOURCE, "windows-icon.svg");
 const APP_ICON_SVG = join(SOURCE, "app-icon.svg");
 const LOGO_HORIZONTAL_SVG = join(SOURCE, "logo-horizontal.svg");
+const LOGO_HORIZONTAL_ON_DARK_SVG = join(SOURCE, "logo-horizontal-on-dark.svg");
 
 function syncPublicAssets() {
   copyFileSync(APP_ICON_SVG, join(PUBLIC_DIR, "app-icon.svg"));
   copyFileSync(LOGO_HORIZONTAL_SVG, join(PUBLIC_DIR, "logo-horizontal.svg"));
+  copyFileSync(LOGO_HORIZONTAL_ON_DARK_SVG, join(PUBLIC_DIR, "logo-horizontal-on-dark.svg"));
 }
 
 function runTauriIcon(inputSvg, outputDir) {
