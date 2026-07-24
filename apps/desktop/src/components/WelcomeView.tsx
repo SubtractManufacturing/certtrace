@@ -3,6 +3,7 @@ import { Button } from "@certtrace/ui";
 import { useEffect, useState } from "react";
 import { forgetRecentLibrary, loadAppSettings } from "../lib/app-settings-client";
 import { pickParentFolder } from "../lib/library-client";
+import { AppLogo } from "./AppLogo";
 import { ErrorBanner } from "./ErrorBanner";
 import { SkyThemeToggle } from "./SkyThemeToggle";
 
@@ -71,11 +72,7 @@ export function WelcomeView({
       <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-8 shadow-sm transition-colors duration-500 ease-in-out dark:border-slate-800 dark:bg-slate-900">
         {/* Keep logo chrome size identical across themes so the card doesn't reflow. */}
         <h1 className="mx-auto flex w-fit justify-center rounded-md px-4 py-3 dark:bg-white">
-          <img
-            src="/logo-horizontal.svg"
-            alt="CertTrace"
-            className="h-14 w-auto max-w-full sm:h-16"
-          />
+          <AppLogo variant="welcome" />
         </h1>
         <p className="mt-4 text-sm leading-relaxed text-slate-600 transition-colors duration-500 ease-in-out dark:text-slate-400">
           Open an existing library folder, or create a new one in the location you choose. CertTrace
