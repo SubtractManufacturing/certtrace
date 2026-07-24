@@ -3,8 +3,8 @@ import { Button } from "@certtrace/ui";
 import { useEffect, useState } from "react";
 import { forgetRecentLibrary, loadAppSettings } from "../lib/app-settings-client";
 import { pickParentFolder } from "../lib/library-client";
-import { ErrorBanner } from "./ErrorBanner";
 import { AppLogo } from "./AppLogo";
+import { ErrorBanner } from "./ErrorBanner";
 
 interface WelcomeViewProps {
   busy?: boolean;

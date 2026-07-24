@@ -61,11 +61,7 @@ async function fitWithin(image, maxWidth, maxHeight) {
 /** Square app icon for tight header/banner slots (inner wizard pages). */
 async function renderAppIcon(maxSize) {
   const renderWidth = Math.max(512, maxSize * 4);
-  return fitWithin(
-    await readPng(renderSvg("app-icon.svg", renderWidth)),
-    maxSize,
-    maxSize,
-  );
+  return fitWithin(await readPng(renderSvg("app-icon.svg", renderWidth)), maxSize, maxSize);
 }
 
 /**
@@ -103,11 +99,7 @@ async function createWixDialogBackground() {
 async function createWixBanner() {
   const canvas = createCanvas(493, 58, WHITE);
   const icon = await renderAppIcon(48);
-  canvas.composite(
-    icon,
-    493 - icon.width - 12,
-    Math.round((58 - icon.height) / 2),
-  );
+  canvas.composite(icon, 493 - icon.width - 12, Math.round((58 - icon.height) / 2));
   return canvas;
 }
 
@@ -214,18 +206,12 @@ async function createDmgBackground() {
   const canvas = createCanvas(DMG_WIDTH, DMG_HEIGHT, SLATE_50);
 
   const arrow = await readPng(renderArrowPng(120, 44));
-  const arrowX = Math.round(
-    (DMG_APP_ICON.x + DMG_APPLICATIONS_ICON.x) / 2 - arrow.width / 2,
-  );
+  const arrowX = Math.round((DMG_APP_ICON.x + DMG_APPLICATIONS_ICON.x) / 2 - arrow.width / 2);
   const arrowY = Math.round(DMG_APP_ICON.y - arrow.height / 2);
   canvas.composite(arrow, arrowX, arrowY);
 
   // ~15% smaller than the first pass; extra bottom inset clears Finder's status bar.
-  const submark = await fitWithin(
-    await readPng(renderSvg("submark.svg", 640)),
-    240,
-    40,
-  );
+  const submark = await fitWithin(await readPng(renderSvg("submark.svg", 640)), 240, 40);
   const submarkX = Math.round((DMG_WIDTH - submark.width) / 2);
   const submarkY = DMG_HEIGHT - submark.height - 72;
   canvas.composite(submark, submarkX, submarkY);
@@ -241,14 +227,8 @@ async function main() {
   await writeAsset(await createDmgBackground(), "dmg-background.png");
 
   copyFileSync(join(SOURCE, "app-icon.svg"), join(PUBLIC, "app-icon.svg"));
-  copyFileSync(
-    join(SOURCE, "installer-mark.svg"),
-    join(PUBLIC, "installer-mark.svg"),
-  );
-  copyFileSync(
-    join(SOURCE, "logo-horizontal.svg"),
-    join(PUBLIC, "logo-horizontal.svg"),
-  );
+  copyFileSync(join(SOURCE, "installer-mark.svg"), join(PUBLIC, "installer-mark.svg"));
+  copyFileSync(join(SOURCE, "logo-horizontal.svg"), join(PUBLIC, "logo-horizontal.svg"));
 }
 
 main().catch((error) => {
