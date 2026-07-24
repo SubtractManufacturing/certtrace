@@ -58,10 +58,27 @@ async function fitWithin(image, maxWidth, maxHeight) {
   return image;
 }
 
-/** Render SVG large, then bicubic-fit to the target icon box. */
-async function renderIcon(maxSize) {
+/** Square app icon for tight header/banner slots (inner wizard pages). */
+async function renderAppIcon(maxSize) {
   const renderWidth = Math.max(512, maxSize * 4);
-  return fitWithin(await readPng(renderSvg("app-icon.svg", renderWidth)), maxSize, maxSize);
+  return fitWithin(
+    await readPng(renderSvg("app-icon.svg", renderWidth)),
+    maxSize,
+    maxSize,
+  );
+}
+
+/**
+ * Stacked installer mark (icon + wordmark). Use separate width/height bounds —
+ * a square box shrinks tall artwork and makes the text unreadable.
+ */
+async function renderMark(maxWidth, maxHeight) {
+  const renderWidth = Math.max(512, maxWidth * 4);
+  return fitWithin(
+    await readPng(renderSvg("installer-mark.svg", renderWidth)),
+    maxWidth,
+    maxHeight,
+  );
 }
 
 async function writeAsset(canvas, filename) {
@@ -74,8 +91,8 @@ async function writeAsset(canvas, filename) {
  */
 async function createWixDialogBackground() {
   const canvas = createCanvas(493, 312, WHITE);
-  const icon = await renderIcon(100);
-  canvas.composite(icon, 36, 28);
+  const mark = await renderMark(160, 250);
+  canvas.composite(mark, 24, 16);
   return canvas;
 }
 
@@ -85,8 +102,12 @@ async function createWixDialogBackground() {
  */
 async function createWixBanner() {
   const canvas = createCanvas(493, 58, WHITE);
-  const icon = await renderIcon(40);
-  canvas.composite(icon, 493 - icon.width - 12, Math.round((58 - icon.height) / 2));
+  const icon = await renderAppIcon(48);
+  canvas.composite(
+    icon,
+    493 - icon.width - 12,
+    Math.round((58 - icon.height) / 2),
+  );
   return canvas;
 }
 
@@ -99,10 +120,10 @@ async function createNsisSidebar() {
   const width = 164 * NSIS_SCALE;
   const height = 314 * NSIS_SCALE;
   const canvas = createCanvas(width, height, WHITE);
-  const icon = await renderIcon(100 * NSIS_SCALE);
-  const x = Math.round((width - icon.width) / 2);
-  const y = 28 * NSIS_SCALE;
-  canvas.composite(icon, x, y);
+  const mark = await renderMark(148 * NSIS_SCALE, 255 * NSIS_SCALE);
+  const x = Math.round((width - mark.width) / 2);
+  const y = 16 * NSIS_SCALE;
+  canvas.composite(mark, x, y);
   return canvas;
 }
 
@@ -114,7 +135,7 @@ async function createNsisHeader() {
   const width = 150 * NSIS_SCALE;
   const height = 57 * NSIS_SCALE;
   const canvas = createCanvas(width, height, WHITE);
-  const icon = await renderIcon(36 * NSIS_SCALE);
+  const icon = await renderAppIcon(44 * NSIS_SCALE);
   const x = 10 * NSIS_SCALE;
   const y = Math.round((height - icon.height) / 2);
   canvas.composite(icon, x, y);
@@ -193,12 +214,18 @@ async function createDmgBackground() {
   const canvas = createCanvas(DMG_WIDTH, DMG_HEIGHT, SLATE_50);
 
   const arrow = await readPng(renderArrowPng(120, 44));
-  const arrowX = Math.round((DMG_APP_ICON.x + DMG_APPLICATIONS_ICON.x) / 2 - arrow.width / 2);
+  const arrowX = Math.round(
+    (DMG_APP_ICON.x + DMG_APPLICATIONS_ICON.x) / 2 - arrow.width / 2,
+  );
   const arrowY = Math.round(DMG_APP_ICON.y - arrow.height / 2);
   canvas.composite(arrow, arrowX, arrowY);
 
   // ~15% smaller than the first pass; extra bottom inset clears Finder's status bar.
-  const submark = await fitWithin(await readPng(renderSvg("submark.svg", 640)), 240, 40);
+  const submark = await fitWithin(
+    await readPng(renderSvg("submark.svg", 640)),
+    240,
+    40,
+  );
   const submarkX = Math.round((DMG_WIDTH - submark.width) / 2);
   const submarkY = DMG_HEIGHT - submark.height - 72;
   canvas.composite(submark, submarkX, submarkY);
@@ -214,7 +241,14 @@ async function main() {
   await writeAsset(await createDmgBackground(), "dmg-background.png");
 
   copyFileSync(join(SOURCE, "app-icon.svg"), join(PUBLIC, "app-icon.svg"));
-  copyFileSync(join(SOURCE, "logo-horizontal.svg"), join(PUBLIC, "logo-horizontal.svg"));
+  copyFileSync(
+    join(SOURCE, "installer-mark.svg"),
+    join(PUBLIC, "installer-mark.svg"),
+  );
+  copyFileSync(
+    join(SOURCE, "logo-horizontal.svg"),
+    join(PUBLIC, "logo-horizontal.svg"),
+  );
 }
 
 main().catch((error) => {
