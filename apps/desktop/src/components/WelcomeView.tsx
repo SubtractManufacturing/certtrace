@@ -3,6 +3,7 @@ import { Button } from "@certtrace/ui";
 import { useEffect, useState } from "react";
 import { forgetRecentLibrary, loadAppSettings } from "../lib/app-settings-client";
 import { pickParentFolder } from "../lib/library-client";
+import { AppLogo } from "./AppLogo";
 import { ErrorBanner } from "./ErrorBanner";
 
 interface WelcomeViewProps {
@@ -64,8 +65,8 @@ export function WelcomeView({
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-6 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <h1 className="dark:w-fit dark:rounded-md dark:bg-white dark:px-3 dark:py-2">
-          <img src="/logo-horizontal.svg" alt="CertTrace" className="h-8 w-auto max-w-full" />
+        <h1>
+          <AppLogo variant="welcome" />
         </h1>
         <p className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
           Open an existing library folder, or create a new one in the location you choose. CertTrace

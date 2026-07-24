@@ -2,7 +2,7 @@ import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Resvg } from "@resvg/resvg-js";
-import { Jimp } from "jimp";
+import { Jimp, ResizeStrategy } from "jimp";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SOURCE = join(__dirname, "source");
@@ -12,7 +12,12 @@ const PUBLIC = join(__dirname, "..", "public");
 /** Matches WixUI / NSIS default light chrome so black wizard text stays readable. */
 const WHITE = 0xffffffff;
 const SLATE_50 = 0xf8fafcff;
-const BRAND_BLUE = 0x0c5390ff;
+
+/**
+ * NSIS is DPI-aware and stretches welcome/header bitmaps. Generate @3x so
+ * HiDPI displays stay sharp and closer to the MSI's crisp mark.
+ */
+const NSIS_SCALE = 3;
 
 /** Tauri default DMG icon centers (bundle.macOS.dmg appPosition / applicationFolderPosition). */
 const DMG_WIDTH = 660;
@@ -40,12 +45,36 @@ async function readPng(buffer) {
   return Jimp.read(buffer);
 }
 
+/** High-quality downscale — default nearest-neighbor makes installer marks look jagged. */
 async function fitWithin(image, maxWidth, maxHeight) {
   const scale = Math.min(maxWidth / image.width, maxHeight / image.height, 1);
   if (scale < 1) {
-    image.scale(scale);
+    image.resize({
+      w: Math.max(1, Math.round(image.width * scale)),
+      h: Math.max(1, Math.round(image.height * scale)),
+      mode: ResizeStrategy.BICUBIC,
+    });
   }
   return image;
+}
+
+/** Square app icon for tight header/banner slots (inner wizard pages). */
+async function renderAppIcon(maxSize) {
+  const renderWidth = Math.max(512, maxSize * 4);
+  return fitWithin(await readPng(renderSvg("app-icon.svg", renderWidth)), maxSize, maxSize);
+}
+
+/**
+ * Stacked installer mark (icon + wordmark). Use separate width/height bounds —
+ * a square box shrinks tall artwork and makes the text unreadable.
+ */
+async function renderMark(maxWidth, maxHeight) {
+  const renderWidth = Math.max(512, maxWidth * 4);
+  return fitWithin(
+    await readPng(renderSvg("installer-mark.svg", renderWidth)),
+    maxWidth,
+    maxHeight,
+  );
 }
 
 async function writeAsset(canvas, filename) {
@@ -54,13 +83,12 @@ async function writeAsset(canvas, filename) {
 
 /**
  * WiX dialogImagePath is a FULL-BLEED background for Welcome + Finish.
- * Wizard title/body text is drawn on top — keep the upper area empty and light.
+ * Wizard title/body text is drawn on top — keep the upper-right area empty and light.
  */
 async function createWixDialogBackground() {
   const canvas = createCanvas(493, 312, WHITE);
-  const icon = await fitWithin(await readPng(renderSvg("app-icon.svg", 256)), 100, 100);
-  // Top-left, aligned with welcome/finish heading (text sits to the right).
-  canvas.composite(icon, 36, 28);
+  const mark = await renderMark(160, 250);
+  canvas.composite(mark, 24, 16);
   return canvas;
 }
 
@@ -70,27 +98,39 @@ async function createWixDialogBackground() {
  */
 async function createWixBanner() {
   const canvas = createCanvas(493, 58, WHITE);
-  const icon = await fitWithin(await readPng(renderSvg("app-icon.svg", 128)), 40, 40);
+  const icon = await renderAppIcon(48);
   canvas.composite(icon, 493 - icon.width - 12, Math.round((58 - icon.height) / 2));
   return canvas;
 }
 
-/** NSIS welcome/finish left strip — text lives to the right of this panel. */
+/**
+ * NSIS welcome/finish left strip — text lives to the right of this panel.
+ * Use white (not brand blue) so the page reads like the MSI all-white welcome,
+ * with a top-aligned mark beside the heading.
+ */
 async function createNsisSidebar() {
-  const canvas = createCanvas(164, 314, BRAND_BLUE);
-  const icon = await fitWithin(await readPng(renderSvg("app-icon.svg", 256)), 88, 88);
-  canvas.composite(icon, Math.round((164 - icon.width) / 2), Math.round((314 - icon.height) / 2));
+  const width = 164 * NSIS_SCALE;
+  const height = 314 * NSIS_SCALE;
+  const canvas = createCanvas(width, height, WHITE);
+  const mark = await renderMark(148 * NSIS_SCALE, 255 * NSIS_SCALE);
+  const x = Math.round((width - mark.width) / 2);
+  const y = 16 * NSIS_SCALE;
+  canvas.composite(mark, x, y);
   return canvas;
 }
 
 /**
- * NSIS headerImage is a small top-right bitmap; page titles sit to its left.
- * Keep it light with a modest mark.
+ * NSIS headerImage sits beside page titles on inner pages (left of title text).
+ * Keep white chrome + a small crisp mark, MSI-like in weight.
  */
 async function createNsisHeader() {
-  const canvas = createCanvas(150, 57, WHITE);
-  const icon = await fitWithin(await readPng(renderSvg("app-icon.svg", 128)), 36, 36);
-  canvas.composite(icon, Math.round((150 - icon.width) / 2), Math.round((57 - icon.height) / 2));
+  const width = 150 * NSIS_SCALE;
+  const height = 57 * NSIS_SCALE;
+  const canvas = createCanvas(width, height, WHITE);
+  const icon = await renderAppIcon(44 * NSIS_SCALE);
+  const x = 10 * NSIS_SCALE;
+  const y = Math.round((height - icon.height) / 2);
+  canvas.composite(icon, x, y);
   return canvas;
 }
 
@@ -187,6 +227,7 @@ async function main() {
   await writeAsset(await createDmgBackground(), "dmg-background.png");
 
   copyFileSync(join(SOURCE, "app-icon.svg"), join(PUBLIC, "app-icon.svg"));
+  copyFileSync(join(SOURCE, "installer-mark.svg"), join(PUBLIC, "installer-mark.svg"));
   copyFileSync(join(SOURCE, "logo-horizontal.svg"), join(PUBLIC, "logo-horizontal.svg"));
 }
 

@@ -2,6 +2,9 @@
 node_modules/
 .pnpm-store/
 
+# Nested git worktrees
+.worktrees/
+
 # Build outputs
 dist/
 build/
@@ -13,6 +16,7 @@ apps/desktop/src-tauri/target/
 apps/desktop/src-tauri/WixTools/
 apps/desktop/src-tauri/gen/
 apps/desktop/.updater-keys/
+apps/desktop/branding/.icon-gen-temp/
 
 # Environment
 .env

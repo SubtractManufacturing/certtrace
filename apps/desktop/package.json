@@ -8,7 +8,9 @@
     "build": "pnpm -w build:packages && tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "branding:icons": "node branding/generate-app-icons.mjs",
     "branding:installer": "node branding/generate-installer-assets.mjs",
+    "branding": "pnpm branding:icons && pnpm branding:installer",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
