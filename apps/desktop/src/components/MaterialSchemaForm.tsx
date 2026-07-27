@@ -4,8 +4,9 @@ import {
   sanitizeDependentSelectValues,
   validateMaterialValues,
 } from "@certtrace/library-engine";
-import type { FieldSchemaV1, FieldValueV1 } from "@certtrace/types";
-import { Input, Label, Select, Textarea } from "@certtrace/ui";
+import type { FieldOptionV1, FieldSchemaV1, FieldValueV1 } from "@certtrace/types";
+import { Button, Input, Label, Select, Textarea } from "@certtrace/ui";
+import { useState } from "react";
 
 export { validateMaterialValues };
 
@@ -18,6 +19,11 @@ interface MaterialSchemaFormProps {
   schema: FieldSchemaV1;
   values: MaterialFormValues;
   onChange: (values: MaterialFormValues) => void;
+  onAddOption?: (
+    fieldKey: string,
+    label: string,
+    currentValues: Record<string, FieldValueV1>,
+  ) => Promise<FieldOptionV1>;
   idPrefix?: string;
 }
 
@@ -25,8 +31,14 @@ export function MaterialSchemaForm({
   schema,
   values,
   onChange,
+  onAddOption,
   idPrefix = "material-field",
 }: MaterialSchemaFormProps) {
+  const [addingToField, setAddingToField] = useState<string | null>(null);
+  const [newOptionLabel, setNewOptionLabel] = useState("");
+  const [optionError, setOptionError] = useState<string | null>(null);
+  const [addingOption, setAddingOption] = useState(false);
+
   function setField(key: string, value: FieldValueV1 | undefined) {
     const fields = { ...values.fields };
     if (value === undefined || value === "") {
@@ -48,6 +60,92 @@ export function MaterialSchemaForm({
       identifiers[key] = value;
     }
     onChange({ fields: values.fields, identifiers });
+  }
+
+  async function confirmAddOption(fieldKey: string, multiSelect: boolean) {
+    const label = newOptionLabel.trim();
+    if (!onAddOption || !label) {
+      return;
+    }
+
+    setAddingOption(true);
+    setOptionError(null);
+    try {
+      const option = await onAddOption(fieldKey, label, values.fields);
+      const current = values.fields[fieldKey];
+      const nextValue = multiSelect
+        ? [...(Array.isArray(current) ? current : []), option.id]
+        : option.id;
+      setField(fieldKey, nextValue);
+      setAddingToField(null);
+      setNewOptionLabel("");
+    } catch (err) {
+      setOptionError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAddingOption(false);
+    }
+  }
+
+  function addOptionControls(fieldKey: string, fieldLabel: string, multiSelect: boolean) {
+    if (!onAddOption) {
+      return null;
+    }
+
+    if (addingToField !== fieldKey) {
+      return (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setAddingToField(fieldKey);
+            setNewOptionLabel("");
+            setOptionError(null);
+          }}
+        >
+          Add {fieldLabel} option
+        </Button>
+      );
+    }
+
+    const newOptionId = `${idPrefix}-${fieldKey}-new-option`;
+    return (
+      <div className="space-y-2 rounded-md border border-slate-200 p-2 dark:border-slate-700">
+        <Label htmlFor={newOptionId}>New {fieldLabel} option</Label>
+        <Input
+          id={newOptionId}
+          value={newOptionLabel}
+          onChange={(event) => setNewOptionLabel(event.target.value)}
+        />
+        <p className="text-xs text-slate-500">
+          Confirming adds this option to the library for future materials.
+        </p>
+        {optionError ? <p className="text-xs text-red-600">{optionError}</p> : null}
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            size="sm"
+            disabled={addingOption || newOptionLabel.trim() === ""}
+            onClick={() => void confirmAddOption(fieldKey, multiSelect)}
+          >
+            Confirm add
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={addingOption}
+            onClick={() => {
+              setAddingToField(null);
+              setNewOptionLabel("");
+              setOptionError(null);
+            }}
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -92,6 +190,7 @@ export function MaterialSchemaForm({
                   </option>
                 ))}
               </Select>
+              {addOptionControls(field.key, field.label, false)}
             </div>
           );
         }
@@ -116,6 +215,7 @@ export function MaterialSchemaForm({
                   </option>
                 ))}
               </Select>
+              {addOptionControls(field.key, field.label, true)}
             </div>
           );
         }

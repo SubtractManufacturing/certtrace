@@ -1,7 +1,11 @@
-import { createLibrary } from "@certtrace/library-engine";
+import { createLibrary, updateFieldSchema } from "@certtrace/library-engine";
 import { open } from "@tauri-apps/plugin-dialog";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createLibraryWithOptions, pickParentFolder } from "./library-client";
+import {
+  addLibraryFieldOption,
+  createLibraryWithOptions,
+  pickParentFolder,
+} from "./library-client";
 import { allowLibraryDirectory } from "./library-scope";
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -15,6 +19,7 @@ vi.mock("@certtrace/library-engine", () => ({
   listMaterials: vi.fn(),
   openLibrary: vi.fn(),
   updateLibraryConfig: vi.fn(),
+  updateFieldSchema: vi.fn(),
   updateMaterial: vi.fn(),
   updateNamingRules: vi.fn(),
   updateWordLists: vi.fn(),
@@ -78,5 +83,46 @@ describe("library-client", () => {
       "C:\\Users\\jkkic\\Documents\\Main Shop",
       { recursive: true },
     );
+  });
+
+  it("persists a confirmed option and makes it available for the selected dependency", async () => {
+    const library = {
+      fieldSchema: {
+        version: 1,
+        fields: [
+          {
+            key: "family",
+            label: "Material",
+            type: "single_select",
+            required: false,
+            filterable: true,
+            options: [{ id: "aluminum", label: "Aluminum" }],
+          },
+          {
+            key: "alloy",
+            label: "Alloy",
+            type: "single_select",
+            required: false,
+            filterable: true,
+            options: [{ id: "6061", label: "6061" }],
+            dependsOn: {
+              fieldKey: "family",
+              filterOptionsBy: { aluminum: ["6061"] },
+            },
+          },
+        ],
+        identifierKinds: [],
+        attachmentKinds: [],
+      },
+    } as never;
+
+    await expect(
+      addLibraryFieldOption(library, "alloy", "5052 H32", { family: "aluminum" }),
+    ).resolves.toEqual({ id: "5052_h32", label: "5052 H32" });
+
+    const savedSchema = vi.mocked(updateFieldSchema).mock.calls[0]?.[1];
+    const savedAlloy = savedSchema?.fields.find((field) => field.key === "alloy");
+    expect(savedAlloy?.options).toContainEqual({ id: "5052_h32", label: "5052 H32" });
+    expect(savedAlloy?.dependsOn?.filterOptionsBy?.aluminum).toEqual(["6061", "5052_h32"]);
   });
 });

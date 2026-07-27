@@ -4,10 +4,11 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
-import { addMaterial } from "../lib/library-client";
+import { addLibraryFieldOption, addMaterial } from "../lib/library-client";
 import { MaterialsWorkspace } from "./MaterialsWorkspace";
 
 vi.mock("../lib/library-client", () => ({
+  addLibraryFieldOption: vi.fn(),
   addMaterial: vi.fn(),
   fetchMaterialAttachments: vi.fn(async () => []),
   updateMaterialMetadata: vi.fn(),
@@ -164,6 +165,42 @@ describe("MaterialsWorkspace", () => {
       }),
     );
     expect(onRefreshLibrary).toHaveBeenCalledWith("/tmp/shop");
+  });
+
+  it("confirms and persists a new select option while receiving", async () => {
+    const library = {
+      ...sampleLibrary,
+      fieldSchema: structuredClone(defaultFieldSchemaV1),
+    } as OpenLibraryResult;
+    vi.mocked(addLibraryFieldOption).mockImplementation(async () => {
+      const option = { id: "titanium", label: "Titanium" };
+      const family = library.fieldSchema.fields.find((field) => field.key === "family");
+      if (family) {
+        family.options = [...(family.options ?? []), option];
+      }
+      return option;
+    });
+
+    render(
+      <MaterialsWorkspace
+        sessionLibraries={new Map([["/tmp/shop", library]])}
+        activeLibraryPath="/tmp/shop"
+        materials={materials}
+        onRefreshLibrary={async () => undefined}
+        filterMaterials={() => materials}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Add material/i }));
+    await userEvent.click(screen.getByRole("button", { name: /Add Material option/i }));
+    await userEvent.type(screen.getByLabelText("New Material option"), "Titanium");
+
+    expect(addLibraryFieldOption).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: /Confirm add/i }));
+
+    expect(addLibraryFieldOption).toHaveBeenCalledWith(library, "family", "Titanium", {});
+    expect((screen.getByLabelText("Material") as HTMLSelectElement).value).toBe("titanium");
   });
 
   it("blocks save when required schema fields are empty", async () => {

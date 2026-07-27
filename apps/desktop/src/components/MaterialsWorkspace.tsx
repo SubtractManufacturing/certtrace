@@ -15,12 +15,17 @@ import { Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ActiveLibraryPath } from "../hooks/useLibrarySession";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
-import { addMaterial, fetchMaterialAttachments, openLibraryAtPath } from "../lib/library-client";
+import {
+  addLibraryFieldOption,
+  addMaterial,
+  fetchMaterialAttachments,
+  openLibraryAtPath,
+} from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { MaterialDetailPanel } from "./MaterialDetailPanel";
 import {
-  MaterialSchemaForm,
   type MaterialFormValues,
+  MaterialSchemaForm,
   validateMaterialValues,
 } from "./MaterialSchemaForm";
 import { MaterialTable } from "./MaterialTable";
@@ -295,6 +300,9 @@ export function MaterialsWorkspace({
                 schema={activeSingleLibrary.fieldSchema}
                 values={formValues}
                 onChange={setFormValues}
+                onAddOption={(fieldKey, label, currentValues) =>
+                  addLibraryFieldOption(activeSingleLibrary, fieldKey, label, currentValues)
+                }
                 idPrefix="add-material"
               />
             ) : null}

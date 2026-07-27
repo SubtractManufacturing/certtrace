@@ -23,11 +23,15 @@ import {
   printLabelPdfFromObjectUrl,
   saveLabelPdfViaDialog,
 } from "../lib/label-client";
-import { fetchMaterialAttachments, updateMaterialMetadata } from "../lib/library-client";
+import {
+  addLibraryFieldOption,
+  fetchMaterialAttachments,
+  updateMaterialMetadata,
+} from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
 import {
-  MaterialSchemaForm,
   type MaterialFormValues,
+  MaterialSchemaForm,
   validateMaterialValues,
 } from "./MaterialSchemaForm";
 
@@ -211,6 +215,9 @@ export function MaterialDetailPanel({
         schema={library.fieldSchema}
         values={draft}
         onChange={setDraft}
+        onAddOption={(fieldKey, label, currentValues) =>
+          addLibraryFieldOption(library, fieldKey, label, currentValues)
+        }
         idPrefix="detail-material"
       />
 
