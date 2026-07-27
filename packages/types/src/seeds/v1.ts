@@ -1,9 +1,4 @@
-import type {
-  FieldSchemaV1,
-  LibraryConfigV1,
-  NamingRulesV1,
-  WordListsV1,
-} from "../schemas/v1.js";
+import type { FieldSchemaV1, LibraryConfigV1, NamingRulesV1, WordListsV1 } from "../schemas/v1.js";
 
 export const defaultWordListsV1: WordListsV1 = {
   version: 1,
@@ -85,7 +80,7 @@ export function createDefaultLibraryConfigV1(name: string): LibraryConfigV1 {
     name,
     idStrategy: defaultNamingRulesV1.activeStrategyId,
     labelTemplate: "standard-qr",
-    searchAllFields: true,
+    searchAllFields: false,
   };
 }
 

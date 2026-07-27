@@ -7,6 +7,7 @@ export const libraryConfigV1Schema = z.object({
   name: z.string().min(1),
   idStrategy: z.string().min(1),
   labelTemplate: z.string().min(1),
+  /** Legacy compatibility only. Search is always material ID plus identifier values (ADR-0004). */
   searchAllFields: z.boolean(),
 });
 

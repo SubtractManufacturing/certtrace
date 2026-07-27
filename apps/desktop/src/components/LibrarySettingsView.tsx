@@ -6,7 +6,7 @@ import {
   validateStrategyEntropy,
 } from "@certtrace/library-engine";
 import type { NamingRulesV1, WordListsV1 } from "@certtrace/types";
-import { Button, Label, Select, Switch } from "@certtrace/ui";
+import { Button, Label, Select } from "@certtrace/ui";
 import { useState } from "react";
 import {
   updateLibraryConfigPartial,
@@ -25,7 +25,6 @@ interface LibrarySettingsViewProps {
 export function LibrarySettingsView({ library, onLibraryUpdated }: LibrarySettingsViewProps) {
   const [namingRules, setNamingRules] = useState<NamingRulesV1>(library.namingRules);
   const [wordLists, setWordLists] = useState<WordListsV1>(library.wordLists);
-  const [searchAllFields, setSearchAllFields] = useState(library.config.searchAllFields);
   const [selectedStrategyId, setSelectedStrategyId] = useState(library.config.idStrategy);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -45,7 +44,6 @@ export function LibrarySettingsView({ library, onLibraryUpdated }: LibrarySettin
       updated = await updateLibraryWordLists(updated, wordLists);
       updated = await updateLibraryConfigPartial(updated, {
         idStrategy: selectedStrategyId,
-        searchAllFields,
       });
       onLibraryUpdated(updated);
       setNamingRules(updated.namingRules);
@@ -74,23 +72,6 @@ export function LibrarySettingsView({ library, onLibraryUpdated }: LibrarySettin
         <h1 className="text-2xl font-semibold">Library settings</h1>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{library.config.name}</p>
       </header>
-
-      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="text-lg font-semibold">Search</h2>
-        <div className="mt-4 flex items-center justify-between gap-4">
-          <div>
-            <Label htmlFor="search-all-fields">Search all metadata fields</Label>
-            <p className="text-xs text-slate-500">
-              Include tags, notes, and barcode in search results.
-            </p>
-          </div>
-          <Switch
-            id="search-all-fields"
-            checked={searchAllFields}
-            onCheckedChange={setSearchAllFields}
-          />
-        </div>
-      </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-wrap items-center justify-between gap-3">

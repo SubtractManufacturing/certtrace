@@ -28,7 +28,6 @@ export interface CreateLibraryOptions {
   name: string;
   idStrategy?: string;
   labelTemplate?: string;
-  searchAllFields?: boolean;
   namingRules?: NamingRulesV1;
   wordLists?: WordListsV1;
   fieldSchema?: FieldSchemaV1;
@@ -187,7 +186,6 @@ export function buildCreateLibraryConfig(options: CreateLibraryOptions): {
     ...createDefaultLibraryConfigV1(options.name.trim()),
     idStrategy,
     labelTemplate: options.labelTemplate ?? "standard-qr",
-    searchAllFields: options.searchAllFields ?? true,
   });
 
   return { config, namingRules, wordLists, fieldSchema };

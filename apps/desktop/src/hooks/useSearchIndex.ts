@@ -130,8 +130,8 @@ export function useSearchIndex({
       if (!query.trim()) {
         return indexedMaterials;
       }
-      const ids = new Set(searchMaterials(searchIndex, query).map((material) => material.id));
-      return indexedMaterials.filter((material) => ids.has(material.id));
+      const matches = new Set(searchMaterials(searchIndex, query));
+      return indexedMaterials.filter((material) => matches.has(material));
     },
     [indexedMaterials, searchIndex],
   );
