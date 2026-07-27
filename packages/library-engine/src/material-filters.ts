@@ -5,6 +5,7 @@ import type {
   IdentifierKindV1,
   MaterialMetadataV1,
 } from "@certtrace/types";
+import { availableFieldOptions, isFieldVisible } from "./field-dependencies.js";
 import type { MaterialFilterValues } from "./types.js";
 
 export function filterableFields(schema: FieldSchemaV1): FieldDefinitionV1[] {
@@ -13,6 +14,38 @@ export function filterableFields(schema: FieldSchemaV1): FieldDefinitionV1[] {
 
 export function filterableIdentifierKinds(schema: FieldSchemaV1): IdentifierKindV1[] {
   return schema.identifierKinds.filter((kind) => kind.filterable && !kind.disabled);
+}
+
+export function sanitizeMaterialFilterFields(
+  schema: FieldSchemaV1,
+  values: Record<string, string>,
+): Record<string, string> {
+  const sanitized = { ...values };
+
+  for (let pass = 0; pass < schema.fields.length; pass += 1) {
+    let changed = false;
+    for (const field of filterableFields(schema)) {
+      const value = sanitized[field.key];
+      if (!value) {
+        continue;
+      }
+
+      const availableOptions = availableFieldOptions(field, sanitized);
+      const unavailable =
+        !isFieldVisible(field, sanitized) ||
+        (field.options && !availableOptions.some((option) => option.id === value));
+      if (unavailable) {
+        delete sanitized[field.key];
+        changed = true;
+      }
+    }
+
+    if (!changed) {
+      break;
+    }
+  }
+
+  return sanitized;
 }
 
 export function filterMaterialsBySchema<T extends MaterialMetadataV1>(

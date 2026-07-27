@@ -83,6 +83,7 @@ export {
   filterableFields,
   filterableIdentifierKinds,
   filterMaterialsBySchema,
+  sanitizeMaterialFilterFields,
 } from "./material-filters.js";
 export type {
   CreateMaterialInput,

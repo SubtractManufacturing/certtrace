@@ -4,6 +4,7 @@ import {
   filterableIdentifierKinds,
   isFieldVisible,
   type MaterialFilterValues,
+  sanitizeMaterialFilterFields,
 } from "@certtrace/library-engine";
 import type { FieldSchemaV1 } from "@certtrace/types";
 import { Button, Input, Select } from "@certtrace/ui";
@@ -40,7 +41,7 @@ export function MaterialFiltersBar({ schema, values, onChange }: MaterialFilters
     }
     onChange({
       ...values,
-      fields: sanitizeFilterFieldValues(schema, fields),
+      fields: sanitizeMaterialFilterFields(schema, fields),
     });
   }
 
@@ -118,36 +119,4 @@ export function MaterialFiltersBar({ schema, values, onChange }: MaterialFilters
       ) : null}
     </div>
   );
-}
-
-function sanitizeFilterFieldValues(
-  schema: FieldSchemaV1,
-  values: Record<string, string>,
-): Record<string, string> {
-  const sanitized = { ...values };
-
-  for (let pass = 0; pass < schema.fields.length; pass += 1) {
-    let changed = false;
-    for (const field of filterableFields(schema)) {
-      const value = sanitized[field.key];
-      if (!value) {
-        continue;
-      }
-
-      const availableOptions = availableFieldOptions(field, sanitized);
-      const unavailable =
-        !isFieldVisible(field, sanitized) ||
-        (field.options && !availableOptions.some((option) => option.id === value));
-      if (unavailable) {
-        delete sanitized[field.key];
-        changed = true;
-      }
-    }
-
-    if (!changed) {
-      break;
-    }
-  }
-
-  return sanitized;
 }

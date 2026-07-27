@@ -5,6 +5,7 @@ import {
   filterableFields,
   filterableIdentifierKinds,
   filterMaterialsBySchema,
+  sanitizeMaterialFilterFields,
 } from "../src/index.js";
 
 const materials: MaterialMetadataV1[] = [
@@ -69,5 +70,15 @@ describe("material filters", () => {
       "lot_number",
       "purchase_order",
     ]);
+  });
+
+  it("removes filter values invalidated by field dependencies", () => {
+    expect(
+      sanitizeMaterialFilterFields(defaultFieldSchemaV1, {
+        family: "steel",
+        alloy: "6061",
+        temper: "t6",
+      }),
+    ).toEqual({ family: "steel" });
   });
 });
