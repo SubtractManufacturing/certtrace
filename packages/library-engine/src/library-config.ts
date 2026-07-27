@@ -48,6 +48,36 @@ function createStableKey(label: string, fallback: string, existingKeys: Set<stri
   return key;
 }
 
+function validateFieldDependencies(schema: FieldSchemaV1): void {
+  const fieldsByKey = new Map(schema.fields.map((field) => [field.key, field]));
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+
+  function visit(fieldKey: string): void {
+    if (visiting.has(fieldKey)) {
+      throw new LibraryError("Field dependencies cannot contain a cycle.");
+    }
+    if (visited.has(fieldKey)) {
+      return;
+    }
+
+    visiting.add(fieldKey);
+    const parentKey = fieldsByKey.get(fieldKey)?.dependsOn?.fieldKey;
+    if (parentKey) {
+      if (!fieldsByKey.has(parentKey)) {
+        throw new LibraryError(`Field "${fieldKey}" depends on unknown field "${parentKey}".`);
+      }
+      visit(parentKey);
+    }
+    visiting.delete(fieldKey);
+    visited.add(fieldKey);
+  }
+
+  for (const field of schema.fields) {
+    visit(field.key);
+  }
+}
+
 export function createFieldDefinition(
   schema: FieldSchemaV1,
   labelInput: string,
@@ -185,6 +215,7 @@ export async function updateFieldSchema(
   schema: FieldSchemaV1,
 ): Promise<FieldSchemaV1> {
   const validated = fieldSchemaV1Schema.parse(schema);
+  validateFieldDependencies(validated);
   await backupConfigFile(library.fs, library.paths.root, FIELD_SCHEMA_JSON);
   await writeJson(library.fs, library.paths.fieldSchemaJson, validated);
   library.fieldSchema = validated;
@@ -353,6 +384,7 @@ export function buildCreateLibraryConfig(options: CreateLibraryOptions): {
   const namingRules = options.namingRules ?? defaultNamingRulesV1;
   const wordLists = options.wordLists ?? defaultWordListsV1;
   const fieldSchema = fieldSchemaV1Schema.parse(options.fieldSchema ?? defaultFieldSchemaV1);
+  validateFieldDependencies(fieldSchema);
   const idStrategy = options.idStrategy ?? namingRules.activeStrategyId;
 
   if (!namingRules.strategies.some((entry) => entry.id === idStrategy)) {

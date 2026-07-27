@@ -269,4 +269,38 @@ describe("createLibrary", () => {
       await rm(parentDir, { recursive: true, force: true });
     }
   });
+
+  it("rejects cyclic field dependencies without overwriting the persisted schema", async () => {
+    const fs = createNodeFileSystem();
+    const parentDir = await mkdtemp(join(tmpdir(), "certtrace-schema-cycle-"));
+
+    try {
+      const library = await createLibrary(fs, parentDir, "Dependency Cycle");
+      const cyclicSchema = {
+        ...library.fieldSchema,
+        fields: library.fieldSchema.fields.map((field) =>
+          field.key === "family"
+            ? {
+                ...field,
+                dependsOn: {
+                  fieldKey: "alloy",
+                  filterOptionsBy: {},
+                },
+              }
+            : field,
+        ),
+      };
+
+      await expect(updateFieldSchema(library, cyclicSchema)).rejects.toThrow(
+        "Field dependencies cannot contain a cycle",
+      );
+
+      const reopened = await openLibrary(fs, library.paths.root);
+      expect(reopened.fieldSchema.fields.find((field) => field.key === "family")?.dependsOn).toBe(
+        undefined,
+      );
+    } finally {
+      await rm(parentDir, { recursive: true, force: true });
+    }
+  });
 });
