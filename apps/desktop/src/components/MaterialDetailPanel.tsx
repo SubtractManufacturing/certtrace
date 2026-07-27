@@ -9,14 +9,11 @@ import type { AttachedFile, MaterialMetadataV1 } from "@certtrace/types";
 import {
   Button,
   cn,
-  Input,
-  Label,
   Sheet,
   SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
-  Textarea,
 } from "@certtrace/ui";
 import { FileText, FolderOpen, Printer, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -27,8 +24,12 @@ import {
   saveLabelPdfViaDialog,
 } from "../lib/label-client";
 import { fetchMaterialAttachments, updateMaterialMetadata } from "../lib/library-client";
-import { fieldDisplay, identifierDisplay } from "../lib/material-display";
 import { ErrorBanner } from "./ErrorBanner";
+import {
+  MaterialSchemaForm,
+  type MaterialFormValues,
+  validateMaterialValues,
+} from "./MaterialSchemaForm";
 
 interface MaterialDetailPanelProps {
   library: OpenLibraryResult;
@@ -47,14 +48,17 @@ export function MaterialDetailPanel({
   onOpenChange,
   onMaterialUpdated,
 }: MaterialDetailPanelProps) {
-  const [draft, setDraft] = useState(material);
+  const [draft, setDraft] = useState<MaterialFormValues>({
+    fields: material.fields,
+    identifiers: material.identifiers,
+  });
   const [attachments, setAttachments] = useState<AttachedFile[]>([]);
   const [labelPdfUrl, setLabelPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    setDraft(material);
+    setDraft({ fields: material.fields, identifiers: material.identifiers });
   }, [material]);
 
   useEffect(() => {
@@ -110,6 +114,16 @@ export function MaterialDetailPanel({
   }, [labelPdfUrl]);
 
   async function handleSave() {
+    const validationErrors = validateMaterialValues(
+      library.fieldSchema,
+      draft.fields,
+      draft.identifiers,
+    );
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join(". "));
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
@@ -123,20 +137,6 @@ export function MaterialDetailPanel({
     } finally {
       setBusy(false);
     }
-  }
-
-  function setField(key: string, value: string) {
-    setDraft({
-      ...draft,
-      fields: { ...draft.fields, [key]: value },
-    });
-  }
-
-  function setIdentifier(key: string, value: string) {
-    setDraft({
-      ...draft,
-      identifiers: { ...draft.identifiers, [key]: value },
-    });
   }
 
   async function handleAddFiles() {
@@ -207,56 +207,12 @@ export function MaterialDetailPanel({
         </SheetHeader>
       )}
 
-      <div className="grid gap-3">
-        <Field
-          label="Material"
-          value={fieldDisplay(draft, "family")}
-          onChange={(value) => setField("family", value)}
-        />
-        <Field
-          label="Alloy"
-          value={fieldDisplay(draft, "alloy")}
-          onChange={(value) => setField("alloy", value)}
-        />
-        <Field
-          label="Temper"
-          value={fieldDisplay(draft, "temper")}
-          onChange={(value) => setField("temper", value)}
-        />
-        <Field
-          label="Supplier"
-          value={fieldDisplay(draft, "supplier")}
-          onChange={(value) => setField("supplier", value)}
-        />
-        <Field
-          label="Heat Number"
-          value={identifierDisplay(draft, "heat_number")}
-          onChange={(value) => setIdentifier("heat_number", value)}
-        />
-        <Field
-          label="Lot Number"
-          value={identifierDisplay(draft, "lot_number")}
-          onChange={(value) => setIdentifier("lot_number", value)}
-        />
-        <Field
-          label="Purchase Order"
-          value={identifierDisplay(draft, "purchase_order")}
-          onChange={(value) => setIdentifier("purchase_order", value)}
-        />
-        <Field
-          label="Storage Location"
-          value={fieldDisplay(draft, "storage_location")}
-          onChange={(value) => setField("storage_location", value)}
-        />
-        <label className="space-y-1 text-sm">
-          <Label>Notes</Label>
-          <Textarea
-            rows={4}
-            value={fieldDisplay(draft, "notes")}
-            onChange={(event) => setField("notes", event.target.value)}
-          />
-        </label>
-      </div>
+      <MaterialSchemaForm
+        schema={library.fieldSchema}
+        values={draft}
+        onChange={setDraft}
+        idPrefix="detail-material"
+      />
 
       <div className="flex flex-wrap gap-2">
         <Button type="button" disabled={busy} onClick={() => void handleSave()}>
@@ -359,22 +315,5 @@ export function MaterialDetailPanel({
         {panel}
       </SheetContent>
     </Sheet>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="space-y-1 text-sm">
-      <Label>{label}</Label>
-      <Input value={value} onChange={(event) => onChange(event.target.value)} />
-    </label>
   );
 }

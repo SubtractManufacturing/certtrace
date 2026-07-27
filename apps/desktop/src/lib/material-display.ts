@@ -1,20 +1,42 @@
-import type { MaterialMetadataV1 } from "@certtrace/types";
+import type { FieldSchemaV1, FieldValueV1 } from "@certtrace/types";
 
-/** Display a field value as text (option ids / free text for interim UI). */
-export function fieldDisplay(material: MaterialMetadataV1, key: string): string {
-  const value = material.fields[key];
-  if (typeof value === "string") {
-    return value;
+/** Display a field value as text using schema option labels when available. */
+export function formatFieldValue(
+  schema: FieldSchemaV1,
+  key: string,
+  value: FieldValueV1 | undefined,
+): string {
+  if (value === undefined) {
+    return "";
   }
+
+  const field = schema.fields.find((entry) => entry.key === key);
+  const options = field?.options;
+
   if (typeof value === "number") {
     return String(value);
   }
+
   if (Array.isArray(value)) {
-    return value.join(", ");
+    return value
+      .map((id) => options?.find((option) => option.id === id)?.label ?? id)
+      .join(", ");
   }
-  return "";
+
+  if (options) {
+    return options.find((option) => option.id === value)?.label ?? value;
+  }
+
+  return value;
 }
 
-export function identifierDisplay(material: MaterialMetadataV1, key: string): string {
-  return material.identifiers[key] ?? "";
+/** Compact cue of present identifier values for the materials list. */
+export function formatIdentifiersCue(
+  schema: FieldSchemaV1,
+  identifiers: Record<string, string>,
+): string {
+  return schema.identifierKinds
+    .map((kind) => identifiers[kind.key]?.trim())
+    .filter((value): value is string => Boolean(value))
+    .join(" · ");
 }

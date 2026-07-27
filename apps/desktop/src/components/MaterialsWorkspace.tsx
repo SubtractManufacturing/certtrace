@@ -1,4 +1,5 @@
 import type { CreateMaterialInput, OpenLibraryResult } from "@certtrace/library-engine";
+import { defaultFieldSchemaV1 } from "@certtrace/types";
 import {
   Button,
   Dialog,
@@ -9,7 +10,6 @@ import {
   Input,
   Label,
   SearchInput,
-  Textarea,
 } from "@certtrace/ui";
 import { Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -18,6 +18,11 @@ import type { IndexedMaterial } from "../hooks/useSearchIndex";
 import { addMaterial, fetchMaterialAttachments, openLibraryAtPath } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { MaterialDetailPanel } from "./MaterialDetailPanel";
+import {
+  MaterialSchemaForm,
+  type MaterialFormValues,
+  validateMaterialValues,
+} from "./MaterialSchemaForm";
 import { MaterialTable } from "./MaterialTable";
 
 interface MaterialsWorkspaceProps {
@@ -30,6 +35,8 @@ interface MaterialsWorkspaceProps {
   filterMaterials: (query: string) => IndexedMaterial[];
   onEnsureLibrary?: (path: string) => Promise<OpenLibraryResult | undefined>;
 }
+
+const emptyFormValues: MaterialFormValues = { fields: {}, identifiers: {} };
 
 export function MaterialsWorkspace({
   sessionLibraries,
@@ -49,16 +56,19 @@ export function MaterialsWorkspace({
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [materialCode, setMaterialCode] = useState("AL");
-  const [alloy, setAlloy] = useState("");
-  const [supplier, setSupplier] = useState("");
-  const [heatNumber, setHeatNumber] = useState("");
-  const [storageLocation, setStorageLocation] = useState("");
-  const [notes, setNotes] = useState("");
+  const [formValues, setFormValues] = useState<MaterialFormValues>(emptyFormValues);
   const searchInputId = "materials-search-input";
 
   const filteredMaterials = useMemo(() => filterMaterials(query), [filterMaterials, query]);
   const showLibraryColumn = activeLibraryPath === "all";
   const wideLayout = typeof window !== "undefined" ? window.innerWidth >= 1100 : false;
+
+  const activeSingleLibrary =
+    activeLibraryPath && activeLibraryPath !== "all"
+      ? (sessionLibraries.get(activeLibraryPath) ?? null)
+      : null;
+
+  const listSchema = activeSingleLibrary?.fieldSchema ?? defaultFieldSchemaV1;
 
   const searchPlaceholder =
     activeLibraryPath === "all"
@@ -139,6 +149,11 @@ export function MaterialsWorkspace({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  function resetAddForm() {
+    setMaterialCode("AL");
+    setFormValues(emptyFormValues);
+  }
+
   async function handleAddMaterial() {
     if (!activeLibraryPath || activeLibraryPath === "all") {
       setLocalError("Select a single library before adding materials.");
@@ -149,29 +164,28 @@ export function MaterialsWorkspace({
       return;
     }
 
+    const validationErrors = validateMaterialValues(
+      library.fieldSchema,
+      formValues.fields,
+      formValues.identifiers,
+    );
+    if (validationErrors.length > 0) {
+      setLocalError(validationErrors.join(". "));
+      return;
+    }
+
     setSubmitting(true);
     setLocalError(null);
     try {
       const input: CreateMaterialInput = {
         materialCode,
-        fields: {
-          ...(alloy ? { alloy } : {}),
-          ...(supplier ? { supplier } : {}),
-          ...(storageLocation ? { storage_location: storageLocation } : {}),
-          ...(notes ? { notes } : {}),
-        },
-        identifiers: {
-          ...(heatNumber ? { heat_number: heatNumber } : {}),
-        },
+        fields: formValues.fields,
+        identifiers: formValues.identifiers,
       };
       await addMaterial(library, input);
       await onRefreshLibrary(activeLibraryPath);
       setAddOpen(false);
-      setAlloy("");
-      setSupplier("");
-      setHeatNumber("");
-      setStorageLocation("");
-      setNotes("");
+      resetAddForm();
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -217,6 +231,10 @@ export function MaterialsWorkspace({
           ) : (
             <MaterialTable
               materials={filteredMaterials}
+              schema={listSchema}
+              resolveSchema={(libraryPath) =>
+                sessionLibraries.get(libraryPath)?.fieldSchema ?? defaultFieldSchemaV1
+              }
               showLibraryColumn={showLibraryColumn}
               attachmentCounts={attachmentCounts}
               selectedMaterialId={selectedMaterial?.id ?? null}
@@ -249,42 +267,37 @@ export function MaterialsWorkspace({
         />
       ) : null}
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent>
+      <Dialog
+        open={addOpen}
+        onOpenChange={(open) => {
+          setAddOpen(open);
+          if (!open) {
+            resetAddForm();
+            setLocalError(null);
+          }
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add material</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="space-y-1 text-sm">
-              <Label>Material code</Label>
+          <div className="space-y-3">
+            <div className="space-y-1 text-sm">
+              <Label htmlFor="add-material-code">Material code</Label>
               <Input
+                id="add-material-code"
                 value={materialCode}
                 onChange={(event) => setMaterialCode(event.target.value)}
               />
-            </label>
-            <label className="space-y-1 text-sm">
-              <Label>Alloy</Label>
-              <Input value={alloy} onChange={(event) => setAlloy(event.target.value)} />
-            </label>
-            <label className="space-y-1 text-sm">
-              <Label>Supplier</Label>
-              <Input value={supplier} onChange={(event) => setSupplier(event.target.value)} />
-            </label>
-            <label className="space-y-1 text-sm">
-              <Label>Heat Number</Label>
-              <Input value={heatNumber} onChange={(event) => setHeatNumber(event.target.value)} />
-            </label>
-            <label className="space-y-1 text-sm sm:col-span-2">
-              <Label>Storage Location</Label>
-              <Input
-                value={storageLocation}
-                onChange={(event) => setStorageLocation(event.target.value)}
+            </div>
+            {activeSingleLibrary ? (
+              <MaterialSchemaForm
+                schema={activeSingleLibrary.fieldSchema}
+                values={formValues}
+                onChange={setFormValues}
+                idPrefix="add-material"
               />
-            </label>
-            <label className="space-y-1 text-sm sm:col-span-2">
-              <Label>Notes</Label>
-              <Textarea rows={3} value={notes} onChange={(event) => setNotes(event.target.value)} />
-            </label>
+            ) : null}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>

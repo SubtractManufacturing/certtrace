@@ -1,57 +1,63 @@
+import type { FieldSchemaV1 } from "@certtrace/types";
 import { cn, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@certtrace/ui";
 import { ArrowDown, ArrowUp, ArrowUpDown, Paperclip } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
-import { fieldDisplay, identifierDisplay } from "../lib/material-display";
-
-export type MaterialSortKey =
-  | "id"
-  | "alloy"
-  | "supplier"
-  | "heat_number"
-  | "storage_location"
-  | "libraryName";
+import { defaultMaterialColumns, type MaterialColumn } from "../lib/material-columns";
+import { formatFieldValue, formatIdentifiersCue } from "../lib/material-display";
 
 interface MaterialTableProps {
   materials: IndexedMaterial[];
+  schema: FieldSchemaV1;
+  /** Prefer per-library schema for cell formatting when viewing All libraries. */
+  resolveSchema?: (libraryPath: string) => FieldSchemaV1;
   showLibraryColumn?: boolean;
   attachmentCounts: Map<string, number>;
   selectedMaterialId: string | null;
   onSelectMaterial: (material: IndexedMaterial) => void;
 }
 
-function sortValue(material: IndexedMaterial, key: MaterialSortKey): string {
-  if (key === "id" || key === "libraryName") {
-    return String(material[key] ?? "");
-  }
-  if (key === "heat_number") {
-    return identifierDisplay(material, key);
-  }
-  return fieldDisplay(material, key);
-}
-
 export function MaterialTable({
   materials,
+  schema,
+  resolveSchema,
   showLibraryColumn = false,
   attachmentCounts,
   selectedMaterialId,
   onSelectMaterial,
 }: MaterialTableProps) {
-  const [sortKey, setSortKey] = useState<MaterialSortKey>("id");
+  const columns = useMemo(() => {
+    const base = defaultMaterialColumns(schema);
+    if (!showLibraryColumn) {
+      return base;
+    }
+    const identifiersIndex = base.findIndex((column) => column.kind === "identifiers");
+    const libraryColumn: MaterialColumn = {
+      kind: "library",
+      key: "libraryName",
+      label: "Library",
+    };
+    if (identifiersIndex === -1) {
+      return [...base, libraryColumn];
+    }
+    return [...base.slice(0, identifiersIndex), libraryColumn, ...base.slice(identifiersIndex)];
+  }, [schema, showLibraryColumn]);
+
+  const [sortKey, setSortKey] = useState<string>("id");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   const sortedMaterials = useMemo(() => {
     const copy = [...materials];
     copy.sort((left, right) => {
-      const leftValue = sortValue(left, sortKey).toLowerCase();
-      const rightValue = sortValue(right, sortKey).toLowerCase();
+      const leftValue = cellSortValue(left, sortKey, columns, resolveSchema ?? (() => schema));
+      const rightValue = cellSortValue(right, sortKey, columns, resolveSchema ?? (() => schema));
       const comparison = leftValue.localeCompare(rightValue);
       return sortDirection === "asc" ? comparison : -comparison;
     });
     return copy;
-  }, [materials, sortDirection, sortKey]);
+  }, [columns, materials, resolveSchema, schema, sortDirection, sortKey]);
 
-  function toggleSort(key: MaterialSortKey) {
+  function toggleSort(key: string) {
     if (sortKey === key) {
       setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
       return;
@@ -65,51 +71,26 @@ export function MaterialTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <SortableHead
-              label="ID"
-              active={sortKey === "id"}
-              direction={sortDirection}
-              onClick={() => toggleSort("id")}
-            />
-            <SortableHead
-              label="Alloy"
-              active={sortKey === "alloy"}
-              direction={sortDirection}
-              onClick={() => toggleSort("alloy")}
-            />
-            <SortableHead
-              label="Supplier"
-              active={sortKey === "supplier"}
-              direction={sortDirection}
-              onClick={() => toggleSort("supplier")}
-            />
-            <SortableHead
-              label="Heat Number"
-              active={sortKey === "heat_number"}
-              direction={sortDirection}
-              onClick={() => toggleSort("heat_number")}
-            />
-            <SortableHead
-              label="Location"
-              active={sortKey === "storage_location"}
-              direction={sortDirection}
-              onClick={() => toggleSort("storage_location")}
-            />
-            {showLibraryColumn ? (
-              <SortableHead
-                label="Library"
-                active={sortKey === "libraryName"}
-                direction={sortDirection}
-                onClick={() => toggleSort("libraryName")}
-              />
-            ) : null}
-            <TableHead className="w-10" />
+            {columns.map((column) =>
+              column.kind === "attachments" ? (
+                <TableHead key={column.key} className="w-10" />
+              ) : (
+                <SortableHead
+                  key={column.key}
+                  label={column.label}
+                  active={sortKey === column.key}
+                  direction={sortDirection}
+                  onClick={() => toggleSort(column.key)}
+                />
+              ),
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
           {sortedMaterials.map((material) => {
             const attachmentKey = `${material.libraryPath}:${material.id}`;
             const attachmentCount = attachmentCounts.get(attachmentKey) ?? 0;
+            const materialSchema = (resolveSchema ?? (() => schema))(material.libraryPath);
             return (
               <TableRow
                 key={attachmentKey}
@@ -119,20 +100,14 @@ export function MaterialTable({
                 )}
                 onClick={() => onSelectMaterial(material)}
               >
-                <TableCell className="font-medium">{material.id}</TableCell>
-                <TableCell>{fieldDisplay(material, "alloy") || "—"}</TableCell>
-                <TableCell>{fieldDisplay(material, "supplier") || "—"}</TableCell>
-                <TableCell>{identifierDisplay(material, "heat_number") || "—"}</TableCell>
-                <TableCell>{fieldDisplay(material, "storage_location") || "—"}</TableCell>
-                {showLibraryColumn ? <TableCell>{material.libraryName}</TableCell> : null}
-                <TableCell>
-                  {attachmentCount > 0 ? (
-                    <span className="inline-flex items-center gap-1 text-slate-500">
-                      <Paperclip className="h-3.5 w-3.5" />
-                      {attachmentCount}
-                    </span>
-                  ) : null}
-                </TableCell>
+                {columns.map((column) => (
+                  <TableCell
+                    key={column.key}
+                    className={column.kind === "id" ? "font-medium" : undefined}
+                  >
+                    {renderCell(column, material, materialSchema, attachmentCount)}
+                  </TableCell>
+                ))}
               </TableRow>
             );
           })}
@@ -140,6 +115,61 @@ export function MaterialTable({
       </Table>
     </div>
   );
+}
+
+function renderCell(
+  column: MaterialColumn,
+  material: IndexedMaterial,
+  schema: FieldSchemaV1,
+  attachmentCount: number,
+) {
+  switch (column.kind) {
+    case "id":
+      return material.id;
+    case "library":
+      return material.libraryName;
+    case "field": {
+      const display = formatFieldValue(schema, column.key, material.fields[column.key]);
+      return display || "—";
+    }
+    case "identifiers": {
+      const cue = formatIdentifiersCue(schema, material.identifiers);
+      return cue || "—";
+    }
+    case "attachments":
+      return attachmentCount > 0 ? (
+        <span className="inline-flex items-center gap-1 text-slate-500">
+          <Paperclip className="h-3.5 w-3.5" />
+          {attachmentCount}
+        </span>
+      ) : null;
+  }
+}
+
+function cellSortValue(
+  material: IndexedMaterial,
+  key: string,
+  columns: MaterialColumn[],
+  resolveSchema: (libraryPath: string) => FieldSchemaV1,
+): string {
+  if (key === "id") {
+    return material.id;
+  }
+  if (key === "libraryName") {
+    return material.libraryName;
+  }
+  const column = columns.find((entry) => entry.key === key);
+  if (!column) {
+    return "";
+  }
+  const schema = resolveSchema(material.libraryPath);
+  if (column.kind === "field") {
+    return formatFieldValue(schema, column.key, material.fields[column.key]);
+  }
+  if (column.kind === "identifiers") {
+    return formatIdentifiersCue(schema, material.identifiers);
+  }
+  return "";
 }
 
 function SortableHead({
