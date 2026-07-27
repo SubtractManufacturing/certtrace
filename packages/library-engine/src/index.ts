@@ -45,6 +45,9 @@ export {
   validateMaterialValues,
 } from "./field-dependencies.js";
 export {
+  type AddFieldOptionInput,
+  type AddFieldOptionResult,
+  addFieldOption,
   addNamingStrategy,
   type CreateLibraryOptions,
   defaultFieldSchemaV1,

@@ -14,7 +14,7 @@ import {
   WORD_LISTS_JSON,
 } from "@certtrace/types";
 import { describe, expect, it } from "vitest";
-import { createLibrary, openLibrary } from "../src/index.js";
+import { addFieldOption, createLibrary, openLibrary } from "../src/index.js";
 
 describe("createLibrary", () => {
   it("creates a named library folder with readme and contract", async () => {
@@ -119,6 +119,29 @@ describe("createLibrary", () => {
       expect(opened.paths.fieldSchemaJson.endsWith(FIELD_SCHEMA_JSON)).toBe(true);
       expect(opened.paths.materials.endsWith(MATERIALS_DIR)).toBe(true);
       expect(opened.paths.labels.endsWith(LABELS_DIR)).toBe(true);
+    } finally {
+      await rm(parentDir, { recursive: true, force: true });
+    }
+  });
+
+  it("persists a confirmed dependent select option for the selected parent", async () => {
+    const fs = createNodeFileSystem();
+    const parentDir = await mkdtemp(join(tmpdir(), "certtrace-option-"));
+
+    try {
+      const library = await createLibrary(fs, parentDir, "Option Library");
+      const result = await addFieldOption(library, {
+        fieldKey: "alloy",
+        label: "5052 H32",
+        currentValues: { family: "aluminum" },
+      });
+
+      expect(result.option).toEqual({ id: "5052_h32", label: "5052 H32" });
+
+      const reopened = await openLibrary(fs, library.paths.root);
+      const alloy = reopened.fieldSchema.fields.find((field) => field.key === "alloy");
+      expect(alloy?.options).toContainEqual(result.option);
+      expect(alloy?.dependsOn?.filterOptionsBy?.aluminum).toContain(result.option.id);
     } finally {
       await rm(parentDir, { recursive: true, force: true });
     }

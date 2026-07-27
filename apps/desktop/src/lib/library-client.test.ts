@@ -1,4 +1,4 @@
-import { createLibrary, updateFieldSchema } from "@certtrace/library-engine";
+import { addFieldOption, createLibrary } from "@certtrace/library-engine";
 import { open } from "@tauri-apps/plugin-dialog";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -13,13 +13,13 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 }));
 
 vi.mock("@certtrace/library-engine", () => ({
+  addFieldOption: vi.fn(),
   createLibrary: vi.fn(),
   createMaterial: vi.fn(),
   listMaterialAttachments: vi.fn(),
   listMaterials: vi.fn(),
   openLibrary: vi.fn(),
   updateLibraryConfig: vi.fn(),
-  updateFieldSchema: vi.fn(),
   updateMaterial: vi.fn(),
   updateNamingRules: vi.fn(),
   updateWordLists: vi.fn(),
@@ -85,44 +85,20 @@ describe("library-client", () => {
     );
   });
 
-  it("persists a confirmed option and makes it available for the selected dependency", async () => {
-    const library = {
-      fieldSchema: {
-        version: 1,
-        fields: [
-          {
-            key: "family",
-            label: "Material",
-            type: "single_select",
-            required: false,
-            filterable: true,
-            options: [{ id: "aluminum", label: "Aluminum" }],
-          },
-          {
-            key: "alloy",
-            label: "Alloy",
-            type: "single_select",
-            required: false,
-            filterable: true,
-            options: [{ id: "6061", label: "6061" }],
-            dependsOn: {
-              fieldKey: "family",
-              filterOptionsBy: { aluminum: ["6061"] },
-            },
-          },
-        ],
-        identifierKinds: [],
-        attachmentKinds: [],
-      },
+  it("delegates confirmed options to the library engine", async () => {
+    const library = { fieldSchema: { fields: [] } } as never;
+    const input = {
+      fieldKey: "alloy",
+      label: "5052 H32",
+      currentValues: { family: "aluminum" },
+    };
+    const result = {
+      option: { id: "5052_h32", label: "5052 H32" },
+      fieldSchema: { version: 1, fields: [], identifierKinds: [], attachmentKinds: [] },
     } as never;
+    vi.mocked(addFieldOption).mockResolvedValue(result);
 
-    await expect(
-      addLibraryFieldOption(library, "alloy", "5052 H32", { family: "aluminum" }),
-    ).resolves.toEqual({ id: "5052_h32", label: "5052 H32" });
-
-    const savedSchema = vi.mocked(updateFieldSchema).mock.calls[0]?.[1];
-    const savedAlloy = savedSchema?.fields.find((field) => field.key === "alloy");
-    expect(savedAlloy?.options).toContainEqual({ id: "5052_h32", label: "5052 H32" });
-    expect(savedAlloy?.dependsOn?.filterOptionsBy?.aluminum).toEqual(["6061", "5052_h32"]);
+    await expect(addLibraryFieldOption(library, input)).resolves.toBe(result);
+    expect(addFieldOption).toHaveBeenCalledWith(library, input);
   });
 });

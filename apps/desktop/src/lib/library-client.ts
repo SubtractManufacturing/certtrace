@@ -1,4 +1,7 @@
 import {
+  type AddFieldOptionInput,
+  type AddFieldOptionResult,
+  addFieldOption,
   type CreateLibraryOptions,
   type CreateMaterialInput,
   createLibrary,
@@ -8,7 +11,6 @@ import {
   type OpenLibraryResult,
   openLibrary,
   type UpdateMaterialInput,
-  updateFieldSchema,
   updateLibraryConfig,
   updateMaterial,
   updateNamingRules,
@@ -16,8 +18,6 @@ import {
 } from "@certtrace/library-engine";
 import type {
   AttachedFile,
-  FieldOptionV1,
-  FieldValueV1,
   LibraryConfigV1,
   MaterialMetadataV1,
   NamingRulesV1,
@@ -108,73 +108,9 @@ export async function updateMaterialMetadata(
 
 export async function addLibraryFieldOption(
   library: OpenLibraryResult,
-  fieldKey: string,
-  label: string,
-  currentValues: Record<string, FieldValueV1>,
-): Promise<FieldOptionV1> {
-  const trimmedLabel = label.trim();
-  if (!trimmedLabel) {
-    throw new Error("Option name cannot be empty.");
-  }
-
-  const field = library.fieldSchema.fields.find((candidate) => candidate.key === fieldKey);
-  if (!field || (field.type !== "single_select" && field.type !== "multi_select")) {
-    throw new Error(`Select field "${fieldKey}" was not found.`);
-  }
-
-  const duplicate = field.options?.find(
-    (option) => option.label.toLocaleLowerCase() === trimmedLabel.toLocaleLowerCase(),
-  );
-  if (duplicate) {
-    throw new Error(`${field.label} already has an option named "${duplicate.label}".`);
-  }
-
-  const baseId =
-    trimmedLabel
-      .normalize("NFKD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLocaleLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "") || "option";
-  const existingIds = new Set(field.options?.map((option) => option.id));
-  let id = baseId;
-  let suffix = 2;
-  while (existingIds.has(id)) {
-    id = `${baseId}_${suffix}`;
-    suffix += 1;
-  }
-
-  const option: FieldOptionV1 = { id, label: trimmedLabel };
-  const nextSchema = {
-    ...library.fieldSchema,
-    fields: library.fieldSchema.fields.map((candidate) => {
-      if (candidate.key !== fieldKey) {
-        return candidate;
-      }
-
-      let dependsOn = candidate.dependsOn;
-      const parentKey = dependsOn?.fieldKey;
-      const parentValue = parentKey ? currentValues[parentKey] : undefined;
-      if (typeof parentValue === "string" && dependsOn?.filterOptionsBy) {
-        dependsOn = {
-          ...dependsOn,
-          filterOptionsBy: {
-            ...dependsOn.filterOptionsBy,
-            [parentValue]: [...(dependsOn.filterOptionsBy[parentValue] ?? []), option.id],
-          },
-        };
-      }
-
-      return {
-        ...candidate,
-        options: [...(candidate.options ?? []), option],
-        dependsOn,
-      };
-    }),
-  };
-
-  await updateFieldSchema(library, nextSchema);
-  return option;
+  input: AddFieldOptionInput,
+): Promise<AddFieldOptionResult> {
+  return addFieldOption(library, input);
 }
 
 export async function updateLibraryConfigPartial(

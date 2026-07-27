@@ -1,10 +1,12 @@
 import {
+  type AddFieldOptionInput,
+  type AddFieldOptionResult,
   availableFieldOptions,
   isFieldVisible,
   sanitizeDependentSelectValues,
   validateMaterialValues,
 } from "@certtrace/library-engine";
-import type { FieldOptionV1, FieldSchemaV1, FieldValueV1 } from "@certtrace/types";
+import type { FieldSchemaV1, FieldValueV1 } from "@certtrace/types";
 import { Button, Input, Label, Select, Textarea } from "@certtrace/ui";
 import { useState } from "react";
 
@@ -19,11 +21,7 @@ interface MaterialSchemaFormProps {
   schema: FieldSchemaV1;
   values: MaterialFormValues;
   onChange: (values: MaterialFormValues) => void;
-  onAddOption?: (
-    fieldKey: string,
-    label: string,
-    currentValues: Record<string, FieldValueV1>,
-  ) => Promise<FieldOptionV1>;
+  onAddOption?: (input: AddFieldOptionInput) => Promise<AddFieldOptionResult>;
   idPrefix?: string;
 }
 
@@ -39,7 +37,11 @@ export function MaterialSchemaForm({
   const [optionError, setOptionError] = useState<string | null>(null);
   const [addingOption, setAddingOption] = useState(false);
 
-  function setField(key: string, value: FieldValueV1 | undefined) {
+  function setField(
+    key: string,
+    value: FieldValueV1 | undefined,
+    currentSchema: FieldSchemaV1 = schema,
+  ) {
     const fields = { ...values.fields };
     if (value === undefined || value === "") {
       delete fields[key];
@@ -47,7 +49,7 @@ export function MaterialSchemaForm({
       fields[key] = value;
     }
     onChange({
-      fields: sanitizeDependentSelectValues(schema, fields),
+      fields: sanitizeDependentSelectValues(currentSchema, fields),
       identifiers: values.identifiers,
     });
   }
@@ -71,12 +73,16 @@ export function MaterialSchemaForm({
     setAddingOption(true);
     setOptionError(null);
     try {
-      const option = await onAddOption(fieldKey, label, values.fields);
+      const result = await onAddOption({
+        fieldKey,
+        label,
+        currentValues: values.fields,
+      });
       const current = values.fields[fieldKey];
       const nextValue = multiSelect
-        ? [...(Array.isArray(current) ? current : []), option.id]
-        : option.id;
-      setField(fieldKey, nextValue);
+        ? [...(Array.isArray(current) ? current : []), result.option.id]
+        : result.option.id;
+      setField(fieldKey, nextValue, result.fieldSchema);
       setAddingToField(null);
       setNewOptionLabel("");
     } catch (err) {

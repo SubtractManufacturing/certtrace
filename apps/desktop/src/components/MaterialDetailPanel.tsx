@@ -215,9 +215,7 @@ export function MaterialDetailPanel({
         schema={library.fieldSchema}
         values={draft}
         onChange={setDraft}
-        onAddOption={(fieldKey, label, currentValues) =>
-          addLibraryFieldOption(library, fieldKey, label, currentValues)
-        }
+        onAddOption={(input) => addLibraryFieldOption(library, input)}
         idPrefix="detail-material"
       />
 

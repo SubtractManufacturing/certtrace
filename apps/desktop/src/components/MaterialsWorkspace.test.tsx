@@ -173,12 +173,19 @@ describe("MaterialsWorkspace", () => {
       fieldSchema: structuredClone(defaultFieldSchemaV1),
     } as OpenLibraryResult;
     vi.mocked(addLibraryFieldOption).mockImplementation(async () => {
-      const option = { id: "titanium", label: "Titanium" };
-      const family = library.fieldSchema.fields.find((field) => field.key === "family");
-      if (family) {
-        family.options = [...(family.options ?? []), option];
+      const option = { id: "5052_h32", label: "5052 H32" };
+      const alloy = library.fieldSchema.fields.find((field) => field.key === "alloy");
+      if (alloy) {
+        alloy.options = [...(alloy.options ?? []), option];
+        alloy.dependsOn = {
+          ...alloy.dependsOn!,
+          filterOptionsBy: {
+            ...alloy.dependsOn?.filterOptionsBy,
+            aluminum: [...(alloy.dependsOn?.filterOptionsBy?.aluminum ?? []), option.id],
+          },
+        };
       }
-      return option;
+      return { option, fieldSchema: library.fieldSchema };
     });
 
     render(
@@ -192,15 +199,20 @@ describe("MaterialsWorkspace", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: /Add material/i }));
-    await userEvent.click(screen.getByRole("button", { name: /Add Material option/i }));
-    await userEvent.type(screen.getByLabelText("New Material option"), "Titanium");
+    await userEvent.selectOptions(screen.getByLabelText("Material"), "aluminum");
+    await userEvent.click(screen.getByRole("button", { name: /Add Alloy option/i }));
+    await userEvent.type(screen.getByLabelText("New Alloy option"), "5052 H32");
 
     expect(addLibraryFieldOption).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole("button", { name: /Confirm add/i }));
 
-    expect(addLibraryFieldOption).toHaveBeenCalledWith(library, "family", "Titanium", {});
-    expect((screen.getByLabelText("Material") as HTMLSelectElement).value).toBe("titanium");
+    expect(addLibraryFieldOption).toHaveBeenCalledWith(library, {
+      fieldKey: "alloy",
+      label: "5052 H32",
+      currentValues: { family: "aluminum" },
+    });
+    expect((screen.getByLabelText("Alloy") as HTMLSelectElement).value).toBe("5052_h32");
   });
 
   it("blocks save when required schema fields are empty", async () => {

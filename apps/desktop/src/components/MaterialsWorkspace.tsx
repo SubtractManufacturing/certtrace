@@ -300,9 +300,7 @@ export function MaterialsWorkspace({
                 schema={activeSingleLibrary.fieldSchema}
                 values={formValues}
                 onChange={setFormValues}
-                onAddOption={(fieldKey, label, currentValues) =>
-                  addLibraryFieldOption(activeSingleLibrary, fieldKey, label, currentValues)
-                }
+                onAddOption={(input) => addLibraryFieldOption(activeSingleLibrary, input)}
                 idPrefix="add-material"
               />
             ) : null}

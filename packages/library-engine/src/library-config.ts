@@ -4,7 +4,9 @@ import {
   defaultNamingRulesV1,
   defaultWordListsV1,
   FIELD_SCHEMA_JSON,
+  type FieldOptionV1,
   type FieldSchemaV1,
+  type FieldValueV1,
   fieldSchemaV1Schema,
   type LibraryConfigV1,
   libraryConfigV1Schema,
@@ -78,6 +80,99 @@ export async function updateFieldSchema(
   await writeJson(library.fs, library.paths.fieldSchemaJson, validated);
   library.fieldSchema = validated;
   return validated;
+}
+
+export interface AddFieldOptionInput {
+  fieldKey: string;
+  label: string;
+  currentValues: Record<string, FieldValueV1>;
+}
+
+export interface AddFieldOptionResult {
+  option: FieldOptionV1;
+  fieldSchema: FieldSchemaV1;
+}
+
+export async function addFieldOption(
+  library: OpenLibraryResult,
+  input: AddFieldOptionInput,
+): Promise<AddFieldOptionResult> {
+  const trimmedLabel = input.label.trim();
+  if (!trimmedLabel) {
+    throw new LibraryError("Option name cannot be empty.");
+  }
+
+  const field = library.fieldSchema.fields.find((candidate) => candidate.key === input.fieldKey);
+  if (!field || (field.type !== "single_select" && field.type !== "multi_select")) {
+    throw new LibraryError(`Select field "${input.fieldKey}" was not found.`);
+  }
+
+  const duplicate = field.options?.find(
+    (option) => option.label.toLocaleLowerCase() === trimmedLabel.toLocaleLowerCase(),
+  );
+  if (duplicate) {
+    throw new LibraryError(`${field.label} already has an option named "${duplicate.label}".`);
+  }
+
+  const baseId =
+    trimmedLabel
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "") || "option";
+  const existingIds = new Set(field.options?.map((option) => option.id));
+  let id = baseId;
+  let suffix = 2;
+  while (existingIds.has(id)) {
+    id = `${baseId}_${suffix}`;
+    suffix += 1;
+  }
+
+  const option: FieldOptionV1 = { id, label: trimmedLabel };
+  const nextSchema: FieldSchemaV1 = {
+    ...library.fieldSchema,
+    fields: library.fieldSchema.fields.map((candidate) => {
+      if (candidate.key !== input.fieldKey) {
+        return candidate;
+      }
+
+      let dependsOn = candidate.dependsOn;
+      if (dependsOn?.filterOptionsBy) {
+        const parentValue = input.currentValues[dependsOn.fieldKey];
+        const parentIds =
+          typeof parentValue === "string"
+            ? [parentValue]
+            : Array.isArray(parentValue)
+              ? parentValue
+              : [];
+        if (parentIds.length === 0) {
+          throw new LibraryError(
+            `Select ${schemaFieldLabel(library.fieldSchema, dependsOn.fieldKey)} before adding a ${candidate.label} option.`,
+          );
+        }
+
+        const filterOptionsBy = { ...dependsOn.filterOptionsBy };
+        for (const parentId of parentIds) {
+          filterOptionsBy[parentId] = [...(filterOptionsBy[parentId] ?? []), option.id];
+        }
+        dependsOn = { ...dependsOn, filterOptionsBy };
+      }
+
+      return {
+        ...candidate,
+        options: [...(candidate.options ?? []), option],
+        dependsOn,
+      };
+    }),
+  };
+
+  const fieldSchema = await updateFieldSchema(library, nextSchema);
+  return { option, fieldSchema };
+}
+
+function schemaFieldLabel(schema: FieldSchemaV1, fieldKey: string): string {
+  return schema.fields.find((field) => field.key === fieldKey)?.label ?? fieldKey;
 }
 
 export function validateStrategyEntropy(
