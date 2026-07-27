@@ -137,12 +137,31 @@ export const attachmentKindV1Schema = z.object({
 
 export type AttachmentKindV1 = z.infer<typeof attachmentKindV1Schema>;
 
+export const materialTableColumnV1Schema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("id") }),
+  z.object({ kind: z.literal("field"), key: z.string().min(1) }),
+  z.object({ kind: z.literal("identifier"), key: z.string().min(1) }),
+  z.object({ kind: z.literal("attachments") }),
+  z.object({ kind: z.literal("identifiers") }),
+]);
+
+export type MaterialTableColumnV1 = z.infer<typeof materialTableColumnV1Schema>;
+
+export function materialTableColumnIdentity(column: MaterialTableColumnV1): string {
+  return "key" in column ? `${column.kind}:${column.key}` : column.kind;
+}
+
 export const fieldSchemaV1Schema = z
   .object({
     version: z.literal(SCHEMA_VERSION),
     fields: z.array(fieldDefinitionV1Schema),
     identifierKinds: z.array(identifierKindV1Schema),
     attachmentKinds: z.array(attachmentKindV1Schema),
+    /**
+     * Columns used for this library's material list. Missing means shipped defaults.
+     * Aggregate multi-library lists use shipped defaults because their schemas may differ.
+     */
+    tableColumns: z.array(materialTableColumnV1Schema).optional(),
   })
   .superRefine((schema, ctx) => {
     const reserved = new Set(["id", "createdAt", "updatedAt"]);

@@ -144,6 +144,39 @@ describe("schema definition lifecycle", () => {
     }
   });
 
+  it("drops table columns when their field or identifier kind is deleted", async () => {
+    const fs = createNodeFileSystem();
+    const parentDir = await mkdtemp(join(tmpdir(), "certtrace-definition-"));
+
+    try {
+      const library = await createLibrary(fs, parentDir, "Main");
+      await updateFieldSchema(library, {
+        ...library.fieldSchema,
+        tableColumns: [
+          { kind: "id" },
+          { kind: "field", key: "supplier" },
+          { kind: "identifier", key: "heat_number" },
+        ],
+      });
+
+      await removeSchemaDefinition(library, {
+        definitionType: "field",
+        key: "supplier",
+        strategy: { type: "delete" },
+      });
+      await removeSchemaDefinition(library, {
+        definitionType: "identifierKind",
+        key: "heat_number",
+        strategy: { type: "delete" },
+      });
+
+      const reopened = await openLibrary(fs, library.paths.root);
+      expect(reopened.fieldSchema.tableColumns).toEqual([{ kind: "id" }]);
+    } finally {
+      await rm(parentDir, { recursive: true, force: true });
+    }
+  });
+
   it("replaces a field and remaps its values across materials", async () => {
     const fs = createNodeFileSystem();
     const parentDir = await mkdtemp(join(tmpdir(), "certtrace-definition-"));

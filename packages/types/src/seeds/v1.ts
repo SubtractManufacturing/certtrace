@@ -87,6 +87,16 @@ export function createDefaultLibraryConfigV1(name: string): LibraryConfigV1 {
 /** Product default field schema, identifier kinds, attachment kinds, and starter options. */
 export const defaultFieldSchemaV1: FieldSchemaV1 = {
   version: 1,
+  tableColumns: [
+    { kind: "id" },
+    { kind: "field", key: "family" },
+    { kind: "field", key: "alloy" },
+    { kind: "field", key: "temper" },
+    { kind: "field", key: "supplier" },
+    { kind: "field", key: "storage_location" },
+    { kind: "attachments" },
+    { kind: "identifiers" },
+  ],
   fields: [
     {
       key: "family",

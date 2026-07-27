@@ -93,6 +93,16 @@ describe("fieldSchemaV1Schema", () => {
       "coc",
       "other",
     ]);
+    expect(parsed.tableColumns).toEqual([
+      { kind: "id" },
+      { kind: "field", key: "family" },
+      { kind: "field", key: "alloy" },
+      { kind: "field", key: "temper" },
+      { kind: "field", key: "supplier" },
+      { kind: "field", key: "storage_location" },
+      { kind: "attachments" },
+      { kind: "identifiers" },
+    ]);
   });
 
   it("rejects select fields without options", () => {

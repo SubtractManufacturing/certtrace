@@ -1,6 +1,10 @@
 import type { FieldSchemaV1 } from "@certtrace/types";
 import { describe, expect, it } from "vitest";
-import { defaultMaterialColumns } from "./material-columns";
+import {
+  defaultMaterialColumns,
+  materialColumns,
+  resolvedMaterialColumnIdentity,
+} from "./material-columns";
 
 describe("defaultMaterialColumns", () => {
   it("returns the shipped default column set when those keys exist in the schema", () => {
@@ -102,5 +106,46 @@ describe("defaultMaterialColumns", () => {
       { kind: "field", key: "storage_location", label: "Bin" },
       { kind: "attachments", key: "attachments", label: "Attachments" },
     ]);
+  });
+
+  it("resolves selected field and identifier columns and drops deleted definitions", () => {
+    const schema: FieldSchemaV1 = {
+      version: 1,
+      fields: [
+        {
+          key: "notes",
+          label: "Notes",
+          type: "long_text",
+          required: false,
+          filterable: false,
+        },
+      ],
+      identifierKinds: [
+        { key: "heat_number", label: "Heat Number", required: false, filterable: true },
+      ],
+      attachmentKinds: [],
+      tableColumns: [
+        { kind: "id" },
+        { kind: "field", key: "deleted_field" },
+        { kind: "field", key: "notes" },
+        { kind: "identifier", key: "heat_number" },
+        { kind: "identifier", key: "deleted_identifier" },
+      ],
+    };
+
+    expect(materialColumns(schema)).toEqual([
+      { kind: "id", key: "id", label: "ID" },
+      { kind: "field", key: "notes", label: "Notes" },
+      { kind: "identifier", key: "heat_number", label: "Heat Number" },
+    ]);
+  });
+
+  it("keeps field and identifier columns distinct when their stable keys match", () => {
+    expect(
+      [
+        { kind: "field" as const, key: "shared", label: "Field" },
+        { kind: "identifier" as const, key: "shared", label: "Identifier" },
+      ].map(resolvedMaterialColumnIdentity),
+    ).toEqual(["field:shared", "identifier:shared"]);
   });
 });

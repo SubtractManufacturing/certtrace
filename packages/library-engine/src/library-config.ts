@@ -16,6 +16,7 @@ import {
   identifierKindV1Schema,
   type LibraryConfigV1,
   libraryConfigV1Schema,
+  materialTableColumnIdentity,
   NAMING_RULES_JSON,
   type NamingRulesV1,
   type NamingStrategyV1,
@@ -241,11 +242,37 @@ export async function updateWordLists(
   return validated;
 }
 
+function dropMissingTableColumns(schema: FieldSchemaV1): FieldSchemaV1 {
+  if (!schema.tableColumns) {
+    return schema;
+  }
+
+  const fieldKeys = new Set(schema.fields.map((field) => field.key));
+  const identifierKeys = new Set(schema.identifierKinds.map((kind) => kind.key));
+  const seen = new Set<string>();
+  const tableColumns = schema.tableColumns.filter((column) => {
+    const exists =
+      column.kind === "field"
+        ? fieldKeys.has(column.key)
+        : column.kind === "identifier"
+          ? identifierKeys.has(column.key)
+          : column.kind !== "identifiers" || identifierKeys.size > 0;
+    const identity = materialTableColumnIdentity(column);
+    if (!exists || seen.has(identity)) {
+      return false;
+    }
+    seen.add(identity);
+    return true;
+  });
+
+  return { ...schema, tableColumns };
+}
+
 export async function updateFieldSchema(
   library: OpenLibraryResult,
   schema: FieldSchemaV1,
 ): Promise<FieldSchemaV1> {
-  const validated = fieldSchemaV1Schema.parse(schema);
+  const validated = fieldSchemaV1Schema.parse(dropMissingTableColumns(schema));
   validateFieldDependencies(validated);
   const nextKindKeys = new Set(validated.attachmentKinds.map((kind) => kind.key));
   const removedKindKeys = new Set(

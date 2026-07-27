@@ -4,7 +4,11 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
-import { addLibraryFieldOption, addMaterial } from "../lib/library-client";
+import {
+  addLibraryFieldOption,
+  addMaterial,
+  updateLibraryFieldSchema,
+} from "../lib/library-client";
 import { MaterialsWorkspace } from "./MaterialsWorkspace";
 
 vi.mock("../lib/library-client", () => ({
@@ -12,6 +16,7 @@ vi.mock("../lib/library-client", () => ({
   addMaterial: vi.fn(),
   fetchMaterialAttachments: vi.fn(async () => []),
   updateMaterialMetadata: vi.fn(),
+  updateLibraryFieldSchema: vi.fn(),
 }));
 
 const sampleLibrary = {
@@ -220,6 +225,41 @@ describe("MaterialsWorkspace", () => {
     expect(screen.getAllByText("Aluminum").length).toBeGreaterThan(0);
     expect(within(screen.getByRole("table")).getByText("McMaster")).toBeTruthy();
     expect(screen.getByText("H-22")).toBeTruthy();
+  });
+
+  it("persists column picker changes and renders the selected columns", async () => {
+    vi.mocked(updateLibraryFieldSchema).mockResolvedValue(sampleLibrary);
+
+    render(
+      <MaterialsWorkspace
+        sessionLibraries={new Map([["/tmp/shop", sampleLibrary]])}
+        activeLibraryPath="/tmp/shop"
+        materials={materials}
+        onRefreshLibrary={async () => undefined}
+        filterMaterials={() => materials}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Choose columns/i }));
+    await userEvent.click(screen.getByLabelText("Alloy column"));
+    await userEvent.click(screen.getByLabelText("Notes column"));
+    await userEvent.click(screen.getByLabelText("Heat Number column"));
+    await userEvent.click(screen.getByLabelText("Identifiers column"));
+    await userEvent.click(screen.getByRole("button", { name: /Save columns/i }));
+
+    expect(updateLibraryFieldSchema).toHaveBeenCalledWith(
+      sampleLibrary,
+      expect.objectContaining({
+        tableColumns: expect.arrayContaining([
+          { kind: "field", key: "notes" },
+          { kind: "identifier", key: "heat_number" },
+        ]),
+      }),
+    );
+    expect(screen.queryByRole("button", { name: /^Alloy$/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /^Notes$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Heat Number$/i })).toBeTruthy();
+    expect(within(screen.getByRole("table")).getByText("H-22")).toBeTruthy();
   });
 
   it("renders the add form from the library field schema and saves keyed values", async () => {

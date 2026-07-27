@@ -3,7 +3,11 @@ import { cn, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } fro
 import { ArrowDown, ArrowUp, ArrowUpDown, Paperclip } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
-import { defaultMaterialColumns, type MaterialColumn } from "../lib/material-columns";
+import {
+  type MaterialColumn,
+  materialColumns,
+  resolvedMaterialColumnIdentity,
+} from "../lib/material-columns";
 import { formatFieldValue, formatIdentifiersCue } from "../lib/material-display";
 
 interface MaterialTableProps {
@@ -27,7 +31,7 @@ export function MaterialTable({
   onSelectMaterial,
 }: MaterialTableProps) {
   const columns = useMemo(() => {
-    const base = defaultMaterialColumns(schema);
+    const base = materialColumns(schema);
     if (!showLibraryColumn) {
       return base;
     }
@@ -73,14 +77,14 @@ export function MaterialTable({
           <TableRow>
             {columns.map((column) =>
               column.kind === "attachments" ? (
-                <TableHead key={column.key} className="w-10" />
+                <TableHead key={resolvedMaterialColumnIdentity(column)} className="w-10" />
               ) : (
                 <SortableHead
-                  key={column.key}
+                  key={resolvedMaterialColumnIdentity(column)}
                   label={column.label}
-                  active={sortKey === column.key}
+                  active={sortKey === resolvedMaterialColumnIdentity(column)}
                   direction={sortDirection}
-                  onClick={() => toggleSort(column.key)}
+                  onClick={() => toggleSort(resolvedMaterialColumnIdentity(column))}
                 />
               ),
             )}
@@ -102,7 +106,7 @@ export function MaterialTable({
               >
                 {columns.map((column) => (
                   <TableCell
-                    key={column.key}
+                    key={resolvedMaterialColumnIdentity(column)}
                     className={column.kind === "id" ? "font-medium" : undefined}
                   >
                     {renderCell(column, material, materialSchema, attachmentCount)}
@@ -132,6 +136,8 @@ function renderCell(
       const display = formatFieldValue(schema, column.key, material.fields[column.key]);
       return display || "—";
     }
+    case "identifier":
+      return material.identifiers[column.key] || "—";
     case "identifiers": {
       const cue = formatIdentifiersCue(schema, material.identifiers);
       return cue || "—";
@@ -155,16 +161,19 @@ function cellSortValue(
   if (key === "id") {
     return material.id;
   }
-  if (key === "libraryName") {
+  if (key === "library") {
     return material.libraryName;
   }
-  const column = columns.find((entry) => entry.key === key);
+  const column = columns.find((entry) => resolvedMaterialColumnIdentity(entry) === key);
   if (!column) {
     return "";
   }
   const schema = resolveSchema(material.libraryPath);
   if (column.kind === "field") {
     return formatFieldValue(schema, column.key, material.fields[column.key]);
+  }
+  if (column.kind === "identifier") {
+    return material.identifiers[column.key] ?? "";
   }
   if (column.kind === "identifiers") {
     return formatIdentifiersCue(schema, material.identifiers);
