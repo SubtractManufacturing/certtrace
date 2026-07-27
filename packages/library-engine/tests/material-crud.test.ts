@@ -14,7 +14,7 @@ import {
 } from "../src/index.js";
 
 describe("material CRUD", () => {
-  it("creates, reads, and updates material metadata on disk", async () => {
+  it("creates, reads, and updates field and identifier values on disk", async () => {
     const fs = createNodeFileSystem();
     const parentDir = await mkdtemp(join(tmpdir(), "certtrace-material-"));
 
@@ -23,50 +23,75 @@ describe("material CRUD", () => {
       const root = library.paths.root;
       const created = await createMaterial(library, {
         materialCode: "AL",
-        material: "6061-T6",
-        supplier: "McMaster",
-        heat: "A4921",
-        location: "Rack B2",
-        tags: ["aluminum"],
+        fields: {
+          family: "aluminum",
+          alloy: "6061",
+          temper: "t6",
+          supplier: "mcmaster",
+          storage_location: "Rack B2",
+        },
+        identifiers: {
+          heat_number: "A4921",
+        },
       });
 
       expect(created.id).toMatch(/^al-/);
-      expect(created.barcode).toBe(created.id);
+      expect(created.fields.family).toBe("aluminum");
+      expect(created.identifiers.heat_number).toBe("A4921");
 
       const metadataPath = join(root, materialMetadataPath(created.id));
       const onDisk = JSON.parse(await readFile(metadataPath, "utf8"));
-      expect(onDisk.material).toBe("6061-T6");
+      expect(onDisk.fields.alloy).toBe("6061");
+      expect(onDisk.identifiers.heat_number).toBe("A4921");
+      expect(onDisk.material).toBeUndefined();
+      expect(onDisk.barcode).toBeUndefined();
 
       const listed = await listMaterials(await openLibrary(fs, root));
       expect(listed).toHaveLength(1);
       expect(listed[0]?.id).toBe(created.id);
 
       const fetched = await getMaterial(library, created.id);
-      expect(fetched.supplier).toBe("McMaster");
+      expect(fetched.fields.supplier).toBe("mcmaster");
 
       const updated = await updateMaterial(library, created.id, {
-        location: "Rack C1",
-        notes: "Moved after QA sign-off",
+        fields: {
+          storage_location: "Rack C1",
+          notes: "Moved after QA sign-off",
+        },
+        identifiers: {
+          purchase_order: "PO-1001",
+        },
       });
-      expect(updated.location).toBe("Rack C1");
-      expect(updated.notes).toBe("Moved after QA sign-off");
+      expect(updated.fields.storage_location).toBe("Rack C1");
+      expect(updated.fields.notes).toBe("Moved after QA sign-off");
+      expect(updated.fields.family).toBe("aluminum");
+      expect(updated.identifiers.heat_number).toBe("A4921");
+      expect(updated.identifiers.purchase_order).toBe("PO-1001");
       expect(updated.updatedAt).not.toBe(created.updatedAt);
     } finally {
       await rm(parentDir, { recursive: true, force: true });
     }
   });
 
-  it("generates unique ids for successive materials", async () => {
+  it("allows the same identifier value on multiple materials", async () => {
     const fs = createNodeFileSystem();
     const parentDir = await mkdtemp(join(tmpdir(), "certtrace-material-"));
 
     try {
       const library = await createLibrary(fs, parentDir, "Sandbox");
       const root = library.paths.root;
-      const first = await createMaterial(library, { materialCode: "AL" });
-      const second = await createMaterial(await openLibrary(fs, root), { materialCode: "AL" });
+      const first = await createMaterial(library, {
+        materialCode: "AL",
+        identifiers: { purchase_order: "PO-SHARED" },
+      });
+      const second = await createMaterial(await openLibrary(fs, root), {
+        materialCode: "AL",
+        identifiers: { purchase_order: "PO-SHARED" },
+      });
 
       expect(first.id).not.toBe(second.id);
+      expect(first.identifiers.purchase_order).toBe("PO-SHARED");
+      expect(second.identifiers.purchase_order).toBe("PO-SHARED");
       expect(await listMaterials(await openLibrary(fs, root))).toHaveLength(2);
     } finally {
       await rm(parentDir, { recursive: true, force: true });

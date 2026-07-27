@@ -12,7 +12,6 @@ export {
   materialSearchText,
   rankSearchResults,
   type SearchIndex,
-  type SearchIndexOptions,
   type SearchResult,
   searchMaterials,
 } from "./search/index.js";

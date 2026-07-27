@@ -19,13 +19,14 @@ const materials: IndexedMaterial[] = [
   {
     id: "AL-falcon-101",
     version: 1,
-    material: "6061-T6",
-    supplier: "MetalCo",
-    heat: "H-22",
-    location: "Rack A",
-    tags: [],
-    notes: "",
-    barcode: "",
+    fields: {
+      alloy: "6061",
+      supplier: "MetalCo",
+      storage_location: "Rack A",
+    },
+    identifiers: {
+      heat_number: "H-22",
+    },
     createdAt: "2026-05-28T12:00:00.000Z",
     updatedAt: "2026-05-28T12:00:00.000Z",
     libraryPath: "/tmp/shop",
@@ -34,13 +35,14 @@ const materials: IndexedMaterial[] = [
   {
     id: "AL-river-102",
     version: 1,
-    material: "7075-T651",
-    supplier: "AeroSupply",
-    heat: "H-44",
-    location: "Rack B",
-    tags: [],
-    notes: "",
-    barcode: "",
+    fields: {
+      alloy: "7075",
+      supplier: "AeroSupply",
+      storage_location: "Rack B",
+    },
+    identifiers: {
+      heat_number: "H-44",
+    },
     createdAt: "2026-05-28T12:00:00.000Z",
     updatedAt: "2026-05-28T12:00:00.000Z",
     libraryPath: "/tmp/shop",
@@ -52,9 +54,7 @@ describe("MaterialsWorkspace", () => {
   it("filters materials by search query", async () => {
     const filterMaterials = vi.fn((query: string) =>
       materials.filter((entry) =>
-        `${entry.id} ${entry.material} ${entry.supplier}`
-          .toLowerCase()
-          .includes(query.toLowerCase()),
+        `${entry.id} ${entry.identifiers.heat_number ?? ""}`.toLowerCase().includes(query.toLowerCase()),
       ),
     );
 
@@ -68,12 +68,12 @@ describe("MaterialsWorkspace", () => {
       />,
     );
 
-    expect(screen.getByText("6061-T6")).toBeTruthy();
-    expect(screen.getByText("7075-T651")).toBeTruthy();
+    expect(screen.getByText("6061")).toBeTruthy();
+    expect(screen.getByText("7075")).toBeTruthy();
 
-    await userEvent.type(screen.getByPlaceholderText(/Search Main Shop/i), "7075");
+    await userEvent.type(screen.getByPlaceholderText(/Search Main Shop/i), "H-44");
 
     expect(filterMaterials).toHaveBeenCalled();
-    expect(filterMaterials.mock.calls.at(-1)?.[0]).toBe("7075");
+    expect(filterMaterials.mock.calls.at(-1)?.[0]).toBe("H-44");
   });
 });

@@ -49,11 +49,10 @@ export function MaterialsWorkspace({
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [materialCode, setMaterialCode] = useState("AL");
-  const [material, setMaterial] = useState("");
+  const [alloy, setAlloy] = useState("");
   const [supplier, setSupplier] = useState("");
-  const [heat, setHeat] = useState("");
-  const [location, setLocation] = useState("");
-  const [tags, setTags] = useState("");
+  const [heatNumber, setHeatNumber] = useState("");
+  const [storageLocation, setStorageLocation] = useState("");
   const [notes, setNotes] = useState("");
   const searchInputId = "materials-search-input";
 
@@ -155,24 +154,23 @@ export function MaterialsWorkspace({
     try {
       const input: CreateMaterialInput = {
         materialCode,
-        material,
-        supplier,
-        heat,
-        location,
-        notes,
-        tags: tags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean),
+        fields: {
+          ...(alloy ? { alloy } : {}),
+          ...(supplier ? { supplier } : {}),
+          ...(storageLocation ? { storage_location: storageLocation } : {}),
+          ...(notes ? { notes } : {}),
+        },
+        identifiers: {
+          ...(heatNumber ? { heat_number: heatNumber } : {}),
+        },
       };
       await addMaterial(library, input);
       await onRefreshLibrary(activeLibraryPath);
       setAddOpen(false);
-      setMaterial("");
+      setAlloy("");
       setSupplier("");
-      setHeat("");
-      setLocation("");
-      setTags("");
+      setHeatNumber("");
+      setStorageLocation("");
       setNotes("");
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : String(err));
@@ -265,27 +263,22 @@ export function MaterialsWorkspace({
               />
             </label>
             <label className="space-y-1 text-sm">
-              <Label>Material</Label>
-              <Input value={material} onChange={(event) => setMaterial(event.target.value)} />
+              <Label>Alloy</Label>
+              <Input value={alloy} onChange={(event) => setAlloy(event.target.value)} />
             </label>
             <label className="space-y-1 text-sm">
               <Label>Supplier</Label>
               <Input value={supplier} onChange={(event) => setSupplier(event.target.value)} />
             </label>
             <label className="space-y-1 text-sm">
-              <Label>Heat</Label>
-              <Input value={heat} onChange={(event) => setHeat(event.target.value)} />
+              <Label>Heat Number</Label>
+              <Input value={heatNumber} onChange={(event) => setHeatNumber(event.target.value)} />
             </label>
             <label className="space-y-1 text-sm sm:col-span-2">
-              <Label>Location</Label>
-              <Input value={location} onChange={(event) => setLocation(event.target.value)} />
-            </label>
-            <label className="space-y-1 text-sm sm:col-span-2">
-              <Label>Tags</Label>
+              <Label>Storage Location</Label>
               <Input
-                value={tags}
-                onChange={(event) => setTags(event.target.value)}
-                placeholder="certified, urgent"
+                value={storageLocation}
+                onChange={(event) => setStorageLocation(event.target.value)}
               />
             </label>
             <label className="space-y-1 text-sm sm:col-span-2">

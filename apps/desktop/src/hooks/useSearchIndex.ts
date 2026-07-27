@@ -122,13 +122,8 @@ export function useSearchIndex({
   }, [activeLibraryPath, materialsByLibrary, recentLibraries, sessionLibraries]);
 
   const searchIndex = useMemo((): SearchIndex => {
-    const searchAllFields =
-      activeLibraryPath === "all"
-        ? true
-        : (sessionLibraries.get(activeLibraryPath ?? "")?.config.searchAllFields ?? true);
-
-    return buildSearchIndex(indexedMaterials, { searchAllFields });
-  }, [activeLibraryPath, indexedMaterials, sessionLibraries]);
+    return buildSearchIndex(indexedMaterials);
+  }, [indexedMaterials]);
 
   const filterMaterials = useCallback(
     (query: string) => {

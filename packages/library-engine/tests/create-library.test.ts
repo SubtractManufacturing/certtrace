@@ -5,6 +5,7 @@ import type { FileSystem } from "@certtrace/file-storage";
 import { createNodeFileSystem } from "@certtrace/file-storage/node";
 import {
   CERTTRACE_DIR,
+  FIELD_SCHEMA_JSON,
   LABELS_DIR,
   LIBRARY_JSON,
   LIBRARY_README,
@@ -35,6 +36,31 @@ describe("createLibrary", () => {
       expect(reopened.config.idStrategy).toBe("material-animal-number");
       expect(reopened.namingRules.strategies.length).toBeGreaterThan(0);
       expect(Object.keys(reopened.wordLists.lists)).toContain("animals");
+      expect(reopened.fieldSchema.fields.map((field) => field.key)).toEqual([
+        "family",
+        "alloy",
+        "temper",
+        "shape",
+        "supplier",
+        "traceability_type",
+        "date_received",
+        "storage_location",
+        "notes",
+      ]);
+      expect(reopened.fieldSchema.fields.find((field) => field.key === "family")?.label).toBe(
+        "Material",
+      );
+      expect(reopened.fieldSchema.identifierKinds.map((kind) => kind.key)).toEqual([
+        "heat_number",
+        "lot_number",
+        "purchase_order",
+      ]);
+      expect(reopened.fieldSchema.attachmentKinds.map((kind) => kind.key)).toEqual([
+        "mtr",
+        "heat_cert",
+        "coc",
+        "other",
+      ]);
     } finally {
       await rm(parentDir, { recursive: true, force: true });
     }
@@ -90,6 +116,7 @@ describe("createLibrary", () => {
       expect(opened.paths.libraryJson.endsWith(LIBRARY_JSON)).toBe(true);
       expect(opened.paths.namingRulesJson.endsWith(NAMING_RULES_JSON)).toBe(true);
       expect(opened.paths.wordListsJson.endsWith(WORD_LISTS_JSON)).toBe(true);
+      expect(opened.paths.fieldSchemaJson.endsWith(FIELD_SCHEMA_JSON)).toBe(true);
       expect(opened.paths.materials.endsWith(MATERIALS_DIR)).toBe(true);
       expect(opened.paths.labels.endsWith(LABELS_DIR)).toBe(true);
     } finally {

@@ -1,5 +1,11 @@
 import type { FileSystem } from "@certtrace/file-storage";
-import type { LibraryConfigV1, NamingRulesV1, WordListsV1 } from "@certtrace/types";
+import type {
+  FieldSchemaV1,
+  FieldValueV1,
+  LibraryConfigV1,
+  NamingRulesV1,
+  WordListsV1,
+} from "@certtrace/types";
 
 export interface LibraryPaths {
   root: string;
@@ -9,6 +15,7 @@ export interface LibraryPaths {
   libraryJson: string;
   namingRulesJson: string;
   wordListsJson: string;
+  fieldSchemaJson: string;
 }
 
 export interface OpenLibraryResult {
@@ -17,25 +24,17 @@ export interface OpenLibraryResult {
   config: LibraryConfigV1;
   namingRules: NamingRulesV1;
   wordLists: WordListsV1;
+  fieldSchema: FieldSchemaV1;
 }
 
 export interface CreateMaterialInput {
-  material?: string;
-  supplier?: string;
-  heat?: string;
-  location?: string;
-  tags?: string[];
-  notes?: string;
+  fields?: Record<string, FieldValueV1>;
+  identifiers?: Record<string, string>;
   /** Prefix/code used in ID templates (`{material}` token), e.g. `AL`. */
   materialCode?: string;
 }
 
 export interface UpdateMaterialInput {
-  material?: string;
-  supplier?: string;
-  heat?: string;
-  location?: string;
-  tags?: string[];
-  notes?: string;
-  barcode?: string;
+  fields?: Record<string, FieldValueV1>;
+  identifiers?: Record<string, string>;
 }

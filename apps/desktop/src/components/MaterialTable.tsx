@@ -2,8 +2,15 @@ import { cn, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } fro
 import { ArrowDown, ArrowUp, ArrowUpDown, Paperclip } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
+import { fieldDisplay, identifierDisplay } from "../lib/material-display";
 
-export type MaterialSortKey = "id" | "material" | "supplier" | "heat" | "location" | "libraryName";
+export type MaterialSortKey =
+  | "id"
+  | "alloy"
+  | "supplier"
+  | "heat_number"
+  | "storage_location"
+  | "libraryName";
 
 interface MaterialTableProps {
   materials: IndexedMaterial[];
@@ -11,6 +18,16 @@ interface MaterialTableProps {
   attachmentCounts: Map<string, number>;
   selectedMaterialId: string | null;
   onSelectMaterial: (material: IndexedMaterial) => void;
+}
+
+function sortValue(material: IndexedMaterial, key: MaterialSortKey): string {
+  if (key === "id" || key === "libraryName") {
+    return String(material[key] ?? "");
+  }
+  if (key === "heat_number") {
+    return identifierDisplay(material, key);
+  }
+  return fieldDisplay(material, key);
 }
 
 export function MaterialTable({
@@ -26,8 +43,8 @@ export function MaterialTable({
   const sortedMaterials = useMemo(() => {
     const copy = [...materials];
     copy.sort((left, right) => {
-      const leftValue = String(left[sortKey] ?? "").toLowerCase();
-      const rightValue = String(right[sortKey] ?? "").toLowerCase();
+      const leftValue = sortValue(left, sortKey).toLowerCase();
+      const rightValue = sortValue(right, sortKey).toLowerCase();
       const comparison = leftValue.localeCompare(rightValue);
       return sortDirection === "asc" ? comparison : -comparison;
     });
@@ -55,10 +72,10 @@ export function MaterialTable({
               onClick={() => toggleSort("id")}
             />
             <SortableHead
-              label="Material"
-              active={sortKey === "material"}
+              label="Alloy"
+              active={sortKey === "alloy"}
               direction={sortDirection}
-              onClick={() => toggleSort("material")}
+              onClick={() => toggleSort("alloy")}
             />
             <SortableHead
               label="Supplier"
@@ -67,16 +84,16 @@ export function MaterialTable({
               onClick={() => toggleSort("supplier")}
             />
             <SortableHead
-              label="Heat"
-              active={sortKey === "heat"}
+              label="Heat Number"
+              active={sortKey === "heat_number"}
               direction={sortDirection}
-              onClick={() => toggleSort("heat")}
+              onClick={() => toggleSort("heat_number")}
             />
             <SortableHead
               label="Location"
-              active={sortKey === "location"}
+              active={sortKey === "storage_location"}
               direction={sortDirection}
-              onClick={() => toggleSort("location")}
+              onClick={() => toggleSort("storage_location")}
             />
             {showLibraryColumn ? (
               <SortableHead
@@ -103,10 +120,10 @@ export function MaterialTable({
                 onClick={() => onSelectMaterial(material)}
               >
                 <TableCell className="font-medium">{material.id}</TableCell>
-                <TableCell>{material.material || "—"}</TableCell>
-                <TableCell>{material.supplier || "—"}</TableCell>
-                <TableCell>{material.heat || "—"}</TableCell>
-                <TableCell>{material.location || "—"}</TableCell>
+                <TableCell>{fieldDisplay(material, "alloy") || "—"}</TableCell>
+                <TableCell>{fieldDisplay(material, "supplier") || "—"}</TableCell>
+                <TableCell>{identifierDisplay(material, "heat_number") || "—"}</TableCell>
+                <TableCell>{fieldDisplay(material, "storage_location") || "—"}</TableCell>
                 {showLibraryColumn ? <TableCell>{material.libraryName}</TableCell> : null}
                 <TableCell>
                   {attachmentCount > 0 ? (

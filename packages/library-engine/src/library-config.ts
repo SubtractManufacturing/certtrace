@@ -1,7 +1,11 @@
 import {
   createDefaultLibraryConfigV1,
+  defaultFieldSchemaV1,
   defaultNamingRulesV1,
   defaultWordListsV1,
+  FIELD_SCHEMA_JSON,
+  type FieldSchemaV1,
+  fieldSchemaV1Schema,
   type LibraryConfigV1,
   libraryConfigV1Schema,
   NAMING_RULES_JSON,
@@ -27,6 +31,7 @@ export interface CreateLibraryOptions {
   searchAllFields?: boolean;
   namingRules?: NamingRulesV1;
   wordLists?: WordListsV1;
+  fieldSchema?: FieldSchemaV1;
 }
 
 export async function updateLibraryConfig(
@@ -62,6 +67,17 @@ export async function updateWordLists(
   await backupConfigFile(library.fs, library.paths.root, WORD_LISTS_JSON);
   await writeJson(library.fs, library.paths.wordListsJson, validated);
   library.wordLists = validated;
+  return validated;
+}
+
+export async function updateFieldSchema(
+  library: OpenLibraryResult,
+  schema: FieldSchemaV1,
+): Promise<FieldSchemaV1> {
+  const validated = fieldSchemaV1Schema.parse(schema);
+  await backupConfigFile(library.fs, library.paths.root, FIELD_SCHEMA_JSON);
+  await writeJson(library.fs, library.paths.fieldSchemaJson, validated);
+  library.fieldSchema = validated;
   return validated;
 }
 
@@ -156,9 +172,11 @@ export function buildCreateLibraryConfig(options: CreateLibraryOptions): {
   config: LibraryConfigV1;
   namingRules: NamingRulesV1;
   wordLists: WordListsV1;
+  fieldSchema: FieldSchemaV1;
 } {
   const namingRules = options.namingRules ?? defaultNamingRulesV1;
   const wordLists = options.wordLists ?? defaultWordListsV1;
+  const fieldSchema = fieldSchemaV1Schema.parse(options.fieldSchema ?? defaultFieldSchemaV1);
   const idStrategy = options.idStrategy ?? namingRules.activeStrategyId;
 
   if (!namingRules.strategies.some((entry) => entry.id === idStrategy)) {
@@ -172,7 +190,7 @@ export function buildCreateLibraryConfig(options: CreateLibraryOptions): {
     searchAllFields: options.searchAllFields ?? true,
   });
 
-  return { config, namingRules, wordLists };
+  return { config, namingRules, wordLists, fieldSchema };
 }
 
-export { defaultNamingRulesV1, defaultWordListsV1 };
+export { defaultFieldSchemaV1, defaultNamingRulesV1, defaultWordListsV1 };

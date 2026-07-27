@@ -19,7 +19,7 @@ import {
   Textarea,
 } from "@certtrace/ui";
 import { FileText, FolderOpen, Printer, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { attachFilesToMaterial, pickAttachmentFiles } from "../lib/attachment-client";
 import {
   openPathWithOpener,
@@ -27,6 +27,7 @@ import {
   saveLabelPdfViaDialog,
 } from "../lib/label-client";
 import { fetchMaterialAttachments, updateMaterialMetadata } from "../lib/library-client";
+import { fieldDisplay, identifierDisplay } from "../lib/material-display";
 import { ErrorBanner } from "./ErrorBanner";
 
 interface MaterialDetailPanelProps {
@@ -108,20 +109,13 @@ export function MaterialDetailPanel({
     };
   }, [labelPdfUrl]);
 
-  const tagsValue = useMemo(() => draft.tags.join(", "), [draft.tags]);
-
   async function handleSave() {
     setBusy(true);
     setError(null);
     try {
       const updated = await updateMaterialMetadata(library, material.id, {
-        material: draft.material,
-        supplier: draft.supplier,
-        heat: draft.heat,
-        location: draft.location,
-        notes: draft.notes,
-        tags: draft.tags,
-        barcode: draft.barcode,
+        fields: draft.fields,
+        identifiers: draft.identifiers,
       });
       onMaterialUpdated(updated);
     } catch (err) {
@@ -129,6 +123,20 @@ export function MaterialDetailPanel({
     } finally {
       setBusy(false);
     }
+  }
+
+  function setField(key: string, value: string) {
+    setDraft({
+      ...draft,
+      fields: { ...draft.fields, [key]: value },
+    });
+  }
+
+  function setIdentifier(key: string, value: string) {
+    setDraft({
+      ...draft,
+      identifiers: { ...draft.identifiers, [key]: value },
+    });
   }
 
   async function handleAddFiles() {
@@ -202,50 +210,50 @@ export function MaterialDetailPanel({
       <div className="grid gap-3">
         <Field
           label="Material"
-          value={draft.material}
-          onChange={(value) => setDraft({ ...draft, material: value })}
+          value={fieldDisplay(draft, "family")}
+          onChange={(value) => setField("family", value)}
+        />
+        <Field
+          label="Alloy"
+          value={fieldDisplay(draft, "alloy")}
+          onChange={(value) => setField("alloy", value)}
+        />
+        <Field
+          label="Temper"
+          value={fieldDisplay(draft, "temper")}
+          onChange={(value) => setField("temper", value)}
         />
         <Field
           label="Supplier"
-          value={draft.supplier}
-          onChange={(value) => setDraft({ ...draft, supplier: value })}
+          value={fieldDisplay(draft, "supplier")}
+          onChange={(value) => setField("supplier", value)}
         />
         <Field
-          label="Heat"
-          value={draft.heat}
-          onChange={(value) => setDraft({ ...draft, heat: value })}
+          label="Heat Number"
+          value={identifierDisplay(draft, "heat_number")}
+          onChange={(value) => setIdentifier("heat_number", value)}
         />
         <Field
-          label="Location"
-          value={draft.location}
-          onChange={(value) => setDraft({ ...draft, location: value })}
+          label="Lot Number"
+          value={identifierDisplay(draft, "lot_number")}
+          onChange={(value) => setIdentifier("lot_number", value)}
         />
         <Field
-          label="Barcode"
-          value={draft.barcode}
-          onChange={(value) => setDraft({ ...draft, barcode: value })}
+          label="Purchase Order"
+          value={identifierDisplay(draft, "purchase_order")}
+          onChange={(value) => setIdentifier("purchase_order", value)}
         />
-        <label className="space-y-1 text-sm">
-          <Label>Tags</Label>
-          <Input
-            value={tagsValue}
-            onChange={(event) =>
-              setDraft({
-                ...draft,
-                tags: event.target.value
-                  .split(",")
-                  .map((tag) => tag.trim())
-                  .filter(Boolean),
-              })
-            }
-          />
-        </label>
+        <Field
+          label="Storage Location"
+          value={fieldDisplay(draft, "storage_location")}
+          onChange={(value) => setField("storage_location", value)}
+        />
         <label className="space-y-1 text-sm">
           <Label>Notes</Label>
           <Textarea
             rows={4}
-            value={draft.notes}
-            onChange={(event) => setDraft({ ...draft, notes: event.target.value })}
+            value={fieldDisplay(draft, "notes")}
+            onChange={(event) => setField("notes", event.target.value)}
           />
         </label>
       </div>

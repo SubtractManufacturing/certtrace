@@ -1,4 +1,9 @@
-import type { LibraryConfigV1, NamingRulesV1, WordListsV1 } from "../schemas/v1.js";
+import type {
+  FieldSchemaV1,
+  LibraryConfigV1,
+  NamingRulesV1,
+  WordListsV1,
+} from "../schemas/v1.js";
 
 export const defaultWordListsV1: WordListsV1 = {
   version: 1,
@@ -83,3 +88,152 @@ export function createDefaultLibraryConfigV1(name: string): LibraryConfigV1 {
     searchAllFields: true,
   };
 }
+
+/** Product default field schema, identifier kinds, attachment kinds, and starter options. */
+export const defaultFieldSchemaV1: FieldSchemaV1 = {
+  version: 1,
+  fields: [
+    {
+      key: "family",
+      label: "Material",
+      type: "single_select",
+      required: false,
+      filterable: true,
+      options: [
+        { id: "aluminum", label: "Aluminum", shortCode: "AL" },
+        { id: "steel", label: "Steel", shortCode: "ST" },
+        { id: "stainless", label: "Stainless", shortCode: "SS" },
+        { id: "brass", label: "Brass", shortCode: "BR" },
+        { id: "plastic", label: "Plastic", shortCode: "PL" },
+      ],
+    },
+    {
+      key: "alloy",
+      label: "Alloy",
+      type: "single_select",
+      required: false,
+      filterable: true,
+      options: [
+        { id: "6061", label: "6061" },
+        { id: "7075", label: "7075" },
+        { id: "2024", label: "2024" },
+        { id: "1018", label: "1018" },
+        { id: "4140", label: "4140" },
+        { id: "304", label: "304" },
+        { id: "316", label: "316" },
+        { id: "360", label: "360" },
+        { id: "ultem", label: "Ultem" },
+        { id: "delrin", label: "Delrin" },
+      ],
+      dependsOn: {
+        fieldKey: "family",
+        filterOptionsBy: {
+          aluminum: ["6061", "7075", "2024"],
+          steel: ["1018", "4140"],
+          stainless: ["304", "316"],
+          brass: ["360"],
+          plastic: ["ultem", "delrin"],
+        },
+      },
+    },
+    {
+      key: "temper",
+      label: "Temper",
+      type: "single_select",
+      required: false,
+      filterable: true,
+      options: [
+        { id: "t6", label: "T6" },
+        { id: "t6511", label: "T6511" },
+        { id: "o", label: "O" },
+        { id: "annealed", label: "Annealed" },
+        { id: "normalized", label: "Normalized" },
+        { id: "hardened", label: "Hardened" },
+        { id: "h900", label: "H900" },
+      ],
+      dependsOn: {
+        fieldKey: "family",
+        filterOptionsBy: {
+          aluminum: ["t6", "t6511", "o"],
+          steel: ["annealed", "normalized", "hardened"],
+          stainless: ["annealed", "h900"],
+          brass: ["o"],
+          plastic: [],
+        },
+      },
+    },
+    {
+      key: "shape",
+      label: "Shape",
+      type: "single_select",
+      required: false,
+      filterable: true,
+      options: [
+        { id: "round_bar", label: "Round bar" },
+        { id: "square_bar", label: "Square bar" },
+        { id: "hex_bar", label: "Hexagonal bar" },
+        { id: "round_tube", label: "Round tube" },
+        { id: "rect_tube", label: "Rectangular tube" },
+        { id: "plate", label: "Plate" },
+        { id: "sheet", label: "Sheet" },
+      ],
+    },
+    {
+      key: "supplier",
+      label: "Supplier",
+      type: "single_select",
+      required: false,
+      filterable: true,
+      options: [
+        { id: "mcmaster", label: "McMaster" },
+        { id: "boedecker", label: "Boedecker" },
+        { id: "online_metals", label: "Online Metals" },
+        { id: "speedy_metals", label: "Speedy Metals" },
+      ],
+    },
+    {
+      key: "traceability_type",
+      label: "Traceability Type",
+      type: "single_select",
+      required: false,
+      filterable: true,
+      options: [
+        { id: "material_cert", label: "Material cert" },
+        { id: "coc", label: "COC" },
+        { id: "full_traceability", label: "Full Traceability" },
+      ],
+    },
+    {
+      key: "date_received",
+      label: "Date Received",
+      type: "date",
+      required: false,
+      filterable: true,
+    },
+    {
+      key: "storage_location",
+      label: "Storage Location",
+      type: "text",
+      required: false,
+      filterable: true,
+    },
+    {
+      key: "notes",
+      label: "Notes",
+      type: "long_text",
+      required: false,
+      filterable: false,
+    },
+  ],
+  identifierKinds: [
+    { key: "heat_number", label: "Heat Number", required: false, filterable: true },
+    { key: "lot_number", label: "Lot Number", required: false, filterable: true },
+    { key: "purchase_order", label: "Purchase Order", required: false, filterable: true },
+  ],
+  attachmentKinds: [
+    { key: "mtr", label: "MTR" },
+    { key: "heat_cert", label: "Heat cert" },
+    { key: "coc", label: "COC" },
+    { key: "other", label: "Other" },
+  ],
+};

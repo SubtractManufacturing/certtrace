@@ -7,6 +7,7 @@ export const BACKUPS_DIR = `${CERTTRACE_DIR}/backups`;
 export const LIBRARY_JSON = `${CERTTRACE_DIR}/library.json`;
 export const NAMING_RULES_JSON = `${CERTTRACE_DIR}/naming-rules.json`;
 export const WORD_LISTS_JSON = `${CERTTRACE_DIR}/word-lists.json`;
+export const FIELD_SCHEMA_JSON = `${CERTTRACE_DIR}/field-schema.json`;
 
 export const LIBRARY_README = "README.md";
 
@@ -55,6 +56,7 @@ export const LIBRARY_PATHS = [
   LIBRARY_JSON,
   NAMING_RULES_JSON,
   WORD_LISTS_JSON,
+  FIELD_SCHEMA_JSON,
   LABELS_DIR,
   MATERIALS_DIR,
 ] as const;

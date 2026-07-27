@@ -6,6 +6,20 @@ const LABEL_WIDTH = 288;
 const LABEL_HEIGHT = 144;
 const MARGIN = 12;
 
+function fieldText(material: MaterialMetadataV1, key: string): string {
+  const value = material.fields[key];
+  if (typeof value === "string") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return value.join(", ");
+  }
+  return "";
+}
+
 export interface StandardQrLabelOptions {
   includeMaterial?: boolean;
   includeLocation?: boolean;
@@ -15,8 +29,10 @@ export async function generateStandardQrLabelPdf(
   material: MaterialMetadataV1,
   options: StandardQrLabelOptions = {},
 ): Promise<Uint8Array> {
-  const includeMaterial = options.includeMaterial ?? material.material.length > 0;
-  const includeLocation = options.includeLocation ?? material.location.length > 0;
+  const familyOrAlloy = fieldText(material, "alloy") || fieldText(material, "family");
+  const location = fieldText(material, "storage_location");
+  const includeMaterial = options.includeMaterial ?? familyOrAlloy.length > 0;
+  const includeLocation = options.includeLocation ?? location.length > 0;
 
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([LABEL_WIDTH, LABEL_HEIGHT]);
@@ -24,7 +40,7 @@ export async function generateStandardQrLabelPdf(
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
   const qrSize = 72;
-  const qrDataUrl = await QRCode.toDataURL(material.barcode, {
+  const qrDataUrl = await QRCode.toDataURL(material.id, {
     margin: 0,
     width: qrSize * 4,
     errorCorrectionLevel: "M",
@@ -51,7 +67,7 @@ export async function generateStandardQrLabelPdf(
   textY -= 18;
 
   if (includeMaterial) {
-    page.drawText(material.material, {
+    page.drawText(familyOrAlloy, {
       x: textX,
       y: textY,
       size: 11,
@@ -62,7 +78,7 @@ export async function generateStandardQrLabelPdf(
   }
 
   if (includeLocation) {
-    page.drawText(material.location, {
+    page.drawText(location, {
       x: textX,
       y: textY,
       size: 11,

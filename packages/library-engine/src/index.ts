@@ -2,6 +2,7 @@ import { type FileSystem, isNotFoundError } from "@certtrace/file-storage";
 import { generateMaterialId } from "@certtrace/id-generator";
 import {
   CERTTRACE_DIR,
+  FIELD_SCHEMA_JSON,
   joinPath,
   LABELS_DIR,
   LIBRARY_JSON,
@@ -18,6 +19,7 @@ import {
 import { LibraryError } from "./errors.js";
 import { buildCreateLibraryConfig, type CreateLibraryOptions } from "./library-config.js";
 import {
+  migrateFieldSchema,
   migrateLibraryConfig,
   migrateMaterialMetadata,
   migrateNamingRules,
@@ -39,11 +41,13 @@ export { LibraryError } from "./errors.js";
 export {
   addNamingStrategy,
   type CreateLibraryOptions,
+  defaultFieldSchemaV1,
   defaultNamingRulesV1,
   defaultWordListsV1,
   deleteNamingStrategy,
   duplicateNamingStrategy,
   renameNamingStrategy,
+  updateFieldSchema,
   updateLibraryConfig,
   updateNamingRules,
   updateWordLists,
@@ -67,6 +71,7 @@ export function getLibraryPaths(root: string) {
     libraryJson: joinPath(root, LIBRARY_JSON),
     namingRulesJson: joinPath(root, NAMING_RULES_JSON),
     wordListsJson: joinPath(root, WORD_LISTS_JSON),
+    fieldSchemaJson: joinPath(root, FIELD_SCHEMA_JSON),
   };
 }
 
@@ -119,13 +124,14 @@ export async function createLibrary(
   await fs.mkdir(paths.materials, { recursive: true });
   await fs.mkdir(paths.labels, { recursive: true });
 
-  const { config, namingRules, wordLists } = buildCreateLibraryConfig(options);
+  const { config, namingRules, wordLists, fieldSchema } = buildCreateLibraryConfig(options);
 
   await writeJson(fs, paths.libraryJson, config);
   await writeJson(fs, paths.namingRulesJson, namingRules);
   await writeJson(fs, paths.wordListsJson, wordLists);
+  await writeJson(fs, paths.fieldSchemaJson, fieldSchema);
 
-  return { fs, paths, config, namingRules, wordLists };
+  return { fs, paths, config, namingRules, wordLists, fieldSchema };
 }
 
 async function readMigratedJson<T>(
@@ -179,8 +185,14 @@ export async function openLibrary(fs: FileSystem, root: string): Promise<OpenLib
     migrateWordLists,
     "word-lists.json",
   );
+  const fieldSchema = await readMigratedJson(
+    fs,
+    paths.fieldSchemaJson,
+    migrateFieldSchema,
+    "field-schema.json",
+  );
 
-  return { fs, paths, config, namingRules, wordLists };
+  return { fs, paths, config, namingRules, wordLists, fieldSchema };
 }
 
 function getActiveStrategy(library: OpenLibraryResult) {
@@ -247,13 +259,8 @@ export async function createMaterial(
   const metadata = materialMetadataV1Schema.parse({
     version: 1,
     id,
-    material: input.material ?? "",
-    supplier: input.supplier ?? "",
-    heat: input.heat ?? "",
-    location: input.location ?? "",
-    tags: input.tags ?? [],
-    notes: input.notes ?? "",
-    barcode: id,
+    fields: input.fields ?? {},
+    identifiers: input.identifiers ?? {},
     createdAt: now,
     updatedAt: now,
   });
@@ -273,7 +280,14 @@ export async function updateMaterial(
   const current = await getMaterial(library, materialId);
   const updated: MaterialMetadataV1 = {
     ...current,
-    ...input,
+    fields: {
+      ...current.fields,
+      ...input.fields,
+    },
+    identifiers: {
+      ...current.identifiers,
+      ...input.identifiers,
+    },
     id: current.id,
     version: current.version,
     createdAt: current.createdAt,

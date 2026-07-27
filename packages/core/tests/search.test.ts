@@ -6,13 +6,14 @@ function sampleMaterial(overrides: Partial<MaterialMetadataV1> = {}): MaterialMe
   return {
     version: 1,
     id: "AL-falcon-104",
-    material: "6061-T6",
-    supplier: "McMaster",
-    heat: "A4921",
-    location: "Rack B2",
-    tags: ["aluminum"],
-    notes: "QA signed off",
-    barcode: "AL-falcon-104",
+    fields: {
+      family: "aluminum",
+      alloy: "6061",
+      notes: "QA signed off",
+    },
+    identifiers: {
+      heat_number: "A4921",
+    },
     createdAt: "2026-05-28T12:00:00.000Z",
     updatedAt: "2026-05-28T12:00:00.000Z",
     ...overrides,
@@ -24,13 +25,13 @@ describe("searchMaterials", () => {
     sampleMaterial(),
     sampleMaterial({
       id: "SS-river-002",
-      material: "303 SS",
-      supplier: "Online Metals",
-      heat: "H9920",
-      location: "Rack A1",
-      tags: ["stainless"],
-      notes: "",
-      barcode: "SS-river-002",
+      fields: {
+        family: "stainless",
+        alloy: "304",
+      },
+      identifiers: {
+        heat_number: "H9920",
+      },
     }),
   ];
 
@@ -39,39 +40,29 @@ describe("searchMaterials", () => {
     expect(searchMaterials(index, "")).toHaveLength(2);
   });
 
-  it("matches id, material, supplier, heat, tags, and notes", () => {
+  it("matches material id and identifier values only", () => {
     const index = buildSearchIndex(materials);
 
     expect(searchMaterials(index, "falcon")).toHaveLength(1);
-    expect(searchMaterials(index, "303")).toHaveLength(1);
-    expect(searchMaterials(index, "mcmaster")).toHaveLength(1);
     expect(searchMaterials(index, "a4921")).toHaveLength(1);
-    expect(searchMaterials(index, "stainless")).toHaveLength(1);
-    expect(searchMaterials(index, "qa signed")).toHaveLength(1);
+    expect(searchMaterials(index, "h9920")).toHaveLength(1);
+    // Classification fields and notes are not searchable
+    expect(searchMaterials(index, "aluminum")).toHaveLength(0);
+    expect(searchMaterials(index, "6061")).toHaveLength(0);
+    expect(searchMaterials(index, "qa signed")).toHaveLength(0);
   });
 
   it("requires every query term to match", () => {
     const index = buildSearchIndex(materials);
-    expect(searchMaterials(index, "6061 mcmaster")).toHaveLength(1);
-    expect(searchMaterials(index, "6061 stainless")).toHaveLength(0);
-  });
-
-  it("can limit searchable fields", () => {
-    const index = buildSearchIndex(materials, { searchAllFields: false });
-    expect(searchMaterials(index, "mcmaster")).toHaveLength(0);
-    expect(searchMaterials(index, "6061")).toHaveLength(1);
+    expect(searchMaterials(index, "falcon a4921")).toHaveLength(1);
+    expect(searchMaterials(index, "falcon h9920")).toHaveLength(0);
   });
 
   it("builds a 1k+ material index quickly", () => {
     const largeSet = Array.from({ length: 1200 }, (_, index) =>
       sampleMaterial({
         id: `AL-item-${index}`,
-        material: `6061-${index}`,
-        barcode: `AL-item-${index}`,
-        heat: `H${index}`,
-        location: `Rack ${index % 20}`,
-        tags: [`tag-${index % 10}`],
-        notes: `note ${index}`,
+        identifiers: { heat_number: `H${index}` },
       }),
     );
 
@@ -80,7 +71,7 @@ describe("searchMaterials", () => {
     const builtMs = performance.now() - started;
 
     const searchStarted = performance.now();
-    const results = searchMaterials(index, "6061-999");
+    const results = searchMaterials(index, "AL-item-999");
     const searchMs = performance.now() - searchStarted;
 
     expect(index.materials).toHaveLength(1200);
@@ -91,11 +82,10 @@ describe("searchMaterials", () => {
 
   it("ranks exact id matches ahead of partial matches", () => {
     const index = buildSearchIndex([
-      sampleMaterial({ id: "AL-falcon-104", barcode: "AL-falcon-104" }),
+      sampleMaterial({ id: "AL-falcon-104" }),
       sampleMaterial({
         id: "AL-falcon-104-backup",
-        barcode: "AL-falcon-104-backup",
-        material: "backup stock",
+        fields: { notes: "backup stock" },
       }),
     ]);
 

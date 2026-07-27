@@ -65,16 +65,107 @@ export const materialIdSchema = z
   .min(1)
   .regex(/^[A-Za-z0-9._-]+$/, "Material id must be filesystem-safe");
 
+export const fieldTypeSchema = z.enum([
+  "text",
+  "long_text",
+  "single_select",
+  "multi_select",
+  "date",
+  "number",
+]);
+
+export type FieldType = z.infer<typeof fieldTypeSchema>;
+
+export const fieldOptionV1Schema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  shortCode: z.string().min(1).optional(),
+});
+
+export type FieldOptionV1 = z.infer<typeof fieldOptionV1Schema>;
+
+export const fieldDependencyV1Schema = z.object({
+  fieldKey: z.string().min(1),
+  /** Parent option id → allowed option ids for this field. */
+  filterOptionsBy: z.record(z.string().min(1), z.array(z.string().min(1))).optional(),
+  /** Show this field only when the parent value is one of these option ids / values. */
+  visibleWhen: z.array(z.string().min(1)).optional(),
+});
+
+export type FieldDependencyV1 = z.infer<typeof fieldDependencyV1Schema>;
+
+export const fieldDefinitionV1Schema = z
+  .object({
+    key: z.string().min(1),
+    label: z.string().min(1),
+    type: fieldTypeSchema,
+    required: z.boolean(),
+    filterable: z.boolean(),
+    options: z.array(fieldOptionV1Schema).optional(),
+    dependsOn: fieldDependencyV1Schema.optional(),
+  })
+  .superRefine((field, ctx) => {
+    if (field.type === "single_select" || field.type === "multi_select") {
+      if (!field.options || field.options.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Select fields require at least one option",
+          path: ["options"],
+        });
+      }
+    }
+  });
+
+export type FieldDefinitionV1 = z.infer<typeof fieldDefinitionV1Schema>;
+
+export const identifierKindV1Schema = z.object({
+  key: z.string().min(1),
+  label: z.string().min(1),
+  required: z.boolean(),
+  filterable: z.boolean(),
+});
+
+export type IdentifierKindV1 = z.infer<typeof identifierKindV1Schema>;
+
+export const attachmentKindV1Schema = z.object({
+  key: z.string().min(1),
+  label: z.string().min(1),
+});
+
+export type AttachmentKindV1 = z.infer<typeof attachmentKindV1Schema>;
+
+export const fieldSchemaV1Schema = z
+  .object({
+    version: z.literal(SCHEMA_VERSION),
+    fields: z.array(fieldDefinitionV1Schema),
+    identifierKinds: z.array(identifierKindV1Schema),
+    attachmentKinds: z.array(attachmentKindV1Schema),
+  })
+  .superRefine((schema, ctx) => {
+    const reserved = new Set(["id", "createdAt", "updatedAt"]);
+    for (const [index, field] of schema.fields.entries()) {
+      if (reserved.has(field.key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Field key "${field.key}" is reserved for system material properties`,
+          path: ["fields", index, "key"],
+        });
+      }
+    }
+  });
+
+export type FieldSchemaV1 = z.infer<typeof fieldSchemaV1Schema>;
+
+export const fieldValueV1Schema = z.union([z.string(), z.number(), z.array(z.string())]);
+
+export type FieldValueV1 = z.infer<typeof fieldValueV1Schema>;
+
+/** Material metadata: system id/timestamps plus field and identifier values by stable key. */
 export const materialMetadataV1Schema = z.object({
   version: z.literal(SCHEMA_VERSION),
   id: materialIdSchema,
-  material: z.string(),
-  supplier: z.string(),
-  heat: z.string(),
-  location: z.string(),
-  tags: z.array(z.string()),
-  notes: z.string(),
-  barcode: z.string(),
+  fields: z.record(z.string().min(1), fieldValueV1Schema),
+  identifiers: z.record(z.string().min(1), z.string()),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
