@@ -1,0 +1,3 @@
+# Per-library custom fields, not a fixed material schema
+
+Material attributes are defined per library as a flexible field schema (text, long text, single-select, multi-select, date, number) with dependency rules (option filtering and show/hide). New libraries receive a product default field set and starter options; users may delete, rename, require, filter, or replace those defaults. Rejected: a fixed product-owned field list (endless feature requests) and a hybrid “core + custom bag” (two models to learn). Greenfield — no migration from the older fixed `material` / `supplier` / `heat` / `location` metadata shape.
