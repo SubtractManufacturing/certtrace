@@ -1,50 +1,17 @@
+import {
+  availableFieldOptions,
+  isFieldVisible,
+  sanitizeDependentSelectValues,
+  validateMaterialValues,
+} from "@certtrace/library-engine";
 import type { FieldSchemaV1, FieldValueV1 } from "@certtrace/types";
 import { Input, Label, Select, Textarea } from "@certtrace/ui";
+
+export { validateMaterialValues };
 
 export interface MaterialFormValues {
   fields: Record<string, FieldValueV1>;
   identifiers: Record<string, string>;
-}
-
-export function validateMaterialValues(
-  schema: FieldSchemaV1,
-  fields: Record<string, FieldValueV1>,
-  identifiers: Record<string, string>,
-): string[] {
-  const errors: string[] = [];
-
-  for (const field of schema.fields) {
-    if (!field.required) {
-      continue;
-    }
-    if (isEmptyFieldValue(fields[field.key])) {
-      errors.push(`${field.label} is required`);
-    }
-  }
-
-  for (const kind of schema.identifierKinds) {
-    if (!kind.required) {
-      continue;
-    }
-    if (!identifiers[kind.key]?.trim()) {
-      errors.push(`${kind.label} is required`);
-    }
-  }
-
-  return errors;
-}
-
-function isEmptyFieldValue(value: FieldValueV1 | undefined): boolean {
-  if (value === undefined) {
-    return true;
-  }
-  if (typeof value === "string") {
-    return value.trim() === "";
-  }
-  if (typeof value === "number") {
-    return false;
-  }
-  return value.length === 0;
 }
 
 interface MaterialSchemaFormProps {
@@ -67,7 +34,10 @@ export function MaterialSchemaForm({
     } else {
       fields[key] = value;
     }
-    onChange({ fields, identifiers: values.identifiers });
+    onChange({
+      fields: sanitizeDependentSelectValues(schema, fields),
+      identifiers: values.identifiers,
+    });
   }
 
   function setIdentifier(key: string, value: string) {
@@ -83,9 +53,14 @@ export function MaterialSchemaForm({
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {schema.fields.map((field) => {
+        if (!isFieldVisible(field, values.fields)) {
+          return null;
+        }
+
         const inputId = `${idPrefix}-${field.key}`;
         const raw = values.fields[field.key];
         const stringValue = typeof raw === "string" || typeof raw === "number" ? String(raw) : "";
+        const options = availableFieldOptions(field, values.fields);
 
         if (field.type === "long_text") {
           return (
@@ -111,7 +86,7 @@ export function MaterialSchemaForm({
                 onChange={(event) => setField(field.key, event.target.value || undefined)}
               >
                 <option value="">Select…</option>
-                {(field.options ?? []).map((option) => (
+                {options.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.label}
                   </option>
@@ -135,7 +110,7 @@ export function MaterialSchemaForm({
                   setField(field.key, next.length > 0 ? next : undefined);
                 }}
               >
-                {(field.options ?? []).map((option) => (
+                {options.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.label}
                   </option>

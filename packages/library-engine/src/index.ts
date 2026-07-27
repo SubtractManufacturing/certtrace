@@ -39,6 +39,12 @@ export {
 } from "./attachments.js";
 export { LibraryError } from "./errors.js";
 export {
+  availableFieldOptions,
+  isFieldVisible,
+  sanitizeDependentSelectValues,
+  validateMaterialValues,
+} from "./field-dependencies.js";
+export {
   addNamingStrategy,
   type CreateLibraryOptions,
   defaultFieldSchemaV1,

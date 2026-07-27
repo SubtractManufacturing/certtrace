@@ -5,8 +5,8 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
-  MaterialSchemaForm,
   type MaterialFormValues,
+  MaterialSchemaForm,
   validateMaterialValues,
 } from "./MaterialSchemaForm";
 
@@ -100,6 +100,89 @@ describe("MaterialSchemaForm", () => {
     });
   });
 
+  it("filters dependent select options and clears values invalidated by a parent change", async () => {
+    const onChange = vi.fn();
+
+    function Harness() {
+      const [values, setValues] = useState<MaterialFormValues>({
+        fields: {},
+        identifiers: {},
+      });
+      return (
+        <MaterialSchemaForm
+          schema={defaultFieldSchemaV1}
+          values={values}
+          onChange={(next) => {
+            onChange(next);
+            setValues(next);
+          }}
+        />
+      );
+    }
+
+    render(<Harness />);
+
+    await userEvent.selectOptions(screen.getByLabelText("Material"), "aluminum");
+    const alloy = screen.getByLabelText("Alloy") as HTMLSelectElement;
+    expect(Array.from(alloy.options, (option) => option.value)).toEqual([
+      "",
+      "6061",
+      "7075",
+      "2024",
+    ]);
+
+    await userEvent.selectOptions(alloy, "6061");
+    await userEvent.selectOptions(screen.getByLabelText("Material"), "steel");
+    expect(onChange.mock.calls.at(-1)?.[0].fields).toEqual({ family: "steel" });
+    expect(Array.from(alloy.options, (option) => option.value)).toEqual(["", "1018", "4140"]);
+  });
+
+  it("does not render or require a field hidden by its dependency", () => {
+    const schema: FieldSchemaV1 = {
+      version: 1,
+      fields: [
+        {
+          key: "shape",
+          label: "Shape",
+          type: "single_select",
+          required: false,
+          filterable: true,
+          options: [
+            { id: "round_bar", label: "Round bar" },
+            { id: "plate", label: "Plate" },
+          ],
+        },
+        {
+          key: "diameter",
+          label: "Diameter",
+          type: "number",
+          required: true,
+          filterable: true,
+          dependsOn: {
+            fieldKey: "shape",
+            visibleWhen: ["round_bar"],
+          },
+        },
+      ],
+      identifierKinds: [],
+      attachmentKinds: [],
+    };
+
+    render(
+      <MaterialSchemaForm
+        schema={schema}
+        values={{ fields: { shape: "plate" }, identifiers: {} }}
+        onChange={() => undefined}
+      />,
+    );
+
+    expect(screen.queryByLabelText("Diameter")).toBeNull();
+    expect(validateMaterialValues(schema, { shape: "plate" }, {})).toEqual([]);
+    expect(validateMaterialValues(schema, { shape: "round_bar" }, {})).toEqual([
+      "Diameter is required",
+    ]);
+  });
+
   it("reports required fields and identifier kinds that are empty", () => {
     const schema: FieldSchemaV1 = {
       version: 1,
@@ -131,13 +214,9 @@ describe("MaterialSchemaForm", () => {
       "Material is required",
       "Heat Number is required",
     ]);
-    expect(
-      validateMaterialValues(
-        schema,
-        { family: "aluminum" },
-        { heat_number: "H-1" },
-      ),
-    ).toEqual([]);
+    expect(validateMaterialValues(schema, { family: "aluminum" }, { heat_number: "H-1" })).toEqual(
+      [],
+    );
   });
 
   it("allows empty values on the shipped default schema (nothing required)", () => {
