@@ -39,6 +39,11 @@ export interface UpdateMaterialInput {
   identifiers?: Record<string, string>;
 }
 
+export interface MaterialFilterValues {
+  fields: Record<string, string>;
+  identifiers: Record<string, string>;
+}
+
 export type SchemaDefinitionType = "field" | "identifierKind";
 
 export type SchemaDefinitionRemovalStrategy =

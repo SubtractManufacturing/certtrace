@@ -79,9 +79,15 @@ export {
   updateWordLists,
   validateStrategyEntropy,
 } from "./library-config.js";
+export {
+  filterableFields,
+  filterableIdentifierKinds,
+  filterMaterialsBySchema,
+} from "./material-filters.js";
 export type {
   CreateMaterialInput,
   LibraryPaths,
+  MaterialFilterValues,
   OpenLibraryResult,
   RemoveSchemaDefinitionInput,
   SchemaDefinitionRemovalStrategy,

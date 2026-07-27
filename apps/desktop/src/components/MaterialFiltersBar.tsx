@@ -1,15 +1,12 @@
-import type {
-  FieldDefinitionV1,
-  FieldSchemaV1,
-  FieldValueV1,
-  MaterialMetadataV1,
-} from "@certtrace/types";
+import {
+  availableFieldOptions,
+  filterableFields,
+  filterableIdentifierKinds,
+  isFieldVisible,
+  type MaterialFilterValues,
+} from "@certtrace/library-engine";
+import type { FieldSchemaV1 } from "@certtrace/types";
 import { Button, Input, Select } from "@certtrace/ui";
-
-export interface MaterialFilterValues {
-  fields: Record<string, string>;
-  identifiers: Record<string, string>;
-}
 
 interface MaterialFiltersBarProps {
   schema: FieldSchemaV1;
@@ -23,10 +20,8 @@ export const emptyMaterialFilters: MaterialFilterValues = {
 };
 
 export function MaterialFiltersBar({ schema, values, onChange }: MaterialFiltersBarProps) {
-  const fields = schema.fields.filter((field) => field.filterable && !field.disabled);
-  const identifierKinds = schema.identifierKinds.filter(
-    (kind) => kind.filterable && !kind.disabled,
-  );
+  const fields = filterableFields(schema).filter((field) => isFieldVisible(field, values.fields));
+  const identifierKinds = filterableIdentifierKinds(schema);
   const hasActiveFilters = [
     ...Object.values(values.fields),
     ...Object.values(values.identifiers),
@@ -37,9 +32,15 @@ export function MaterialFiltersBar({ schema, values, onChange }: MaterialFilters
   }
 
   function setField(key: string, value: string) {
+    const fields = { ...values.fields };
+    if (value) {
+      fields[key] = value;
+    } else {
+      delete fields[key];
+    }
     onChange({
       ...values,
-      fields: { ...values.fields, [key]: value },
+      fields: sanitizeFilterFieldValues(schema, fields),
     });
   }
 
@@ -70,7 +71,7 @@ export function MaterialFiltersBar({ schema, values, onChange }: MaterialFilters
               onChange={(event) => setField(field.key, event.target.value)}
             >
               <option value="">Any</option>
-              {field.options.map((option) => (
+              {availableFieldOptions(field, values.fields).map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.label}
                 </option>
@@ -119,66 +120,34 @@ export function MaterialFiltersBar({ schema, values, onChange }: MaterialFilters
   );
 }
 
-export function filterMaterialsBySchema<T extends MaterialMetadataV1>(
-  materials: T[],
+function sanitizeFilterFieldValues(
   schema: FieldSchemaV1,
-  filters: MaterialFilterValues,
-): T[] {
-  const fieldsByKey = new Map(
-    schema.fields
-      .filter((field) => field.filterable && !field.disabled)
-      .map((field) => [field.key, field]),
-  );
-  const identifierKeys = new Set(
-    schema.identifierKinds
-      .filter((kind) => kind.filterable && !kind.disabled)
-      .map((kind) => kind.key),
-  );
+  values: Record<string, string>,
+): Record<string, string> {
+  const sanitized = { ...values };
 
-  return materials.filter((material) => {
-    for (const [key, filter] of Object.entries(filters.fields)) {
-      if (!filter || !fieldsByKey.has(key)) {
+  for (let pass = 0; pass < schema.fields.length; pass += 1) {
+    let changed = false;
+    for (const field of filterableFields(schema)) {
+      const value = sanitized[field.key];
+      if (!value) {
         continue;
       }
-      if (!matchesFieldFilter(material.fields[key], fieldsByKey.get(key)!, filter)) {
-        return false;
+
+      const availableOptions = availableFieldOptions(field, sanitized);
+      const unavailable =
+        !isFieldVisible(field, sanitized) ||
+        (field.options && !availableOptions.some((option) => option.id === value));
+      if (unavailable) {
+        delete sanitized[field.key];
+        changed = true;
       }
     }
 
-    for (const [key, filter] of Object.entries(filters.identifiers)) {
-      if (!filter || !identifierKeys.has(key)) {
-        continue;
-      }
-      if (!includesCaseInsensitive(material.identifiers[key], filter)) {
-        return false;
-      }
+    if (!changed) {
+      break;
     }
-
-    return true;
-  });
-}
-
-function matchesFieldFilter(
-  value: FieldValueV1 | undefined,
-  field: FieldDefinitionV1,
-  filter: string,
-): boolean {
-  if (value === undefined) {
-    return false;
   }
 
-  if (field.options) {
-    return Array.isArray(value) ? value.includes(filter) : String(value) === filter;
-  }
-
-  if (field.type === "date" || field.type === "number") {
-    return String(value) === filter;
-  }
-
-  const text = Array.isArray(value) ? value.join(" ") : String(value);
-  return includesCaseInsensitive(text, filter);
-}
-
-function includesCaseInsensitive(value: string | undefined, filter: string): boolean {
-  return value?.toLocaleLowerCase().includes(filter.trim().toLocaleLowerCase()) ?? false;
+  return sanitized;
 }

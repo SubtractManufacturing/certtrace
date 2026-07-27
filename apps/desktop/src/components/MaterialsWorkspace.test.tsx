@@ -130,6 +130,34 @@ describe("MaterialsWorkspace", () => {
     expect(within(screen.getByRole("table")).queryByText("6061")).toBeNull();
   });
 
+  it("honors field dependencies in filter options", async () => {
+    render(
+      <MaterialsWorkspace
+        sessionLibraries={new Map([["/tmp/shop", sampleLibrary]])}
+        activeLibraryPath="/tmp/shop"
+        materials={materials}
+        onRefreshLibrary={async () => undefined}
+        filterMaterials={() => materials}
+      />,
+    );
+
+    const familyFilter = screen.getByLabelText("Filter by Material");
+    const alloyFilter = screen.getByLabelText("Filter by Alloy");
+    expect(within(alloyFilter).queryByRole("option", { name: "6061" })).toBeNull();
+
+    await userEvent.selectOptions(familyFilter, "aluminum");
+
+    expect(within(alloyFilter).getByRole("option", { name: "6061" })).toBeTruthy();
+    expect(within(alloyFilter).queryByRole("option", { name: "1018" })).toBeNull();
+
+    await userEvent.selectOptions(alloyFilter, "6061");
+    await userEvent.selectOptions(familyFilter, "steel");
+
+    expect((alloyFilter as HTMLSelectElement).value).toBe("");
+    expect(within(alloyFilter).getByRole("option", { name: "1018" })).toBeTruthy();
+    expect(within(alloyFilter).queryByRole("option", { name: "6061" })).toBeNull();
+  });
+
   it("updates available filters when the reopened library schema changes", () => {
     const commonProps = {
       activeLibraryPath: "/tmp/shop" as const,

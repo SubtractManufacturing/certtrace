@@ -1,4 +1,9 @@
-import type { CreateMaterialInput, OpenLibraryResult } from "@certtrace/library-engine";
+import {
+  type CreateMaterialInput,
+  filterMaterialsBySchema,
+  type MaterialFilterValues,
+  type OpenLibraryResult,
+} from "@certtrace/library-engine";
 import { defaultFieldSchemaV1 } from "@certtrace/types";
 import {
   Button,
@@ -23,12 +28,7 @@ import {
 } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { MaterialDetailPanel } from "./MaterialDetailPanel";
-import {
-  emptyMaterialFilters,
-  filterMaterialsBySchema,
-  MaterialFiltersBar,
-  type MaterialFilterValues,
-} from "./MaterialFiltersBar";
+import { emptyMaterialFilters, MaterialFiltersBar } from "./MaterialFiltersBar";
 import {
   type MaterialFormValues,
   MaterialSchemaForm,
