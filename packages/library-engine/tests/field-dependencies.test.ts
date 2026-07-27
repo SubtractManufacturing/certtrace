@@ -4,7 +4,7 @@ import {
   availableFieldOptions,
   defaultFieldSchemaV1,
   isFieldVisible,
-  sanitizeDependentSelectValues,
+  sanitizeDependentFieldValues,
   validateMaterialValues,
 } from "../src/index.js";
 
@@ -67,7 +67,7 @@ describe("field dependencies", () => {
     };
 
     expect(
-      sanitizeDependentSelectValues(schema, {
+      sanitizeDependentFieldValues(schema, {
         family: "steel",
         alloy: "6061",
         temper: "t6",

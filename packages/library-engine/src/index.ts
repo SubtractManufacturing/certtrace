@@ -52,7 +52,7 @@ export { LibraryError } from "./errors.js";
 export {
   availableFieldOptions,
   isFieldVisible,
-  sanitizeDependentSelectValues,
+  sanitizeDependentFieldValues,
   validateMaterialValues,
 } from "./field-dependencies.js";
 export {

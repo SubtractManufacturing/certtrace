@@ -3,7 +3,7 @@ import {
   type AddFieldOptionResult,
   availableFieldOptions,
   isFieldVisible,
-  sanitizeDependentSelectValues,
+  sanitizeDependentFieldValues,
   validateMaterialValues,
 } from "@certtrace/library-engine";
 import type { FieldSchemaV1, FieldValueV1 } from "@certtrace/types";
@@ -49,7 +49,7 @@ export function MaterialSchemaForm({
       fields[key] = value;
     }
     onChange({
-      fields: sanitizeDependentSelectValues(currentSchema, fields),
+      fields: sanitizeDependentFieldValues(currentSchema, fields),
       identifiers: values.identifiers,
     });
   }

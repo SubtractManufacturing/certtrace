@@ -43,9 +43,24 @@ export function availableFieldOptions(
   return options.filter((option) => allowedIds.has(option.id));
 }
 
-export function sanitizeDependentSelectValues(
+interface SanitizeDependentFieldValuesOptions {
+  removeHidden?: boolean;
+}
+
+export function sanitizeDependentFieldValues(
+  schema: FieldSchemaV1,
+  values: Record<string, string>,
+  options: SanitizeDependentFieldValuesOptions,
+): Record<string, string>;
+export function sanitizeDependentFieldValues(
   schema: FieldSchemaV1,
   values: MaterialFieldValues,
+  options?: SanitizeDependentFieldValuesOptions,
+): MaterialFieldValues;
+export function sanitizeDependentFieldValues(
+  schema: FieldSchemaV1,
+  values: MaterialFieldValues,
+  options?: SanitizeDependentFieldValuesOptions,
 ): MaterialFieldValues {
   const sanitized = { ...values };
 
@@ -55,6 +70,12 @@ export function sanitizeDependentSelectValues(
     for (const field of schema.fields) {
       const value = sanitized[field.key];
       if (value === undefined) {
+        continue;
+      }
+
+      if (options?.removeHidden && !isFieldVisible(field, sanitized)) {
+        delete sanitized[field.key];
+        changed = true;
         continue;
       }
 
