@@ -11,6 +11,7 @@ import {
   type OpenLibraryResult,
   openLibrary,
   type UpdateMaterialInput,
+  updateFieldSchema,
   updateLibraryConfig,
   updateMaterial,
   updateNamingRules,
@@ -18,6 +19,7 @@ import {
 } from "@certtrace/library-engine";
 import type {
   AttachedFile,
+  FieldSchemaV1,
   LibraryConfigV1,
   MaterialMetadataV1,
   NamingRulesV1,
@@ -118,6 +120,14 @@ export async function updateLibraryConfigPartial(
   partial: Partial<Omit<LibraryConfigV1, "version">>,
 ): Promise<OpenLibraryResult> {
   await updateLibraryConfig(library, partial);
+  return reloadLibraryAtPath(library.paths.root);
+}
+
+export async function updateLibraryFieldSchema(
+  library: OpenLibraryResult,
+  schema: FieldSchemaV1,
+): Promise<OpenLibraryResult> {
+  await updateFieldSchema(library, schema);
   return reloadLibraryAtPath(library.paths.root);
 }
 

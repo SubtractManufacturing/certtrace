@@ -4,10 +4,15 @@ import {
   defaultNamingRulesV1,
   defaultWordListsV1,
   FIELD_SCHEMA_JSON,
+  type FieldDefinitionV1,
   type FieldOptionV1,
   type FieldSchemaV1,
+  type FieldType,
   type FieldValueV1,
+  fieldDefinitionV1Schema,
   fieldSchemaV1Schema,
+  type IdentifierKindV1,
+  identifierKindV1Schema,
   type LibraryConfigV1,
   libraryConfigV1Schema,
   NAMING_RULES_JSON,
@@ -24,6 +29,110 @@ import type { OpenLibraryResult } from "./types.js";
 
 async function writeJson(fs: OpenLibraryResult["fs"], path: string, value: unknown): Promise<void> {
   await fs.writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function createStableKey(label: string, fallback: string, existingKeys: Set<string>): string {
+  const baseKey =
+    label
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "") || fallback;
+  let key = baseKey;
+  let suffix = 2;
+  while (existingKeys.has(key)) {
+    key = `${baseKey}_${suffix}`;
+    suffix += 1;
+  }
+  return key;
+}
+
+export function createFieldDefinition(
+  schema: FieldSchemaV1,
+  labelInput: string,
+  type: FieldType,
+): FieldDefinitionV1 {
+  const label = labelInput.trim();
+  if (!label) {
+    throw new LibraryError("Field name cannot be empty.");
+  }
+  const existingKeys = new Set([
+    ...schema.fields.map((field) => field.key),
+    "id",
+    "createdAt",
+    "updatedAt",
+  ]);
+  const key = createStableKey(label, "field", existingKeys);
+  const options =
+    type === "single_select" || type === "multi_select"
+      ? [{ id: "option", label: "New option" }]
+      : undefined;
+  return fieldDefinitionV1Schema.parse({
+    key,
+    label,
+    type,
+    required: false,
+    filterable: false,
+    ...(options ? { options } : {}),
+  });
+}
+
+export function createIdentifierKind(schema: FieldSchemaV1, labelInput: string): IdentifierKindV1 {
+  const label = labelInput.trim();
+  if (!label) {
+    throw new LibraryError("Identifier kind name cannot be empty.");
+  }
+  return identifierKindV1Schema.parse({
+    key: createStableKey(
+      label,
+      "identifier",
+      new Set(schema.identifierKinds.map((kind) => kind.key)),
+    ),
+    label,
+    required: false,
+    filterable: false,
+  });
+}
+
+export function createFieldOption(field: FieldDefinitionV1, labelInput: string): FieldOptionV1 {
+  if (field.type !== "single_select" && field.type !== "multi_select") {
+    throw new LibraryError(`Field "${field.label}" is not a select field.`);
+  }
+  const label = labelInput.trim();
+  if (!label) {
+    throw new LibraryError("Option name cannot be empty.");
+  }
+  const duplicate = field.options?.find(
+    (option) => option.label.toLocaleLowerCase() === label.toLocaleLowerCase(),
+  );
+  if (duplicate) {
+    throw new LibraryError(`${field.label} already has an option named "${duplicate.label}".`);
+  }
+  return {
+    id: createStableKey(label, "option", new Set(field.options?.map((option) => option.id))),
+    label,
+  };
+}
+
+export function changeFieldType(field: FieldDefinitionV1, type: FieldType): FieldDefinitionV1 {
+  if (field.type === type) {
+    return fieldDefinitionV1Schema.parse(field);
+  }
+  const { options: _options, dependsOn, ...base } = field;
+  const nextDependsOn = dependsOn
+    ? type === "single_select" || type === "multi_select"
+      ? { fieldKey: dependsOn.fieldKey, filterOptionsBy: {} }
+      : { fieldKey: dependsOn.fieldKey, visibleWhen: [] }
+    : undefined;
+  return fieldDefinitionV1Schema.parse({
+    ...base,
+    type,
+    ...(type === "single_select" || type === "multi_select"
+      ? { options: [{ id: "option", label: "New option" }] }
+      : {}),
+    ...(nextDependsOn ? { dependsOn: nextDependsOn } : {}),
+  });
 }
 
 export interface CreateLibraryOptions {
@@ -97,39 +206,12 @@ export async function addFieldOption(
   library: OpenLibraryResult,
   input: AddFieldOptionInput,
 ): Promise<AddFieldOptionResult> {
-  const trimmedLabel = input.label.trim();
-  if (!trimmedLabel) {
-    throw new LibraryError("Option name cannot be empty.");
-  }
-
   const field = library.fieldSchema.fields.find((candidate) => candidate.key === input.fieldKey);
   if (!field || (field.type !== "single_select" && field.type !== "multi_select")) {
     throw new LibraryError(`Select field "${input.fieldKey}" was not found.`);
   }
 
-  const duplicate = field.options?.find(
-    (option) => option.label.toLocaleLowerCase() === trimmedLabel.toLocaleLowerCase(),
-  );
-  if (duplicate) {
-    throw new LibraryError(`${field.label} already has an option named "${duplicate.label}".`);
-  }
-
-  const baseId =
-    trimmedLabel
-      .normalize("NFKD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLocaleLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "") || "option";
-  const existingIds = new Set(field.options?.map((option) => option.id));
-  let id = baseId;
-  let suffix = 2;
-  while (existingIds.has(id)) {
-    id = `${baseId}_${suffix}`;
-    suffix += 1;
-  }
-
-  const option: FieldOptionV1 = { id, label: trimmedLabel };
+  const option = createFieldOption(field, input.label);
   const nextSchema: FieldSchemaV1 = {
     ...library.fieldSchema,
     fields: library.fieldSchema.fields.map((candidate) => {

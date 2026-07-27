@@ -5,16 +5,18 @@ import {
   duplicateNamingStrategy,
   validateStrategyEntropy,
 } from "@certtrace/library-engine";
-import type { NamingRulesV1, WordListsV1 } from "@certtrace/types";
+import type { FieldSchemaV1, NamingRulesV1, WordListsV1 } from "@certtrace/types";
 import { Button, Label, Select } from "@certtrace/ui";
 import { useState } from "react";
 import {
   updateLibraryConfigPartial,
+  updateLibraryFieldSchema,
   updateLibraryNamingRules,
   updateLibraryWordLists,
 } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { IdTemplateBuilder } from "./IdTemplateBuilder";
+import { SchemaSettingsEditor } from "./SchemaSettingsEditor";
 import { WordListEditor } from "./WordListEditor";
 
 interface LibrarySettingsViewProps {
@@ -25,6 +27,7 @@ interface LibrarySettingsViewProps {
 export function LibrarySettingsView({ library, onLibraryUpdated }: LibrarySettingsViewProps) {
   const [namingRules, setNamingRules] = useState<NamingRulesV1>(library.namingRules);
   const [wordLists, setWordLists] = useState<WordListsV1>(library.wordLists);
+  const [fieldSchema, setFieldSchema] = useState<FieldSchemaV1>(library.fieldSchema);
   const [selectedStrategyId, setSelectedStrategyId] = useState(library.config.idStrategy);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -45,9 +48,11 @@ export function LibrarySettingsView({ library, onLibraryUpdated }: LibrarySettin
       updated = await updateLibraryConfigPartial(updated, {
         idStrategy: selectedStrategyId,
       });
+      updated = await updateLibraryFieldSchema(updated, fieldSchema);
       onLibraryUpdated(updated);
       setNamingRules(updated.namingRules);
       setWordLists(updated.wordLists);
+      setFieldSchema(updated.fieldSchema);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -72,6 +77,17 @@ export function LibrarySettingsView({ library, onLibraryUpdated }: LibrarySettin
         <h1 className="text-2xl font-semibold">Library settings</h1>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{library.config.name}</p>
       </header>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="text-lg font-semibold">Material schema</h2>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          Configure receiving fields and lookup identifiers. Stable keys remain unchanged when
+          labels are renamed.
+        </p>
+        <div className="mt-4">
+          <SchemaSettingsEditor schema={fieldSchema} onChange={setFieldSchema} />
+        </div>
+      </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-wrap items-center justify-between gap-3">

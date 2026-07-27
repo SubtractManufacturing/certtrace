@@ -1,10 +1,16 @@
-import { addFieldOption, createLibrary } from "@certtrace/library-engine";
+import {
+  addFieldOption,
+  createLibrary,
+  openLibrary,
+  updateFieldSchema,
+} from "@certtrace/library-engine";
 import { open } from "@tauri-apps/plugin-dialog";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addLibraryFieldOption,
   createLibraryWithOptions,
   pickParentFolder,
+  updateLibraryFieldSchema,
 } from "./library-client";
 import { allowLibraryDirectory } from "./library-scope";
 
@@ -19,6 +25,7 @@ vi.mock("@certtrace/library-engine", () => ({
   listMaterialAttachments: vi.fn(),
   listMaterials: vi.fn(),
   openLibrary: vi.fn(),
+  updateFieldSchema: vi.fn(),
   updateLibraryConfig: vi.fn(),
   updateMaterial: vi.fn(),
   updateNamingRules: vi.fn(),
@@ -100,5 +107,31 @@ describe("library-client", () => {
 
     await expect(addLibraryFieldOption(library, input)).resolves.toBe(result);
     expect(addFieldOption).toHaveBeenCalledWith(library, input);
+  });
+
+  it("persists a field schema through the library engine and reloads the library", async () => {
+    const library = {
+      fs: {},
+      paths: { root: "/libraries/main" },
+      fieldSchema: { version: 1, fields: [], identifierKinds: [], attachmentKinds: [] },
+    } as never;
+    const schema = {
+      version: 1,
+      fields: [],
+      identifierKinds: [
+        { key: "mill_cert", label: "Mill cert", required: false, filterable: true },
+      ],
+      attachmentKinds: [],
+    } as never;
+    const reopened = {
+      fs: {},
+      paths: { root: "/libraries/main" },
+      fieldSchema: schema,
+    } as never;
+    vi.mocked(openLibrary).mockResolvedValue(reopened);
+
+    await expect(updateLibraryFieldSchema(library, schema)).resolves.toBe(reopened);
+    expect(updateFieldSchema).toHaveBeenCalledWith(library, schema);
+    expect(openLibrary).toHaveBeenCalledWith(expect.any(Object), "/libraries/main");
   });
 });
