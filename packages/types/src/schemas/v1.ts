@@ -173,13 +173,14 @@ export const materialMetadataV1Schema = z.object({
 
 export type MaterialMetadataV1 = z.infer<typeof materialMetadataV1Schema>;
 
-export const attachedFileKindSchema = z.enum(["pdf", "png", "jpg", "jpeg", "tiff", "other"]);
+export const attachedFileFormatSchema = z.enum(["pdf", "png", "jpg", "jpeg", "tiff", "other"]);
 
-export type AttachedFileKind = z.infer<typeof attachedFileKindSchema>;
+export type AttachedFileFormat = z.infer<typeof attachedFileFormatSchema>;
 
 export const attachedFileSchema = z.object({
   name: z.string().min(1),
-  kind: attachedFileKindSchema,
+  format: attachedFileFormatSchema,
+  kindKey: z.string().min(1).optional(),
   sizeBytes: z.number().int().nonnegative().optional(),
 });
 

@@ -43,6 +43,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             allow_library_directory,
             open_local::open_local_path,
+            open_local::reveal_local_path,
             print::print_pdf_file,
             start_library_watch,
             stop_library_watch,

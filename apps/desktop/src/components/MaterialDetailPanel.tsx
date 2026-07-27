@@ -1,23 +1,29 @@
 import {
-  attachmentKindLabel,
+  attachmentFormatLabel,
   getMaterialAttachmentPath,
   getMaterialFolderPath,
   type OpenLibraryResult,
-  removeMaterialAttachment,
 } from "@certtrace/library-engine";
 import type { AttachedFile, MaterialMetadataV1 } from "@certtrace/types";
 import {
   Button,
   cn,
+  Select,
   Sheet,
   SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@certtrace/ui";
-import { FileText, FolderOpen, Printer, Trash2 } from "lucide-react";
+import { FileText, FolderOpen, Pencil, Printer, Share2, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { attachFilesToMaterial, pickAttachmentFiles } from "../lib/attachment-client";
+import {
+  attachFilesToMaterial,
+  deleteAttachment,
+  pickAttachmentFiles,
+  renameAttachment,
+  revealAttachmentInFolder,
+} from "../lib/attachment-client";
 import {
   openPathWithOpener,
   printLabelPdfFromObjectUrl,
@@ -58,6 +64,9 @@ export function MaterialDetailPanel({
   });
   const [attachments, setAttachments] = useState<AttachedFile[]>([]);
   const [labelPdfUrl, setLabelPdfUrl] = useState<string | null>(null);
+  const [attachmentKindKey, setAttachmentKindKey] = useState(
+    library.fieldSchema.attachmentKinds[0]?.key ?? "",
+  );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -151,7 +160,8 @@ export function MaterialDetailPanel({
     setBusy(true);
     setError(null);
     try {
-      setAttachments(await attachFilesToMaterial(library, material.id, paths));
+      await attachFilesToMaterial(library, material.id, paths, attachmentKindKey || undefined);
+      setAttachments(await fetchMaterialAttachments(library, material.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -178,8 +188,37 @@ export function MaterialDetailPanel({
     setBusy(true);
     setError(null);
     try {
-      await removeMaterialAttachment(library, material.id, filename);
+      await deleteAttachment(library, material.id, filename);
       setAttachments(await fetchMaterialAttachments(library, material.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRenameAttachment(file: AttachedFile) {
+    const nextFilename = window.prompt("Rename attachment", file.name)?.trim();
+    if (!nextFilename || nextFilename === file.name) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await renameAttachment(library, material.id, file.name, nextFilename);
+      setAttachments(await fetchMaterialAttachments(library, material.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRevealAttachment(file: AttachedFile) {
+    setBusy(true);
+    setError(null);
+    try {
+      await revealAttachmentInFolder(library, material.id, file.name);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -223,6 +262,21 @@ export function MaterialDetailPanel({
         <Button type="button" disabled={busy} onClick={() => void handleSave()}>
           Save changes
         </Button>
+        {library.fieldSchema.attachmentKinds.length > 0 ? (
+          <Select
+            aria-label="Attachment kind"
+            value={attachmentKindKey}
+            disabled={busy}
+            onChange={(event) => setAttachmentKindKey(event.target.value)}
+            className="w-auto"
+          >
+            {library.fieldSchema.attachmentKinds.map((kind) => (
+              <option key={kind.key} value={kind.key}>
+                {kind.label}
+              </option>
+            ))}
+          </Select>
+        ) : null}
         <Button
           type="button"
           variant="outline"
@@ -276,12 +330,36 @@ export function MaterialDetailPanel({
                 >
                   <FileText className="h-4 w-4 shrink-0 text-slate-500" />
                   <span className="truncate">{file.name}</span>
-                  <span className="text-xs text-slate-500">{attachmentKindLabel(file.kind)}</span>
+                  <span className="text-xs text-slate-500">
+                    {library.fieldSchema.attachmentKinds.find((kind) => kind.key === file.kindKey)
+                      ?.label ?? "Uncategorized"}
+                    {" · "}
+                    {attachmentFormatLabel(file.format)}
+                  </span>
                 </button>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
+                  aria-label={`Rename ${file.name}`}
+                  onClick={() => void handleRenameAttachment(file)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Share ${file.name}`}
+                  onClick={() => void handleRevealAttachment(file)}
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Delete ${file.name}`}
                   onClick={() => void handleRemoveAttachment(file.name)}
                 >
                   <Trash2 className="h-4 w-4" />

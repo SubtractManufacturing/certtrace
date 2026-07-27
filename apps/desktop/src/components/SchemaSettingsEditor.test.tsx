@@ -131,6 +131,25 @@ describe("SchemaSettingsEditor", () => {
     });
   });
 
+  it("adds, renames, and removes attachment kinds", async () => {
+    const onChange = renderEditor();
+
+    const label = screen.getByLabelText("Label for attachment kind mtr");
+    await userEvent.clear(label);
+    await userEvent.type(label, "Mill test report");
+    await userEvent.click(screen.getByRole("button", { name: "Remove Heat cert" }));
+    await userEvent.type(screen.getByLabelText("New attachment kind label"), "Inspection photo");
+    await userEvent.click(screen.getByRole("button", { name: "Add attachment kind" }));
+
+    const updated = onChange.mock.calls.at(-1)?.[0];
+    expect(updated.attachmentKinds).toEqual([
+      { key: "mtr", label: "Mill test report" },
+      { key: "coc", label: "COC" },
+      { key: "other", label: "Other" },
+      { key: "inspection_photo", label: "Inspection photo" },
+    ]);
+  });
+
   it("edits dependent select option mappings", async () => {
     const onChange = renderEditor();
 

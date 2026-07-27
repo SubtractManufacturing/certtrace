@@ -1,4 +1,5 @@
 import {
+  type AttachmentKindV1,
   createDefaultLibraryConfigV1,
   defaultFieldSchemaV1,
   defaultNamingRulesV1,
@@ -23,6 +24,7 @@ import {
   type WordListsV1,
   wordListsV1Schema,
 } from "@certtrace/types";
+import { clearAttachmentKindAssignments } from "./attachments.js";
 import { backupConfigFile } from "./config-backup.js";
 import { LibraryError } from "./errors.js";
 import type { OpenLibraryResult } from "./types.js";
@@ -125,6 +127,21 @@ export function createIdentifierKind(schema: FieldSchemaV1, labelInput: string):
   });
 }
 
+export function createAttachmentKind(schema: FieldSchemaV1, labelInput: string): AttachmentKindV1 {
+  const label = labelInput.trim();
+  if (!label) {
+    throw new LibraryError("Attachment kind name cannot be empty.");
+  }
+  return {
+    key: createStableKey(
+      label,
+      "attachment",
+      new Set(schema.attachmentKinds.map((kind) => kind.key)),
+    ),
+    label,
+  };
+}
+
 export function createFieldOption(field: FieldDefinitionV1, labelInput: string): FieldOptionV1 {
   if (field.type !== "single_select" && field.type !== "multi_select") {
     throw new LibraryError(`Field "${field.label}" is not a select field.`);
@@ -216,8 +233,20 @@ export async function updateFieldSchema(
 ): Promise<FieldSchemaV1> {
   const validated = fieldSchemaV1Schema.parse(schema);
   validateFieldDependencies(validated);
-  await backupConfigFile(library.fs, library.paths.root, FIELD_SCHEMA_JSON);
-  await writeJson(library.fs, library.paths.fieldSchemaJson, validated);
+  const nextKindKeys = new Set(validated.attachmentKinds.map((kind) => kind.key));
+  const removedKindKeys = new Set(
+    library.fieldSchema.attachmentKinds
+      .map((kind) => kind.key)
+      .filter((kindKey) => !nextKindKeys.has(kindKey)),
+  );
+  const restoreAssignments = await clearAttachmentKindAssignments(library, removedKindKeys);
+  try {
+    await backupConfigFile(library.fs, library.paths.root, FIELD_SCHEMA_JSON);
+    await writeJson(library.fs, library.paths.fieldSchemaJson, validated);
+  } catch (error) {
+    await restoreAssignments().catch(() => undefined);
+    throw error;
+  }
   library.fieldSchema = validated;
   return validated;
 }

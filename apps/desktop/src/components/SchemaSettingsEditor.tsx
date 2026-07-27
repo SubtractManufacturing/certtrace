@@ -1,5 +1,6 @@
 import {
   changeFieldType,
+  createAttachmentKind,
   createFieldDefinition,
   createFieldOption,
   createIdentifierKind,
@@ -370,6 +371,84 @@ function IdentifierKindsEditor({ schema, onChange }: SchemaSettingsEditorProps) 
   );
 }
 
+function AttachmentKindsEditor({ schema, onChange }: SchemaSettingsEditorProps) {
+  const [newLabel, setNewLabel] = useState("");
+
+  function addKind() {
+    const label = newLabel.trim();
+    if (!label) {
+      return;
+    }
+    onChange({
+      ...schema,
+      attachmentKinds: [...schema.attachmentKinds, createAttachmentKind(schema, label)],
+    });
+    setNewLabel("");
+  }
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">Attachment kinds</h3>
+      <p className="text-sm text-slate-600 dark:text-slate-400">
+        Labels describe each attachment's role, independently of its file format.
+      </p>
+      {schema.attachmentKinds.map((kind) => (
+        <div
+          key={kind.key}
+          className="grid gap-2 rounded-md border border-slate-200 p-3 dark:border-slate-700 sm:grid-cols-[1fr_10rem_auto]"
+        >
+          <Input
+            aria-label={`Label for attachment kind ${kind.key}`}
+            value={kind.label}
+            onChange={(event) =>
+              onChange({
+                ...schema,
+                attachmentKinds: schema.attachmentKinds.map((candidate) =>
+                  candidate.key === kind.key
+                    ? { ...candidate, label: event.target.value }
+                    : candidate,
+                ),
+              })
+            }
+          />
+          <Input
+            value={kind.key}
+            readOnly
+            className="font-mono"
+            aria-label="Stable attachment key"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            aria-label={`Remove ${kind.label}`}
+            onClick={() =>
+              onChange({
+                ...schema,
+                attachmentKinds: schema.attachmentKinds.filter(
+                  (candidate) => candidate.key !== kind.key,
+                ),
+              })
+            }
+          >
+            Remove
+          </Button>
+        </div>
+      ))}
+      <div className="flex gap-2 rounded-md border border-dashed border-slate-300 p-3 dark:border-slate-600">
+        <Input
+          aria-label="New attachment kind label"
+          placeholder="New attachment kind"
+          value={newLabel}
+          onChange={(event) => setNewLabel(event.target.value)}
+        />
+        <Button type="button" disabled={!newLabel.trim()} onClick={addKind}>
+          Add attachment kind
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function SchemaSettingsEditor({ schema, onChange }: SchemaSettingsEditorProps) {
   const [newFieldLabel, setNewFieldLabel] = useState("");
   const [newFieldType, setNewFieldType] = useState<FieldType>("text");
@@ -549,6 +628,7 @@ export function SchemaSettingsEditor({ schema, onChange }: SchemaSettingsEditorP
         </Button>
       </div>
       <IdentifierKindsEditor schema={schema} onChange={onChange} />
+      <AttachmentKindsEditor schema={schema} onChange={onChange} />
     </div>
   );
 }

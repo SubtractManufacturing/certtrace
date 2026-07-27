@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import type { FileSystem } from "./types.js";
 
 export function createNodeFileSystem(): FileSystem {
@@ -24,6 +24,9 @@ export function createNodeFileSystem(): FileSystem {
     },
     async copyFile(from, to) {
       await copyFile(from, to);
+    },
+    async rename(from, to) {
+      await rename(from, to);
     },
     async readdir(path) {
       const entries = await readdir(path, { withFileTypes: true });

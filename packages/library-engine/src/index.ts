@@ -31,11 +31,12 @@ import type { CreateMaterialInput, OpenLibraryResult, UpdateMaterialInput } from
 export {
   type AttachFileSource,
   attachFiles,
-  attachmentKindLabel,
+  attachmentFormatLabel,
   getMaterialAttachmentPath,
   getMaterialFolderPath,
   listMaterialAttachments,
   removeMaterialAttachment,
+  renameMaterialAttachment,
 } from "./attachments.js";
 export { LibraryError } from "./errors.js";
 export {
@@ -51,6 +52,7 @@ export {
   addNamingStrategy,
   type CreateLibraryOptions,
   changeFieldType,
+  createAttachmentKind,
   createFieldDefinition,
   createFieldOption,
   createIdentifierKind,

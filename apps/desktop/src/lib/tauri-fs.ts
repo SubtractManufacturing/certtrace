@@ -6,6 +6,7 @@ import {
   readFile,
   readTextFile,
   remove,
+  rename,
   writeFile,
   writeTextFile,
 } from "@tauri-apps/plugin-fs";
@@ -32,6 +33,9 @@ export function createTauriFileSystem(): FileSystem {
     },
     copyFile(from, to) {
       return copyFile(from, to);
+    },
+    rename(from, to) {
+      return rename(from, to);
     },
     async readdir(path) {
       const entries = await readDir(path);
