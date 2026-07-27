@@ -1,3 +1,4 @@
+import type { OpenLibraryResult } from "@certtrace/library-engine";
 import {
   createDefaultLibraryConfigV1,
   defaultFieldSchemaV1,
@@ -8,6 +9,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  removeLibrarySchemaDefinition,
   updateLibraryConfigPartial,
   updateLibraryFieldSchema,
   updateLibraryNamingRules,
@@ -16,6 +18,7 @@ import {
 import { LibrarySettingsView } from "./LibrarySettingsView";
 
 vi.mock("../lib/library-client", () => ({
+  removeLibrarySchemaDefinition: vi.fn(),
   updateLibraryConfigPartial: vi.fn(),
   updateLibraryFieldSchema: vi.fn(),
   updateLibraryNamingRules: vi.fn(),
@@ -56,5 +59,40 @@ describe("LibrarySettingsView", () => {
         ]),
       }),
     );
+  });
+
+  it("persists pending schema edits before applying a removal choice", async () => {
+    const library = {
+      config: createDefaultLibraryConfigV1("Main"),
+      namingRules: defaultNamingRulesV1,
+      wordLists: defaultWordListsV1,
+      fieldSchema: defaultFieldSchemaV1,
+      paths: { root: "/libraries/main" },
+      fs: {},
+    } as unknown as OpenLibraryResult;
+    const schemaSaved = { ...library };
+    const removed = {
+      ...library,
+      fieldSchema: {
+        ...defaultFieldSchemaV1,
+        fields: defaultFieldSchemaV1.fields.map((field) =>
+          field.key === "supplier" ? { ...field, disabled: true } : field,
+        ),
+      },
+    } as OpenLibraryResult;
+    vi.mocked(updateLibraryFieldSchema).mockResolvedValue(schemaSaved);
+    vi.mocked(removeLibrarySchemaDefinition).mockResolvedValue(removed);
+
+    render(<LibrarySettingsView library={library} onLibraryUpdated={() => undefined} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Remove Supplier" }));
+    await userEvent.click(screen.getByRole("button", { name: "Disable new entries" }));
+
+    expect(updateLibraryFieldSchema).toHaveBeenCalledWith(library, defaultFieldSchemaV1);
+    expect(removeLibrarySchemaDefinition).toHaveBeenCalledWith(schemaSaved, {
+      definitionType: "field",
+      key: "supplier",
+      strategy: { type: "disable" },
+    });
   });
 });

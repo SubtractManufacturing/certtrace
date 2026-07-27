@@ -157,12 +157,15 @@ export function MaterialSchemaForm({
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {schema.fields.map((field) => {
-        if (!isFieldVisible(field, values.fields)) {
+        const raw = values.fields[field.key];
+        if (
+          (field.disabled && raw === undefined) ||
+          (!field.disabled && !isFieldVisible(field, values.fields))
+        ) {
           return null;
         }
 
         const inputId = `${idPrefix}-${field.key}`;
-        const raw = values.fields[field.key];
         const stringValue = typeof raw === "string" || typeof raw === "number" ? String(raw) : "";
         const options = availableFieldOptions(field, values.fields);
 
@@ -173,6 +176,7 @@ export function MaterialSchemaForm({
               <Textarea
                 id={inputId}
                 rows={3}
+                disabled={field.disabled}
                 value={stringValue}
                 onChange={(event) => setField(field.key, event.target.value)}
               />
@@ -186,6 +190,7 @@ export function MaterialSchemaForm({
               <Label htmlFor={inputId}>{field.label}</Label>
               <Select
                 id={inputId}
+                disabled={field.disabled}
                 value={stringValue}
                 onChange={(event) => setField(field.key, event.target.value || undefined)}
               >
@@ -196,7 +201,7 @@ export function MaterialSchemaForm({
                   </option>
                 ))}
               </Select>
-              {addOptionControls(field.key, field.label, false)}
+              {field.disabled ? null : addOptionControls(field.key, field.label, false)}
             </div>
           );
         }
@@ -209,6 +214,7 @@ export function MaterialSchemaForm({
               <Select
                 id={inputId}
                 multiple
+                disabled={field.disabled}
                 value={selected}
                 onChange={(event) => {
                   const next = Array.from(event.target.selectedOptions, (option) => option.value);
@@ -221,7 +227,7 @@ export function MaterialSchemaForm({
                   </option>
                 ))}
               </Select>
-              {addOptionControls(field.key, field.label, true)}
+              {field.disabled ? null : addOptionControls(field.key, field.label, true)}
             </div>
           );
         }
@@ -235,6 +241,7 @@ export function MaterialSchemaForm({
             <Input
               id={inputId}
               type={inputType}
+              disabled={field.disabled}
               value={stringValue}
               onChange={(event) => {
                 if (field.type === "number") {
@@ -250,13 +257,18 @@ export function MaterialSchemaForm({
       })}
 
       {schema.identifierKinds.map((kind) => {
+        const value = values.identifiers[kind.key];
+        if (kind.disabled && value === undefined) {
+          return null;
+        }
         const inputId = `${idPrefix}-id-${kind.key}`;
         return (
           <div key={kind.key} className="space-y-1 text-sm">
             <Label htmlFor={inputId}>{kind.label}</Label>
             <Input
               id={inputId}
-              value={values.identifiers[kind.key] ?? ""}
+              disabled={kind.disabled}
+              value={value ?? ""}
               onChange={(event) => setIdentifier(kind.key, event.target.value)}
             />
           </div>

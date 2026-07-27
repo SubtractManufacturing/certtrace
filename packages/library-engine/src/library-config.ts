@@ -182,6 +182,20 @@ export function changeFieldType(field: FieldDefinitionV1, type: FieldType): Fiel
   });
 }
 
+export function canReplaceFieldDefinition(
+  source: FieldDefinitionV1,
+  target: FieldDefinitionV1,
+): boolean {
+  if (source.type !== target.type) {
+    return false;
+  }
+  if (source.type !== "single_select" && source.type !== "multi_select") {
+    return true;
+  }
+  const targetOptionIds = new Set(target.options?.map((option) => option.id));
+  return source.options?.every((option) => targetOptionIds.has(option.id)) ?? true;
+}
+
 export interface CreateLibraryOptions {
   name: string;
   idStrategy?: string;

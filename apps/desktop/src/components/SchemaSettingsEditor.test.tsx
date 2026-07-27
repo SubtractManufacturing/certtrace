@@ -1,3 +1,4 @@
+import type { RemoveSchemaDefinitionInput } from "@certtrace/library-engine";
 import { defaultFieldSchemaV1 } from "@certtrace/types";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -5,7 +6,7 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { SchemaSettingsEditor } from "./SchemaSettingsEditor";
 
-function renderEditor() {
+function renderEditor(onRemoveDefinition?: (input: RemoveSchemaDefinitionInput) => Promise<void>) {
   const onChange = vi.fn();
 
   function Harness() {
@@ -17,6 +18,7 @@ function renderEditor() {
           onChange(next);
           setSchema(next);
         }}
+        onRemoveDefinition={onRemoveDefinition}
       />
     );
   }
@@ -163,6 +165,63 @@ describe("SchemaSettingsEditor", () => {
       filterOptionsBy: {
         steel: ["1018", "4140", "6061"],
       },
+    });
+  });
+
+  it("offers user-facing removal choices and disables new field entries", async () => {
+    const onRemoveDefinition = vi.fn().mockResolvedValue(undefined);
+    renderEditor(onRemoveDefinition);
+
+    await userEvent.click(screen.getByRole("button", { name: "Remove Supplier" }));
+
+    expect(
+      screen.getByText("Keep values already saved, but hide this field on new materials."),
+    ).toBeTruthy();
+    expect(
+      screen.getByText("Permanently erase this field and its values from every material."),
+    ).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Disable new entries" }));
+
+    expect(onRemoveDefinition).toHaveBeenCalledWith({
+      definitionType: "field",
+      key: "supplier",
+      strategy: { type: "disable" },
+    });
+  });
+
+  it("requires the definition name before deleting all values", async () => {
+    const onRemoveDefinition = vi.fn().mockResolvedValue(undefined);
+    renderEditor(onRemoveDefinition);
+
+    await userEvent.click(screen.getByRole("button", { name: "Remove Notes" }));
+    const deleteButton = screen.getByRole("button", { name: "Delete all values" });
+    expect((deleteButton as HTMLButtonElement).disabled).toBe(true);
+
+    await userEvent.type(screen.getByLabelText("Type Notes to confirm"), "Notes");
+    await userEvent.click(deleteButton);
+
+    expect(onRemoveDefinition).toHaveBeenCalledWith({
+      definitionType: "field",
+      key: "notes",
+      strategy: { type: "delete" },
+    });
+  });
+
+  it("replaces an identifier kind with another kind", async () => {
+    const onRemoveDefinition = vi.fn().mockResolvedValue(undefined);
+    renderEditor(onRemoveDefinition);
+
+    await userEvent.click(screen.getByRole("button", { name: "Remove Heat Number" }));
+    await userEvent.selectOptions(
+      screen.getByLabelText("Replacement for Heat Number"),
+      "lot_number",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Replace saved values" }));
+
+    expect(onRemoveDefinition).toHaveBeenCalledWith({
+      definitionType: "identifierKind",
+      key: "heat_number",
+      strategy: { type: "replace", targetKey: "lot_number" },
     });
   });
 });

@@ -10,6 +10,8 @@ import {
   listMaterials,
   type OpenLibraryResult,
   openLibrary,
+  type RemoveSchemaDefinitionInput,
+  removeSchemaDefinition,
   type UpdateMaterialInput,
   updateFieldSchema,
   updateLibraryConfig,
@@ -128,6 +130,14 @@ export async function updateLibraryFieldSchema(
   schema: FieldSchemaV1,
 ): Promise<OpenLibraryResult> {
   await updateFieldSchema(library, schema);
+  return reloadLibraryAtPath(library.paths.root);
+}
+
+export async function removeLibrarySchemaDefinition(
+  library: OpenLibraryResult,
+  input: RemoveSchemaDefinitionInput,
+): Promise<OpenLibraryResult> {
+  await removeSchemaDefinition(library, input);
   return reloadLibraryAtPath(library.paths.root);
 }
 

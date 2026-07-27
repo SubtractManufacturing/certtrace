@@ -3,12 +3,14 @@ import {
   addNamingStrategy,
   deleteNamingStrategy,
   duplicateNamingStrategy,
+  type RemoveSchemaDefinitionInput,
   validateStrategyEntropy,
 } from "@certtrace/library-engine";
 import type { FieldSchemaV1, NamingRulesV1, WordListsV1 } from "@certtrace/types";
 import { Button, Label, Select } from "@certtrace/ui";
 import { useState } from "react";
 import {
+  removeLibrarySchemaDefinition,
   updateLibraryConfigPartial,
   updateLibraryFieldSchema,
   updateLibraryNamingRules,
@@ -60,6 +62,22 @@ export function LibrarySettingsView({ library, onLibraryUpdated }: LibrarySettin
     }
   }
 
+  async function removeDefinition(input: RemoveSchemaDefinitionInput) {
+    setBusy(true);
+    setError(null);
+    try {
+      let updated = await updateLibraryFieldSchema(library, fieldSchema);
+      updated = await removeLibrarySchemaDefinition(updated, input);
+      onLibraryUpdated(updated);
+      setFieldSchema(updated.fieldSchema);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      throw err;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function updateSelectedStrategy(next: typeof selectedStrategy) {
     setNamingRules({
       ...namingRules,
@@ -85,7 +103,11 @@ export function LibrarySettingsView({ library, onLibraryUpdated }: LibrarySettin
           labels are renamed.
         </p>
         <div className="mt-4">
-          <SchemaSettingsEditor schema={fieldSchema} onChange={setFieldSchema} />
+          <SchemaSettingsEditor
+            schema={fieldSchema}
+            onChange={setFieldSchema}
+            onRemoveDefinition={removeDefinition}
+          />
         </div>
       </section>
 

@@ -38,3 +38,16 @@ export interface UpdateMaterialInput {
   fields?: Record<string, FieldValueV1>;
   identifiers?: Record<string, string>;
 }
+
+export type SchemaDefinitionType = "field" | "identifierKind";
+
+export type SchemaDefinitionRemovalStrategy =
+  | { type: "disable" }
+  | { type: "delete" }
+  | { type: "replace"; targetKey: string };
+
+export interface RemoveSchemaDefinitionInput {
+  definitionType: SchemaDefinitionType;
+  key: string;
+  strategy: SchemaDefinitionRemovalStrategy;
+}

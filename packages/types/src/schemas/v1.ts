@@ -102,6 +102,7 @@ export const fieldDefinitionV1Schema = z
     type: fieldTypeSchema,
     required: z.boolean(),
     filterable: z.boolean(),
+    disabled: z.boolean().optional(),
     options: z.array(fieldOptionV1Schema).optional(),
     dependsOn: fieldDependencyV1Schema.optional(),
   })
@@ -124,6 +125,7 @@ export const identifierKindV1Schema = z.object({
   label: z.string().min(1),
   required: z.boolean(),
   filterable: z.boolean(),
+  disabled: z.boolean().optional(),
 });
 
 export type IdentifierKindV1 = z.infer<typeof identifierKindV1Schema>;

@@ -2,6 +2,7 @@ import {
   addFieldOption,
   createLibrary,
   openLibrary,
+  removeSchemaDefinition,
   updateFieldSchema,
 } from "@certtrace/library-engine";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -10,6 +11,7 @@ import {
   addLibraryFieldOption,
   createLibraryWithOptions,
   pickParentFolder,
+  removeLibrarySchemaDefinition,
   updateLibraryFieldSchema,
 } from "./library-client";
 import { allowLibraryDirectory } from "./library-scope";
@@ -25,6 +27,7 @@ vi.mock("@certtrace/library-engine", () => ({
   listMaterialAttachments: vi.fn(),
   listMaterials: vi.fn(),
   openLibrary: vi.fn(),
+  removeSchemaDefinition: vi.fn(),
   updateFieldSchema: vi.fn(),
   updateLibraryConfig: vi.fn(),
   updateMaterial: vi.fn(),
@@ -133,5 +136,26 @@ describe("library-client", () => {
     await expect(updateLibraryFieldSchema(library, schema)).resolves.toBe(reopened);
     expect(updateFieldSchema).toHaveBeenCalledWith(library, schema);
     expect(openLibrary).toHaveBeenCalledWith(expect.any(Object), "/libraries/main");
+  });
+
+  it("applies a schema removal through the engine and reloads the library", async () => {
+    const library = {
+      fs: {},
+      paths: { root: "/libraries/main" },
+    } as never;
+    const input = {
+      definitionType: "field",
+      key: "supplier",
+      strategy: { type: "disable" },
+    } as const;
+    const reopened = {
+      fs: {},
+      paths: { root: "/libraries/main" },
+    } as never;
+    vi.mocked(removeSchemaDefinition).mockResolvedValue({} as never);
+    vi.mocked(openLibrary).mockResolvedValue(reopened);
+
+    await expect(removeLibrarySchemaDefinition(library, input)).resolves.toBe(reopened);
+    expect(removeSchemaDefinition).toHaveBeenCalledWith(library, input);
   });
 });

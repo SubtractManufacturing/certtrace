@@ -1,9 +1,13 @@
 import {
+  canReplaceFieldDefinition,
   changeFieldType,
   createAttachmentKind,
   createFieldDefinition,
   createFieldOption,
   createIdentifierKind,
+  type RemoveSchemaDefinitionInput,
+  type SchemaDefinitionRemovalStrategy,
+  type SchemaDefinitionType,
 } from "@certtrace/library-engine";
 import type { FieldSchemaV1, FieldType } from "@certtrace/types";
 import { Button, Input, Label, Select, Switch } from "@certtrace/ui";
@@ -12,6 +16,7 @@ import { useState } from "react";
 interface SchemaSettingsEditorProps {
   schema: FieldSchemaV1;
   onChange: (schema: FieldSchemaV1) => void;
+  onRemoveDefinition?: (input: RemoveSchemaDefinitionInput) => Promise<void>;
 }
 
 function moveItem<T>(items: T[], index: number, offset: -1 | 1): T[] | null {
@@ -237,7 +242,148 @@ function FieldDependencyEditor({ schema, field, onChange }: FieldDependencyEdito
   );
 }
 
-function IdentifierKindsEditor({ schema, onChange }: SchemaSettingsEditorProps) {
+interface DefinitionRemovalControlsProps {
+  definitionType: SchemaDefinitionType;
+  definitionKey: string;
+  label: string;
+  targets: Array<{ key: string; label: string }>;
+  targetNoun: string;
+  onRemove: (input: RemoveSchemaDefinitionInput) => Promise<void>;
+}
+
+function DefinitionRemovalControls({
+  definitionType,
+  definitionKey,
+  label,
+  targets,
+  targetNoun,
+  onRemove,
+}: DefinitionRemovalControlsProps) {
+  const [open, setOpen] = useState(false);
+  const [confirmation, setConfirmation] = useState("");
+  const [targetKey, setTargetKey] = useState(targets[0]?.key ?? "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function apply(strategy: SchemaDefinitionRemovalStrategy) {
+    setBusy(true);
+    setError(null);
+    try {
+      await onRemove({ definitionType, key: definitionKey, strategy });
+      setOpen(false);
+      setConfirmation("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        aria-label={`Remove ${label}`}
+        onClick={() => setOpen(true)}
+      >
+        Remove
+      </Button>
+    );
+  }
+
+  return (
+    <div className="space-y-3 rounded-md border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/30">
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-medium">Remove {label}?</p>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={() => setOpen(false)}
+        >
+          Cancel
+        </Button>
+      </div>
+
+      <div className="space-y-1">
+        <p className="text-sm">
+          Keep values already saved, but hide this {targetNoun} on new materials.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={busy}
+          onClick={() => void apply({ type: "disable" })}
+        >
+          Disable new entries
+        </Button>
+      </div>
+
+      <div className="space-y-2 border-t border-amber-200 pt-3 dark:border-amber-900">
+        <p className="text-sm">
+          Permanently erase this {targetNoun} and its values from every material.
+        </p>
+        <Label htmlFor={`delete-confirm-${definitionType}-${definitionKey}`}>
+          Type {label} to confirm
+        </Label>
+        <Input
+          id={`delete-confirm-${definitionType}-${definitionKey}`}
+          aria-label={`Type ${label} to confirm`}
+          value={confirmation}
+          onChange={(event) => setConfirmation(event.target.value)}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={busy || confirmation !== label}
+          onClick={() => void apply({ type: "delete" })}
+        >
+          Delete all values
+        </Button>
+      </div>
+
+      <div className="space-y-2 border-t border-amber-200 pt-3 dark:border-amber-900">
+        <p className="text-sm">
+          Move every saved value to another {targetNoun}, then remove this one.
+        </p>
+        <Label htmlFor={`replacement-${definitionType}-${definitionKey}`}>Replace with</Label>
+        <Select
+          id={`replacement-${definitionType}-${definitionKey}`}
+          aria-label={`Replacement for ${label}`}
+          value={targetKey}
+          onChange={(event) => setTargetKey(event.target.value)}
+        >
+          {targets.map((target) => (
+            <option key={target.key} value={target.key}>
+              {target.label}
+            </option>
+          ))}
+        </Select>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={busy || !targetKey}
+          onClick={() => void apply({ type: "replace", targetKey })}
+        >
+          Replace saved values
+        </Button>
+      </div>
+      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+    </div>
+  );
+}
+
+function IdentifierKindsEditor({
+  schema,
+  onChange,
+  onRemoveDefinition,
+}: SchemaSettingsEditorProps) {
   const [newLabel, setNewLabel] = useState("");
 
   function updateKind(
@@ -306,6 +452,21 @@ function IdentifierKindsEditor({ schema, onChange }: SchemaSettingsEditorProps) 
               >
                 Down
               </Button>
+              {kind.disabled ? (
+                <span className="self-center text-xs text-slate-500">Disabled for new entries</span>
+              ) : null}
+              {onRemoveDefinition ? (
+                <DefinitionRemovalControls
+                  definitionType="identifierKind"
+                  definitionKey={kind.key}
+                  label={kind.label}
+                  targetNoun="identifier kind"
+                  targets={schema.identifierKinds
+                    .filter((candidate) => candidate.key !== kind.key && !candidate.disabled)
+                    .map((candidate) => ({ key: candidate.key, label: candidate.label }))}
+                  onRemove={onRemoveDefinition}
+                />
+              ) : null}
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
@@ -449,7 +610,11 @@ function AttachmentKindsEditor({ schema, onChange }: SchemaSettingsEditorProps) 
   );
 }
 
-export function SchemaSettingsEditor({ schema, onChange }: SchemaSettingsEditorProps) {
+export function SchemaSettingsEditor({
+  schema,
+  onChange,
+  onRemoveDefinition,
+}: SchemaSettingsEditorProps) {
   const [newFieldLabel, setNewFieldLabel] = useState("");
   const [newFieldType, setNewFieldType] = useState<FieldType>("text");
 
@@ -517,6 +682,26 @@ export function SchemaSettingsEditor({ schema, onChange }: SchemaSettingsEditorP
               >
                 Down
               </Button>
+              {field.disabled ? (
+                <span className="self-center text-xs text-slate-500">Disabled for new entries</span>
+              ) : null}
+              {onRemoveDefinition ? (
+                <DefinitionRemovalControls
+                  definitionType="field"
+                  definitionKey={field.key}
+                  label={field.label}
+                  targetNoun="field"
+                  targets={schema.fields
+                    .filter(
+                      (candidate) =>
+                        candidate.key !== field.key &&
+                        !candidate.disabled &&
+                        canReplaceFieldDefinition(field, candidate),
+                    )
+                    .map((candidate) => ({ key: candidate.key, label: candidate.label }))}
+                  onRemove={onRemoveDefinition}
+                />
+              ) : null}
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -627,7 +812,11 @@ export function SchemaSettingsEditor({ schema, onChange }: SchemaSettingsEditorP
           Add field
         </Button>
       </div>
-      <IdentifierKindsEditor schema={schema} onChange={onChange} />
+      <IdentifierKindsEditor
+        schema={schema}
+        onChange={onChange}
+        onRemoveDefinition={onRemoveDefinition}
+      />
       <AttachmentKindsEditor schema={schema} onChange={onChange} />
     </div>
   );

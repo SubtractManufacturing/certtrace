@@ -222,4 +222,82 @@ describe("MaterialSchemaForm", () => {
   it("allows empty values on the shipped default schema (nothing required)", () => {
     expect(validateMaterialValues(defaultFieldSchemaV1, {}, {})).toEqual([]);
   });
+
+  it("hides disabled definitions and does not require them on new materials", () => {
+    const schema: FieldSchemaV1 = {
+      version: 1,
+      fields: [
+        {
+          key: "legacy_grade",
+          label: "Legacy Grade",
+          type: "text",
+          required: true,
+          filterable: true,
+          disabled: true,
+        },
+      ],
+      identifierKinds: [
+        {
+          key: "legacy_number",
+          label: "Legacy Number",
+          required: true,
+          filterable: true,
+          disabled: true,
+        },
+      ],
+      attachmentKinds: [],
+    };
+
+    render(
+      <MaterialSchemaForm
+        schema={schema}
+        values={{ fields: {}, identifiers: {} }}
+        onChange={() => undefined}
+      />,
+    );
+
+    expect(screen.queryByLabelText("Legacy Grade")).toBeNull();
+    expect(screen.queryByLabelText("Legacy Number")).toBeNull();
+    expect(validateMaterialValues(schema, {}, {})).toEqual([]);
+  });
+
+  it("shows saved values for disabled definitions without allowing changes", () => {
+    const schema: FieldSchemaV1 = {
+      version: 1,
+      fields: [
+        {
+          key: "legacy_grade",
+          label: "Legacy Grade",
+          type: "text",
+          required: true,
+          filterable: true,
+          disabled: true,
+        },
+      ],
+      identifierKinds: [
+        {
+          key: "legacy_number",
+          label: "Legacy Number",
+          required: true,
+          filterable: true,
+          disabled: true,
+        },
+      ],
+      attachmentKinds: [],
+    };
+
+    render(
+      <MaterialSchemaForm
+        schema={schema}
+        values={{
+          fields: { legacy_grade: "A36" },
+          identifiers: { legacy_number: "OLD-10" },
+        }}
+        onChange={() => undefined}
+      />,
+    );
+
+    expect((screen.getByLabelText("Legacy Grade") as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByLabelText("Legacy Number") as HTMLInputElement).disabled).toBe(true);
+  });
 });

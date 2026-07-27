@@ -110,12 +110,18 @@ export function validateMaterialValues(
   const errors: string[] = [];
 
   for (const field of schema.fields) {
+    if (field.disabled) {
+      continue;
+    }
     if (field.required && isFieldVisible(field, fields) && isEmptyFieldValue(fields[field.key])) {
       errors.push(`${field.label} is required`);
     }
   }
 
   for (const kind of schema.identifierKinds) {
+    if (kind.disabled) {
+      continue;
+    }
     if (kind.required && !identifiers[kind.key]?.trim()) {
       errors.push(`${kind.label} is required`);
     }

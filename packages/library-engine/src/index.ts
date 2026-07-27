@@ -17,7 +17,12 @@ import {
   WORD_LISTS_JSON,
 } from "@certtrace/types";
 import { LibraryError } from "./errors.js";
-import { buildCreateLibraryConfig, type CreateLibraryOptions } from "./library-config.js";
+import {
+  buildCreateLibraryConfig,
+  type CreateLibraryOptions,
+  canReplaceFieldDefinition,
+  updateFieldSchema,
+} from "./library-config.js";
 import {
   migrateFieldSchema,
   migrateLibraryConfig,
@@ -26,7 +31,12 @@ import {
   migrateWordLists,
 } from "./migrations/index.js";
 import { createLibraryReadme } from "./readme.js";
-import type { CreateMaterialInput, OpenLibraryResult, UpdateMaterialInput } from "./types.js";
+import type {
+  CreateMaterialInput,
+  OpenLibraryResult,
+  RemoveSchemaDefinitionInput,
+  UpdateMaterialInput,
+} from "./types.js";
 
 export {
   type AttachFileSource,
@@ -51,6 +61,7 @@ export {
   addFieldOption,
   addNamingStrategy,
   type CreateLibraryOptions,
+  canReplaceFieldDefinition,
   changeFieldType,
   createAttachmentKind,
   createFieldDefinition,
@@ -72,6 +83,9 @@ export type {
   CreateMaterialInput,
   LibraryPaths,
   OpenLibraryResult,
+  RemoveSchemaDefinitionInput,
+  SchemaDefinitionRemovalStrategy,
+  SchemaDefinitionType,
   UpdateMaterialInput,
 } from "./types.js";
 
@@ -179,6 +193,35 @@ async function readMigratedJson<T>(
   }
 }
 
+function assertNoDisabledDefinitionChanges(
+  library: OpenLibraryResult,
+  fields: CreateMaterialInput["fields"],
+  identifiers: CreateMaterialInput["identifiers"],
+  current?: MaterialMetadataV1,
+): void {
+  for (const field of library.fieldSchema.fields) {
+    const nextValue = fields?.[field.key];
+    if (
+      field.disabled &&
+      nextValue !== undefined &&
+      (current?.fields[field.key] === undefined ||
+        JSON.stringify(current.fields[field.key]) !== JSON.stringify(nextValue))
+    ) {
+      throw new LibraryError(`Field "${field.label}" is disabled for new entries.`);
+    }
+  }
+  for (const kind of library.fieldSchema.identifierKinds) {
+    const nextValue = identifiers?.[kind.key];
+    if (
+      kind.disabled &&
+      nextValue !== undefined &&
+      (current?.identifiers[kind.key] === undefined || current.identifiers[kind.key] !== nextValue)
+    ) {
+      throw new LibraryError(`Identifier kind "${kind.label}" is disabled for new entries.`);
+    }
+  }
+}
+
 export async function openLibrary(fs: FileSystem, root: string): Promise<OpenLibraryResult> {
   const paths = getLibraryPaths(root);
 
@@ -260,6 +303,7 @@ export async function createMaterial(
   library: OpenLibraryResult,
   input: CreateMaterialInput = {},
 ): Promise<MaterialMetadataV1> {
+  assertNoDisabledDefinitionChanges(library, input.fields, input.identifiers);
   const existingIds = new Set(await listMaterialIds(library));
   const strategy = getActiveStrategy(library);
 
@@ -293,6 +337,7 @@ export async function updateMaterial(
   input: UpdateMaterialInput,
 ): Promise<MaterialMetadataV1> {
   const current = await getMaterial(library, materialId);
+  assertNoDisabledDefinitionChanges(library, input.fields, input.identifiers, current);
   const updated: MaterialMetadataV1 = {
     ...current,
     fields: {
@@ -315,6 +360,143 @@ export async function updateMaterial(
   await writeJson(library.fs, metadataPath, updated);
 
   return updated;
+}
+
+export async function removeSchemaDefinition(
+  library: OpenLibraryResult,
+  input: RemoveSchemaDefinitionInput,
+): Promise<OpenLibraryResult["fieldSchema"]> {
+  const collection =
+    input.definitionType === "field"
+      ? library.fieldSchema.fields
+      : library.fieldSchema.identifierKinds;
+  const source = collection.find((definition) => definition.key === input.key);
+  if (!source) {
+    throw new LibraryError(`Schema ${input.definitionType} "${input.key}" was not found.`);
+  }
+
+  if (input.strategy.type === "disable") {
+    const nextSchema =
+      input.definitionType === "field"
+        ? {
+            ...library.fieldSchema,
+            fields: library.fieldSchema.fields.map((field) =>
+              field.key === input.key ? { ...field, disabled: true } : field,
+            ),
+          }
+        : {
+            ...library.fieldSchema,
+            identifierKinds: library.fieldSchema.identifierKinds.map((kind) =>
+              kind.key === input.key ? { ...kind, disabled: true } : kind,
+            ),
+          };
+
+    return updateFieldSchema(library, nextSchema);
+  }
+
+  const targetKey = input.strategy.type === "replace" ? input.strategy.targetKey : undefined;
+  if (targetKey === input.key) {
+    throw new LibraryError("A schema definition cannot replace itself.");
+  }
+  const target = targetKey
+    ? collection.find((definition) => definition.key === targetKey)
+    : undefined;
+  if (targetKey && !target) {
+    throw new LibraryError(`Replacement target "${targetKey}" was not found.`);
+  }
+  if (input.definitionType === "field" && targetKey) {
+    const sourceField = library.fieldSchema.fields.find((field) => field.key === input.key);
+    const targetField = library.fieldSchema.fields.find((field) => field.key === targetKey);
+    if (!sourceField || !targetField) {
+      throw new LibraryError("Both replacement fields must exist.");
+    }
+    if (!canReplaceFieldDefinition(sourceField, targetField)) {
+      throw new LibraryError(
+        "A field can only be replaced by a field of the same type with compatible options.",
+      );
+    }
+  }
+
+  const materials = await listMaterials(library);
+  const remappedMaterials = materials.map((material) => {
+    const values =
+      input.definitionType === "field" ? { ...material.fields } : { ...material.identifiers };
+    const sourceValue = values[input.key];
+    if (sourceValue === undefined) {
+      return material;
+    }
+    if (targetKey) {
+      const targetValue = values[targetKey];
+      if (
+        targetValue !== undefined &&
+        JSON.stringify(targetValue) !== JSON.stringify(sourceValue)
+      ) {
+        throw new LibraryError(
+          `Material "${material.id}" already has a different value for "${targetKey}".`,
+        );
+      }
+      values[targetKey] = sourceValue;
+    }
+    delete values[input.key];
+
+    return {
+      ...material,
+      ...(input.definitionType === "field" ? { fields: values } : { identifiers: values }),
+      updatedAt: new Date().toISOString(),
+    } as MaterialMetadataV1;
+  });
+
+  const nextSchema =
+    input.definitionType === "field"
+      ? {
+          ...library.fieldSchema,
+          fields: library.fieldSchema.fields
+            .filter((field) => field.key !== input.key)
+            .map((field) => {
+              if (field.dependsOn?.fieldKey !== input.key) {
+                return field;
+              }
+              if (!targetKey || field.key === targetKey) {
+                const { dependsOn: _dependsOn, ...withoutDependency } = field;
+                return withoutDependency;
+              }
+              return {
+                ...field,
+                dependsOn: { ...field.dependsOn, fieldKey: targetKey },
+              };
+            }),
+        }
+      : {
+          ...library.fieldSchema,
+          identifierKinds: library.fieldSchema.identifierKinds.filter(
+            (kind) => kind.key !== input.key,
+          ),
+        };
+
+  const changedMaterials = remappedMaterials.filter(
+    (material, index) => material !== materials[index],
+  );
+  try {
+    for (const material of changedMaterials) {
+      await writeJson(
+        library.fs,
+        joinPath(library.paths.root, materialMetadataPath(material.id)),
+        material,
+      );
+    }
+    return await updateFieldSchema(library, nextSchema);
+  } catch (error) {
+    for (const material of materials) {
+      if (changedMaterials.some((changed) => changed.id === material.id)) {
+        await writeJson(
+          library.fs,
+          joinPath(library.paths.root, materialMetadataPath(material.id)),
+          material,
+        ).catch(() => undefined);
+      }
+    }
+    throw error;
+  }
 }
 
 export const LIBRARY_CONTRACT_PATHS = LIBRARY_PATHS;
