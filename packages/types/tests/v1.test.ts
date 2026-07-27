@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { FIELD_SCHEMA_JSON, LIBRARY_JSON, MATERIALS_DIR, NAMING_RULES_JSON, WORD_LISTS_JSON } from "../src/paths.js";
+import {
+  FIELD_SCHEMA_JSON,
+  LIBRARY_JSON,
+  MATERIALS_DIR,
+  NAMING_RULES_JSON,
+  WORD_LISTS_JSON,
+} from "../src/paths.js";
 import {
   fieldSchemaV1Schema,
   libraryConfigV1Schema,
@@ -64,11 +70,23 @@ describe("fieldSchemaV1Schema", () => {
     const family = parsed.fields.find((field) => field.key === "family");
     expect(family?.label).toBe("Material");
     expect(family?.type).toBe("single_select");
+    expect(parsed.fields.filter((field) => field.filterable).map((field) => field.key)).toEqual([
+      "family",
+      "alloy",
+      "temper",
+      "shape",
+      "supplier",
+      "traceability_type",
+      "date_received",
+      "storage_location",
+    ]);
+    expect(parsed.fields.find((field) => field.key === "notes")?.filterable).toBe(false);
     expect(parsed.identifierKinds.map((kind) => kind.key)).toEqual([
       "heat_number",
       "lot_number",
       "purchase_order",
     ]);
+    expect(parsed.identifierKinds.every((kind) => kind.filterable)).toBe(true);
     expect(parsed.attachmentKinds.map((kind) => kind.key)).toEqual([
       "mtr",
       "heat_cert",

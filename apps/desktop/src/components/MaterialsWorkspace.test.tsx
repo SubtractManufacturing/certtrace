@@ -1,6 +1,6 @@
 import type { OpenLibraryResult } from "@certtrace/library-engine";
 import { defaultFieldSchemaV1 } from "@certtrace/types";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
@@ -82,13 +82,94 @@ describe("MaterialsWorkspace", () => {
       />,
     );
 
-    expect(screen.getByText("6061")).toBeTruthy();
-    expect(screen.getByText("7075")).toBeTruthy();
+    expect(within(screen.getByRole("table")).getByText("6061")).toBeTruthy();
+    expect(within(screen.getByRole("table")).getByText("7075")).toBeTruthy();
 
     await userEvent.type(screen.getByPlaceholderText(/Search Main Shop/i), "H-44");
 
     expect(filterMaterials).toHaveBeenCalled();
     expect(filterMaterials.mock.calls.at(-1)?.[0]).toBe("H-44");
+  });
+
+  it("shows filterable schema definitions and narrows the current library", async () => {
+    render(
+      <MaterialsWorkspace
+        sessionLibraries={new Map([["/tmp/shop", sampleLibrary]])}
+        activeLibraryPath="/tmp/shop"
+        materials={materials}
+        onRefreshLibrary={async () => undefined}
+        filterMaterials={() => materials}
+      />,
+    );
+
+    expect(screen.getByLabelText("Filter by Material")).toBeTruthy();
+    expect(screen.getByLabelText("Filter by Supplier")).toBeTruthy();
+    expect(screen.getByLabelText("Filter by Heat Number")).toBeTruthy();
+    expect(screen.queryByLabelText("Filter by Notes")).toBeNull();
+
+    await userEvent.selectOptions(screen.getByLabelText("Filter by Supplier"), "mcmaster");
+
+    expect(within(screen.getByRole("table")).getByText("6061")).toBeTruthy();
+    expect(within(screen.getByRole("table")).queryByText("7075")).toBeNull();
+  });
+
+  it("filters by identifier values", async () => {
+    render(
+      <MaterialsWorkspace
+        sessionLibraries={new Map([["/tmp/shop", sampleLibrary]])}
+        activeLibraryPath="/tmp/shop"
+        materials={materials}
+        onRefreshLibrary={async () => undefined}
+        filterMaterials={() => materials}
+      />,
+    );
+
+    await userEvent.type(screen.getByLabelText("Filter by Heat Number"), "h-44");
+
+    expect(within(screen.getByRole("table")).getByText("7075")).toBeTruthy();
+    expect(within(screen.getByRole("table")).queryByText("6061")).toBeNull();
+  });
+
+  it("updates available filters when the reopened library schema changes", () => {
+    const commonProps = {
+      activeLibraryPath: "/tmp/shop" as const,
+      materials,
+      onRefreshLibrary: async () => undefined,
+      filterMaterials: () => materials,
+    };
+    const { rerender } = render(
+      <MaterialsWorkspace
+        {...commonProps}
+        sessionLibraries={new Map([["/tmp/shop", sampleLibrary]])}
+      />,
+    );
+
+    expect(screen.getByLabelText("Filter by Material")).toBeTruthy();
+    expect(screen.queryByLabelText("Filter by Notes")).toBeNull();
+
+    const reopenedLibrary = {
+      ...sampleLibrary,
+      fieldSchema: {
+        ...defaultFieldSchemaV1,
+        fields: defaultFieldSchemaV1.fields.map((field) =>
+          field.key === "family"
+            ? { ...field, filterable: false }
+            : field.key === "notes"
+              ? { ...field, filterable: true }
+              : field,
+        ),
+      },
+    } as OpenLibraryResult;
+
+    rerender(
+      <MaterialsWorkspace
+        {...commonProps}
+        sessionLibraries={new Map([["/tmp/shop", reopenedLibrary]])}
+      />,
+    );
+
+    expect(screen.queryByLabelText("Filter by Material")).toBeNull();
+    expect(screen.getByLabelText("Filter by Notes")).toBeTruthy();
   });
 
   it("renders default list columns from the library field schema", () => {
@@ -109,7 +190,7 @@ describe("MaterialsWorkspace", () => {
     expect(screen.getByRole("button", { name: /^Storage Location$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^Identifiers$/i })).toBeTruthy();
     expect(screen.getAllByText("Aluminum").length).toBeGreaterThan(0);
-    expect(screen.getByText("McMaster")).toBeTruthy();
+    expect(within(screen.getByRole("table")).getByText("McMaster")).toBeTruthy();
     expect(screen.getByText("H-22")).toBeTruthy();
   });
 

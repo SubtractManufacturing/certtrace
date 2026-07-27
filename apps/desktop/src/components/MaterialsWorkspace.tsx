@@ -24,6 +24,12 @@ import {
 import { ErrorBanner } from "./ErrorBanner";
 import { MaterialDetailPanel } from "./MaterialDetailPanel";
 import {
+  emptyMaterialFilters,
+  filterMaterialsBySchema,
+  MaterialFiltersBar,
+  type MaterialFilterValues,
+} from "./MaterialFiltersBar";
+import {
   type MaterialFormValues,
   MaterialSchemaForm,
   validateMaterialValues,
@@ -62,9 +68,9 @@ export function MaterialsWorkspace({
   const [localError, setLocalError] = useState<string | null>(null);
   const [materialCode, setMaterialCode] = useState("AL");
   const [formValues, setFormValues] = useState<MaterialFormValues>(emptyFormValues);
+  const [schemaFilters, setSchemaFilters] = useState<MaterialFilterValues>(emptyMaterialFilters);
   const searchInputId = "materials-search-input";
 
-  const filteredMaterials = useMemo(() => filterMaterials(query), [filterMaterials, query]);
   const showLibraryColumn = activeLibraryPath === "all";
   const wideLayout = typeof window !== "undefined" ? window.innerWidth >= 1100 : false;
 
@@ -72,6 +78,15 @@ export function MaterialsWorkspace({
     activeLibraryPath && activeLibraryPath !== "all"
       ? (sessionLibraries.get(activeLibraryPath) ?? null)
       : null;
+
+  const searchedMaterials = useMemo(() => filterMaterials(query), [filterMaterials, query]);
+  const filteredMaterials = useMemo(
+    () =>
+      activeSingleLibrary
+        ? filterMaterialsBySchema(searchedMaterials, activeSingleLibrary.fieldSchema, schemaFilters)
+        : searchedMaterials,
+    [activeSingleLibrary, schemaFilters, searchedMaterials],
+  );
 
   const listSchema = activeSingleLibrary?.fieldSchema ?? defaultFieldSchemaV1;
 
@@ -115,6 +130,11 @@ export function MaterialsWorkspace({
       cancelled = true;
     };
   }, [onEnsureLibrary, selectedMaterial, sessionLibraries]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: changing library scope must clear its filters
+  useEffect(() => {
+    setSchemaFilters(emptyMaterialFilters);
+  }, [activeLibraryPath]);
 
   const loadAttachmentCounts = useCallback(async () => {
     const counts = new Map<string, number>();
@@ -220,6 +240,13 @@ export function MaterialsWorkspace({
               Add material
             </Button>
           </div>
+          {activeSingleLibrary ? (
+            <MaterialFiltersBar
+              schema={activeSingleLibrary.fieldSchema}
+              values={schemaFilters}
+              onChange={setSchemaFilters}
+            />
+          ) : null}
         </header>
 
         <div className="flex-1 overflow-auto p-6">
@@ -230,7 +257,7 @@ export function MaterialsWorkspace({
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 {materials.length === 0
                   ? "No materials yet. Add your first material or open another library."
-                  : "No materials match your search."}
+                  : "No materials match your search or filters."}
               </p>
             </div>
           ) : (
