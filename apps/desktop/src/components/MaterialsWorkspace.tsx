@@ -16,8 +16,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  Input,
-  Label,
   SearchInput,
 } from "@certtrace/ui";
 import { Columns3, Plus } from "lucide-react";
@@ -72,7 +70,6 @@ export function MaterialsWorkspace({
   const [addOpen, setAddOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [materialCode, setMaterialCode] = useState("AL");
   const [formValues, setFormValues] = useState<MaterialFormValues>(emptyFormValues);
   const [schemaFilters, setSchemaFilters] = useState<MaterialFilterValues>(emptyMaterialFilters);
   const [columnPickerOpen, setColumnPickerOpen] = useState(false);
@@ -193,7 +190,6 @@ export function MaterialsWorkspace({
   }, []);
 
   function resetAddForm() {
-    setMaterialCode("AL");
     setFormValues(emptyFormValues);
   }
 
@@ -221,7 +217,6 @@ export function MaterialsWorkspace({
     setLocalError(null);
     try {
       const input: CreateMaterialInput = {
-        materialCode,
         fields: formValues.fields,
         identifiers: formValues.identifiers,
       };
@@ -425,14 +420,6 @@ export function MaterialsWorkspace({
             <DialogTitle>Add material</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1 text-sm">
-              <Label htmlFor="add-material-code">Material code</Label>
-              <Input
-                id="add-material-code"
-                value={materialCode}
-                onChange={(event) => setMaterialCode(event.target.value)}
-              />
-            </div>
             {activeSingleLibrary ? (
               <MaterialSchemaForm
                 schema={activeSingleLibrary.fieldSchema}

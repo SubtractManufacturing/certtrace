@@ -27,8 +27,7 @@ describe("schema definition lifecycle", () => {
         ),
       });
       const material = await createMaterial(library, {
-        materialCode: "AL",
-        fields: { supplier: "mcmaster" },
+        fields: { family: "aluminum", supplier: "mcmaster" },
       });
 
       await removeSchemaDefinition(library, {
@@ -45,8 +44,7 @@ describe("schema definition lifecycle", () => {
       expect((await getMaterial(reopened, material.id)).fields.supplier).toBe("mcmaster");
       await expect(
         createMaterial(reopened, {
-          materialCode: "AL",
-          fields: { supplier: "boedecker" },
+          fields: { family: "aluminum", supplier: "boedecker" },
         }),
       ).rejects.toThrow('Field "Supplier" is disabled for new entries.');
     } finally {
@@ -61,7 +59,7 @@ describe("schema definition lifecycle", () => {
     try {
       const library = await createLibrary(fs, parentDir, "Main");
       const material = await createMaterial(library, {
-        materialCode: "AL",
+        fields: { family: "aluminum" },
         identifiers: { heat_number: "H-100" },
       });
 
@@ -78,7 +76,7 @@ describe("schema definition lifecycle", () => {
       expect((await getMaterial(reopened, material.id)).identifiers.heat_number).toBe("H-100");
       await expect(
         createMaterial(reopened, {
-          materialCode: "AL",
+          fields: { family: "aluminum" },
           identifiers: { heat_number: "H-200" },
         }),
       ).rejects.toThrow('Identifier kind "Heat Number" is disabled for new entries.');
@@ -94,7 +92,6 @@ describe("schema definition lifecycle", () => {
     try {
       const library = await createLibrary(fs, parentDir, "Main");
       const material = await createMaterial(library, {
-        materialCode: "AL",
         fields: { family: "aluminum", alloy: "6061" },
       });
 
@@ -122,7 +119,7 @@ describe("schema definition lifecycle", () => {
     try {
       const library = await createLibrary(fs, parentDir, "Main");
       const material = await createMaterial(library, {
-        materialCode: "AL",
+        fields: { family: "aluminum" },
         identifiers: { heat_number: "H-100", lot_number: "L-200" },
       });
 
@@ -199,8 +196,7 @@ describe("schema definition lifecycle", () => {
         },
       });
       const material = await createMaterial(library, {
-        materialCode: "AL",
-        fields: { legacy_location: "Rack A1" },
+        fields: { family: "aluminum", legacy_location: "Rack A1" },
       });
 
       await removeSchemaDefinition(library, {
@@ -228,7 +224,7 @@ describe("schema definition lifecycle", () => {
     try {
       const library = await createLibrary(fs, parentDir, "Main");
       const material = await createMaterial(library, {
-        materialCode: "AL",
+        fields: { family: "aluminum" },
         identifiers: { heat_number: "H-100" },
       });
 

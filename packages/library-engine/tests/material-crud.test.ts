@@ -14,6 +14,22 @@ import {
 } from "../src/index.js";
 
 describe("material CRUD", () => {
+  it("derives the material token from the selected Family option", async () => {
+    const fs = createNodeFileSystem();
+    const parentDir = await mkdtemp(join(tmpdir(), "certtrace-material-"));
+
+    try {
+      const library = await createLibrary(fs, parentDir, "Main Shop Materials");
+      const created = await createMaterial(library, {
+        fields: { family: "aluminum" },
+      });
+
+      expect(created.id).toMatch(/^al-/);
+    } finally {
+      await rm(parentDir, { recursive: true, force: true });
+    }
+  });
+
   it("creates, reads, and updates field and identifier values on disk", async () => {
     const fs = createNodeFileSystem();
     const parentDir = await mkdtemp(join(tmpdir(), "certtrace-material-"));
@@ -22,7 +38,6 @@ describe("material CRUD", () => {
       const library = await createLibrary(fs, parentDir, "Main Shop Materials");
       const root = library.paths.root;
       const created = await createMaterial(library, {
-        materialCode: "AL",
         fields: {
           family: "aluminum",
           alloy: "6061",
@@ -81,11 +96,11 @@ describe("material CRUD", () => {
       const library = await createLibrary(fs, parentDir, "Sandbox");
       const root = library.paths.root;
       const first = await createMaterial(library, {
-        materialCode: "AL",
+        fields: { family: "aluminum" },
         identifiers: { purchase_order: "PO-SHARED" },
       });
       const second = await createMaterial(await openLibrary(fs, root), {
-        materialCode: "AL",
+        fields: { family: "aluminum" },
         identifiers: { purchase_order: "PO-SHARED" },
       });
 

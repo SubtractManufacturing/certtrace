@@ -18,7 +18,7 @@ interface IdTemplateBuilderProps {
 }
 
 const SEGMENT_OPTIONS: Array<{ value: TemplateSegment["type"]; label: string }> = [
-  { value: "material", label: "Material code" },
+  { value: "material", label: "Material option" },
   { value: "number", label: "Number" },
   { value: "word", label: "Word list" },
   { value: "year", label: "Year" },
@@ -39,7 +39,7 @@ export function IdTemplateBuilder({
       return previewMaterialId({
         strategy,
         wordLists,
-        materialCode: "AL",
+        materialOption: { id: "aluminum", label: "Aluminum", shortCode: "AL" },
       });
     } catch {
       return "Invalid template";

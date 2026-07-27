@@ -25,7 +25,7 @@ describe("material attachments", () => {
       await writeFile(join(sourceDir, "photo.png"), "png-content");
 
       const library = await createLibrary(fs, tempRoot, "Attachment Test");
-      const material = await createMaterial(library, { material: "6061-T6", materialCode: "AL" });
+      const material = await createMaterial(library, { fields: { family: "aluminum" } });
 
       expect(await listMaterialAttachments(library, material.id)).toEqual([]);
 
@@ -58,7 +58,7 @@ describe("material attachments", () => {
       await writeFile(join(sourceDir, "cert-copy.pdf"), "two");
 
       const library = await createLibrary(fs, tempRoot, "Dup Test");
-      const material = await createMaterial(library, { materialCode: "AL" });
+      const material = await createMaterial(library, { fields: { family: "aluminum" } });
 
       await attachFiles(library, material.id, [{ sourcePath: join(sourceDir, "cert.pdf") }]);
       const second = await attachFiles(library, material.id, [
@@ -81,7 +81,7 @@ describe("material attachments", () => {
       await writeFile(join(sourceDir, "mill-cert.pdf"), "pdf-content");
 
       const library = await createLibrary(fs, tempRoot, "Kinds Test");
-      const material = await createMaterial(library, { materialCode: "AL" });
+      const material = await createMaterial(library, { fields: { family: "aluminum" } });
       await attachFiles(library, material.id, [
         { sourcePath: join(sourceDir, "mill-cert.pdf"), kindKey: "mtr" },
       ]);
@@ -112,7 +112,7 @@ describe("material attachments", () => {
     try {
       await writeFile(join(sourceDir, "cert.pdf"), "pdf-content");
       const library = await createLibrary(fs, tempRoot, "Unknown Kind Test");
-      const material = await createMaterial(library, { materialCode: "AL" });
+      const material = await createMaterial(library, { fields: { family: "aluminum" } });
 
       await expect(
         attachFiles(library, material.id, [
@@ -133,7 +133,7 @@ describe("material attachments", () => {
     try {
       await writeFile(join(sourceDir, "cert.pdf"), "pdf-content");
       const library = await createLibrary(fs, tempRoot, "Remove Kind Test");
-      const material = await createMaterial(library, { materialCode: "AL" });
+      const material = await createMaterial(library, { fields: { family: "aluminum" } });
       await attachFiles(library, material.id, [
         { sourcePath: join(sourceDir, "cert.pdf"), kindKey: "mtr" },
       ]);
@@ -164,7 +164,7 @@ describe("material attachments", () => {
     try {
       await writeFile(join(sourceDir, "cert.pdf"), "pdf-content");
       const library = await createLibrary(fs, tempRoot, "Rollback Test");
-      const material = await createMaterial(library, { materialCode: "AL" });
+      const material = await createMaterial(library, { fields: { family: "aluminum" } });
       const writeFileNormally = library.fs.writeFile.bind(library.fs);
       library.fs.writeFile = async (path, content) => {
         if (path.endsWith(".attachments.json")) {

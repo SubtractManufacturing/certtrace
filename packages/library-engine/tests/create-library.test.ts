@@ -167,7 +167,6 @@ describe("createLibrary", () => {
       const material = await createMaterial(library, {
         fields: { family: "aluminum" },
         identifiers: { heat_number: "H-42" },
-        materialCode: "AL",
       });
       const family = library.fieldSchema.fields.find((field) => field.key === "family")!;
       const updatedFamily = {

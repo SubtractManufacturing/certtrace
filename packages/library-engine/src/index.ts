@@ -313,12 +313,18 @@ export async function createMaterial(
   assertNoDisabledDefinitionChanges(library, input.fields, input.identifiers);
   const existingIds = new Set(await listMaterialIds(library));
   const strategy = getActiveStrategy(library);
+  const familyOptionId = input.fields?.family;
+  const familyField = library.fieldSchema.fields.find((field) => field.key === "family");
+  const materialOption =
+    typeof familyOptionId === "string"
+      ? familyField?.options?.find((option) => option.id === familyOptionId)
+      : undefined;
 
   const id = generateMaterialId({
     strategy,
     wordLists: library.wordLists,
     existingIds,
-    materialCode: input.materialCode,
+    materialOption,
   });
 
   const now = new Date().toISOString();

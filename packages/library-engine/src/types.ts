@@ -30,8 +30,6 @@ export interface OpenLibraryResult {
 export interface CreateMaterialInput {
   fields?: Record<string, FieldValueV1>;
   identifiers?: Record<string, string>;
-  /** Prefix/code used in ID templates (`{material}` token), e.g. `AL`. */
-  materialCode?: string;
 }
 
 export interface UpdateMaterialInput {
