@@ -365,6 +365,8 @@ function App() {
           <LibrarySettingsView
             library={settingsLibraryForMenu}
             onOpenAdvancedSettings={() => setActiveView("library-advanced-settings")}
+            onLibraryUpdated={(library) => session.updateLibraryInSession(library)}
+            onRefreshLibrary={() => void refreshLibraryMaterials(settingsLibraryForMenu.paths.root)}
           />
         ) : null}
 
