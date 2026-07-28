@@ -93,11 +93,12 @@ export function AdvancedLibrarySettingsView({
     : null;
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 overflow-auto px-6 py-6">
-      <header>
-        <h1 className="text-2xl font-semibold">Advanced settings</h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{library.config.name}</p>
-      </header>
+    <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-6">
+        <header>
+          <h1 className="text-2xl font-semibold">Advanced settings</h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{library.config.name}</p>
+        </header>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <h2 className="text-lg font-semibold">Material schema</h2>
@@ -211,6 +212,7 @@ export function AdvancedLibrarySettingsView({
         <Button type="button" disabled={busy} onClick={() => void saveConfig()}>
           Save library settings
         </Button>
+      </div>
       </div>
     </div>
   );
