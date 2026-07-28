@@ -74,7 +74,6 @@ export function MaterialsWorkspace({
   const searchInputId = "materials-search-input";
 
   const showLibraryColumn = activeLibraryPath === "all";
-  const wideLayout = typeof window !== "undefined" ? window.innerWidth >= 1100 : false;
 
   const activeSingleLibrary =
     activeLibraryPath && activeLibraryPath !== "all"
@@ -310,7 +309,6 @@ export function MaterialsWorkspace({
           library={activeLibrary}
           material={selectedMaterial}
           open={Boolean(selectedMaterial)}
-          wideLayout={wideLayout}
           onOpenChange={(open) => {
             if (!open) {
               setSelectedMaterial(null);
