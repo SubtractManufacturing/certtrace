@@ -138,12 +138,16 @@ export interface SelectProps
   extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "children" | "size">,
     VariantProps<typeof selectVariants> {
   children: ReactNode;
+  footer?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function Select({
   className,
   fieldSize,
   children,
+  footer,
   value,
   defaultValue,
   disabled,
@@ -152,6 +156,8 @@ export function Select({
   id,
   name,
   required,
+  open: openProp,
+  onOpenChange,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
   ...props
@@ -161,10 +167,21 @@ export function Select({
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = openProp ?? uncontrolledOpen;
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number } | null>(
     null,
+  );
+
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (openProp === undefined) {
+        setUncontrolledOpen(next);
+      }
+      onOpenChange?.(next);
+    },
+    [onOpenChange, openProp],
   );
 
   const selectedValues = useMemo(() => {
@@ -198,7 +215,7 @@ export function Select({
 
     const rect = trigger.getBoundingClientRect();
     const viewportPadding = 8;
-    const estimatedMenuHeight = Math.min(enabledOptions.length * 36 + 8, 240);
+    const estimatedMenuHeight = Math.min(enabledOptions.length * 36 + (footer ? 44 : 0) + 8, 240);
     const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
     const spaceAbove = rect.top - viewportPadding;
     const openUpward = spaceBelow < estimatedMenuHeight && spaceAbove > spaceBelow;
@@ -211,7 +228,7 @@ export function Select({
       left: rect.left,
       width: rect.width,
     });
-  }, [enabledOptions.length]);
+  }, [enabledOptions.length, footer]);
 
   const closeMenu = useCallback(() => {
     setOpen(false);
@@ -394,6 +411,9 @@ export function Select({
               </button>
             );
           })}
+          {footer ? (
+            <div className="shrink-0 border-t border-slate-200 pt-1 dark:border-slate-700">{footer}</div>
+          ) : null}
         </div>
         {name ? (
           <select
@@ -433,7 +453,7 @@ export function Select({
           if (disabled) {
             return;
           }
-          setOpen((current) => !current);
+          setOpen(!open);
         }}
         onKeyDown={onTriggerKeyDown}
       >
@@ -465,45 +485,54 @@ export function Select({
               role="listbox"
               aria-label={ariaLabel}
               aria-labelledby={ariaLabelledBy}
-              className="fixed z-[100] max-h-60 overflow-y-auto rounded-md border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-950"
+              className="fixed z-[100] flex max-h-60 flex-col overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-950"
               style={{
                 top: menuStyle.top,
                 left: menuStyle.left,
                 width: menuStyle.width,
               }}
             >
-              {options.map((option) => {
-                const selected = option.value === selectedValue;
-                const highlighted = enabledOptions[highlightedIndex]?.value === option.value;
-                return (
-                  <button
-                    key={option.value || "__empty__"}
-                    type="button"
-                    role="option"
-                    aria-selected={selected}
-                    data-value={option.value}
-                    disabled={option.disabled}
-                    data-highlighted={highlighted || undefined}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-slate-900 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-100 dark:hover:bg-slate-800 dark:focus-visible:ring-slate-500",
-                      selected && "bg-slate-100 dark:bg-slate-800",
-                      highlighted && !selected && "bg-slate-50 dark:bg-slate-900",
-                    )}
-                    onMouseEnter={() => {
-                      const enabledIndex = enabledOptions.findIndex((entry) => entry.value === option.value);
-                      if (enabledIndex >= 0) {
-                        setHighlightedIndex(enabledIndex);
-                      }
-                    }}
-                    onClick={() => selectOption(option)}
-                  >
-                    <span className="flex h-4 w-4 items-center justify-center">
-                      {selected ? <CheckIcon /> : null}
-                    </span>
-                    <span className="truncate">{option.label}</span>
-                  </button>
-                );
-              })}
+              <div className="overflow-y-auto p-1">
+                {options.map((option) => {
+                  const selected = option.value === selectedValue;
+                  const highlighted = enabledOptions[highlightedIndex]?.value === option.value;
+                  return (
+                    <button
+                      key={option.value || "__empty__"}
+                      type="button"
+                      role="option"
+                      aria-selected={selected}
+                      data-value={option.value}
+                      disabled={option.disabled}
+                      data-highlighted={highlighted || undefined}
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-slate-900 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-100 dark:hover:bg-slate-800 dark:focus-visible:ring-slate-500",
+                        selected && "bg-slate-100 dark:bg-slate-800",
+                        highlighted && !selected && "bg-slate-50 dark:bg-slate-900",
+                      )}
+                      onMouseEnter={() => {
+                        const enabledIndex = enabledOptions.findIndex(
+                          (entry) => entry.value === option.value,
+                        );
+                        if (enabledIndex >= 0) {
+                          setHighlightedIndex(enabledIndex);
+                        }
+                      }}
+                      onClick={() => selectOption(option)}
+                    >
+                      <span className="flex h-4 w-4 items-center justify-center">
+                        {selected ? <CheckIcon /> : null}
+                      </span>
+                      <span className="truncate">{option.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {footer ? (
+                <div className="shrink-0 border-t border-slate-200 p-1 dark:border-slate-700">
+                  {footer}
+                </div>
+              ) : null}
             </div>,
             document.body,
           )

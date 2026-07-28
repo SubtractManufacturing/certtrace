@@ -8,6 +8,7 @@ import {
 } from "@certtrace/library-engine";
 import type { FieldSchemaV1, FieldValueV1 } from "@certtrace/types";
 import { Button, Input, Label, Select, Textarea } from "@certtrace/ui";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 
 export { validateMaterialValues };
@@ -32,6 +33,7 @@ export function MaterialSchemaForm({
   onAddOption,
   idPrefix = "material-field",
 }: MaterialSchemaFormProps) {
+  const [openSelectField, setOpenSelectField] = useState<string | null>(null);
   const [addingToField, setAddingToField] = useState<string | null>(null);
   const [newOptionLabel, setNewOptionLabel] = useState("");
   const [optionError, setOptionError] = useState<string | null>(null);
@@ -64,6 +66,21 @@ export function MaterialSchemaForm({
     onChange({ fields: values.fields, identifiers });
   }
 
+  function resetAddOptionState(fieldKey?: string) {
+    if (fieldKey === undefined || addingToField === fieldKey) {
+      setAddingToField(null);
+      setNewOptionLabel("");
+      setOptionError(null);
+    }
+  }
+
+  function handleSelectOpenChange(fieldKey: string, nextOpen: boolean) {
+    setOpenSelectField(nextOpen ? fieldKey : null);
+    if (!nextOpen) {
+      resetAddOptionState(fieldKey);
+    }
+  }
+
   async function confirmAddOption(fieldKey: string, multiSelect: boolean) {
     const label = newOptionLabel.trim();
     if (!onAddOption || !label) {
@@ -83,8 +100,8 @@ export function MaterialSchemaForm({
         ? [...(Array.isArray(current) ? current : []), result.option.id]
         : result.option.id;
       setField(fieldKey, nextValue, result.fieldSchema);
-      setAddingToField(null);
-      setNewOptionLabel("");
+      resetAddOptionState(fieldKey);
+      setOpenSelectField(null);
     } catch (err) {
       setOptionError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -92,65 +109,76 @@ export function MaterialSchemaForm({
     }
   }
 
-  function addOptionControls(fieldKey: string, fieldLabel: string, multiSelect: boolean) {
+  function addOptionFooter(fieldKey: string, fieldLabel: string, multiSelect: boolean) {
     if (!onAddOption) {
-      return null;
+      return undefined;
     }
 
-    if (addingToField !== fieldKey) {
+    if (addingToField === fieldKey) {
+      const newOptionId = `${idPrefix}-${fieldKey}-new-option`;
       return (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setAddingToField(fieldKey);
-            setNewOptionLabel("");
-            setOptionError(null);
-          }}
+        <div
+          className="space-y-2 p-2"
+          onMouseDown={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
         >
-          Add {fieldLabel} option
-        </Button>
+          <Label htmlFor={newOptionId} className="text-xs">
+            New {fieldLabel}
+          </Label>
+          <Input
+            id={newOptionId}
+            value={newOptionLabel}
+            autoFocus
+            onChange={(event) => setNewOptionLabel(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && newOptionLabel.trim() !== "") {
+                event.preventDefault();
+                void confirmAddOption(fieldKey, multiSelect);
+              }
+            }}
+          />
+          <p className="text-xs text-slate-500">
+            Confirming adds this option to the library for future materials.
+          </p>
+          {optionError ? <p className="text-xs text-red-600">{optionError}</p> : null}
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              disabled={addingOption || newOptionLabel.trim() === ""}
+              onClick={() => void confirmAddOption(fieldKey, multiSelect)}
+            >
+              Confirm add
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={addingOption}
+              onClick={() => resetAddOptionState(fieldKey)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
       );
     }
 
-    const newOptionId = `${idPrefix}-${fieldKey}-new-option`;
     return (
-      <div className="space-y-2 rounded-md border border-slate-200 p-2 dark:border-slate-700">
-        <Label htmlFor={newOptionId}>New {fieldLabel} option</Label>
-        <Input
-          id={newOptionId}
-          value={newOptionLabel}
-          onChange={(event) => setNewOptionLabel(event.target.value)}
-        />
-        <p className="text-xs text-slate-500">
-          Confirming adds this option to the library for future materials.
-        </p>
-        {optionError ? <p className="text-xs text-red-600">{optionError}</p> : null}
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            size="sm"
-            disabled={addingOption || newOptionLabel.trim() === ""}
-            onClick={() => void confirmAddOption(fieldKey, multiSelect)}
-          >
-            Confirm add
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={addingOption}
-            onClick={() => {
-              setAddingToField(null);
-              setNewOptionLabel("");
-              setOptionError(null);
-            }}
-          >
-            Cancel
-          </Button>
-        </div>
-      </div>
+      <button
+        type="button"
+        className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-slate-600 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:text-slate-300 dark:hover:bg-slate-800 dark:focus-visible:ring-slate-500"
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.stopPropagation();
+          setAddingToField(fieldKey);
+          setNewOptionLabel("");
+          setOptionError(null);
+        }}
+      >
+        <Plus className="h-4 w-4 shrink-0" aria-hidden />
+        <span>Add {fieldLabel}</span>
+      </button>
     );
   }
 
@@ -168,6 +196,7 @@ export function MaterialSchemaForm({
         const inputId = `${idPrefix}-${field.key}`;
         const stringValue = typeof raw === "string" || typeof raw === "number" ? String(raw) : "";
         const options = availableFieldOptions(field, values.fields);
+        const canAddOption = Boolean(onAddOption) && !field.disabled;
 
         if (field.type === "long_text") {
           return (
@@ -192,6 +221,11 @@ export function MaterialSchemaForm({
                 id={inputId}
                 disabled={field.disabled}
                 value={stringValue}
+                open={canAddOption ? openSelectField === field.key : undefined}
+                onOpenChange={
+                  canAddOption ? (nextOpen) => handleSelectOpenChange(field.key, nextOpen) : undefined
+                }
+                footer={canAddOption ? addOptionFooter(field.key, field.label, false) : undefined}
                 onChange={(event) => setField(field.key, event.target.value || undefined)}
               >
                 <option value="">Select…</option>
@@ -201,7 +235,6 @@ export function MaterialSchemaForm({
                   </option>
                 ))}
               </Select>
-              {field.disabled ? null : addOptionControls(field.key, field.label, false)}
             </div>
           );
         }
@@ -216,6 +249,7 @@ export function MaterialSchemaForm({
                 multiple
                 disabled={field.disabled}
                 value={selected}
+                footer={canAddOption ? addOptionFooter(field.key, field.label, true) : undefined}
                 onChange={(event) => {
                   const next = Array.from(event.target.selectedOptions, (option) => option.value);
                   setField(field.key, next.length > 0 ? next : undefined);
@@ -227,7 +261,6 @@ export function MaterialSchemaForm({
                   </option>
                 ))}
               </Select>
-              {field.disabled ? null : addOptionControls(field.key, field.label, true)}
             </div>
           );
         }

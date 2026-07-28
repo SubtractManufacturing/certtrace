@@ -327,8 +327,9 @@ describe("MaterialsWorkspace", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Add material/i }));
     await chooseSelectOption(screen.getByLabelText("Material"), "Aluminum");
-    await userEvent.click(screen.getByRole("button", { name: /Add Alloy option/i }));
-    await userEvent.type(screen.getByLabelText("New Alloy option"), "5052 H32");
+    await userEvent.click(screen.getByLabelText("Alloy"));
+    await userEvent.click(screen.getByRole("button", { name: /Add Alloy/i }));
+    await userEvent.type(screen.getByLabelText("New Alloy"), "5052 H32");
 
     expect(addLibraryFieldOption).not.toHaveBeenCalled();
 
