@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell, type AppView } from "./components/AppShell";
 import { CreateLibraryWizard } from "./components/CreateLibraryWizard";
 import { ErrorBanner } from "./components/ErrorBanner";
+import { AdvancedLibrarySettingsView } from "./components/AdvancedLibrarySettingsView";
 import { LibrarySettingsView } from "./components/LibrarySettingsView";
 import { MaterialsWorkspace } from "./components/MaterialsWorkspace";
 import { SettingsView } from "./components/SettingsView";
@@ -362,6 +363,13 @@ function App() {
 
         {activeView === "library-settings" && settingsLibraryForMenu ? (
           <LibrarySettingsView
+            library={settingsLibraryForMenu}
+            onOpenAdvancedSettings={() => setActiveView("library-advanced-settings")}
+          />
+        ) : null}
+
+        {activeView === "library-advanced-settings" && settingsLibraryForMenu ? (
+          <AdvancedLibrarySettingsView
             library={settingsLibraryForMenu}
             onLibraryUpdated={(library) => session.updateLibraryInSession(library)}
           />

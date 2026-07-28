@@ -15,7 +15,7 @@ import {
   updateLibraryNamingRules,
   updateLibraryWordLists,
 } from "../lib/library-client";
-import { LibrarySettingsView } from "./LibrarySettingsView";
+import { AdvancedLibrarySettingsView } from "./AdvancedLibrarySettingsView";
 
 vi.mock("../lib/library-client", () => ({
   removeLibrarySchemaDefinition: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock("../lib/library-client", () => ({
   updateLibraryWordLists: vi.fn(),
 }));
 
-describe("LibrarySettingsView", () => {
+describe("AdvancedLibrarySettingsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -44,7 +44,7 @@ describe("LibrarySettingsView", () => {
     vi.mocked(updateLibraryConfigPartial).mockResolvedValue(library);
     vi.mocked(updateLibraryFieldSchema).mockResolvedValue(library);
 
-    render(<LibrarySettingsView library={library} onLibraryUpdated={() => undefined} />);
+    render(<AdvancedLibrarySettingsView library={library} onLibraryUpdated={() => undefined} />);
 
     const label = screen.getByLabelText("Label for field family");
     await userEvent.clear(label);
@@ -83,7 +83,7 @@ describe("LibrarySettingsView", () => {
     vi.mocked(updateLibraryFieldSchema).mockResolvedValue(schemaSaved);
     vi.mocked(removeLibrarySchemaDefinition).mockResolvedValue(removed);
 
-    render(<LibrarySettingsView library={library} onLibraryUpdated={() => undefined} />);
+    render(<AdvancedLibrarySettingsView library={library} onLibraryUpdated={() => undefined} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Remove Supplier" }));
     await userEvent.click(screen.getByRole("button", { name: "Disable new entries" }));
