@@ -7,7 +7,6 @@ import type { IndexedMaterial } from "../hooks/useSearchIndex";
 import {
   addLibraryFieldOption,
   addMaterial,
-  updateLibraryFieldSchema,
 } from "../lib/library-client";
 import { MaterialsWorkspace } from "./MaterialsWorkspace";
 
@@ -63,6 +62,14 @@ const materials: IndexedMaterial[] = [
   },
 ];
 
+async function openFilters() {
+  await userEvent.click(screen.getByRole("button", { name: /Open filters/i }));
+}
+
+async function applyFilters() {
+  await userEvent.click(screen.getByRole("button", { name: /Apply filters/i }));
+}
+
 describe("MaterialsWorkspace", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -96,7 +103,7 @@ describe("MaterialsWorkspace", () => {
     expect(filterMaterials.mock.calls.at(-1)?.[0]).toBe("H-44");
   });
 
-  it("shows filterable schema definitions and narrows the current library", async () => {
+  it("shows filterable schema definitions in the flyout and narrows the current library", async () => {
     render(
       <MaterialsWorkspace
         sessionLibraries={new Map([["/tmp/shop", sampleLibrary]])}
@@ -106,33 +113,24 @@ describe("MaterialsWorkspace", () => {
         filterMaterials={() => materials}
       />,
     );
+
+    await openFilters();
 
     expect(screen.getByLabelText("Filter by Material")).toBeTruthy();
     expect(screen.getByLabelText("Filter by Supplier")).toBeTruthy();
-    expect(screen.getByLabelText("Filter by Heat Number")).toBeTruthy();
     expect(screen.queryByLabelText("Filter by Notes")).toBeNull();
+    expect(screen.queryByLabelText("Filter by Date Received")).toBeNull();
+    expect(screen.queryByLabelText("Filter by Heat Number")).toBeNull();
+
+    const storageFilter = screen.getByLabelText("Filter by Storage Location");
+    expect(within(storageFilter).getByRole("option", { name: "Rack A" })).toBeTruthy();
+    expect(within(storageFilter).getByRole("option", { name: "Rack B" })).toBeTruthy();
 
     await userEvent.selectOptions(screen.getByLabelText("Filter by Supplier"), "mcmaster");
+    await applyFilters();
 
     expect(within(screen.getByRole("table")).getByText("6061")).toBeTruthy();
     expect(within(screen.getByRole("table")).queryByText("7075")).toBeNull();
-  });
-
-  it("filters by identifier values", async () => {
-    render(
-      <MaterialsWorkspace
-        sessionLibraries={new Map([["/tmp/shop", sampleLibrary]])}
-        activeLibraryPath="/tmp/shop"
-        materials={materials}
-        onRefreshLibrary={async () => undefined}
-        filterMaterials={() => materials}
-      />,
-    );
-
-    await userEvent.type(screen.getByLabelText("Filter by Heat Number"), "h-44");
-
-    expect(within(screen.getByRole("table")).getByText("7075")).toBeTruthy();
-    expect(within(screen.getByRole("table")).queryByText("6061")).toBeNull();
   });
 
   it("honors field dependencies in filter options", async () => {
@@ -145,6 +143,8 @@ describe("MaterialsWorkspace", () => {
         filterMaterials={() => materials}
       />,
     );
+
+    await openFilters();
 
     const familyFilter = screen.getByLabelText("Filter by Material");
     const alloyFilter = screen.getByLabelText("Filter by Alloy");
@@ -163,7 +163,7 @@ describe("MaterialsWorkspace", () => {
     expect(within(alloyFilter).queryByRole("option", { name: "6061" })).toBeNull();
   });
 
-  it("updates available filters when the reopened library schema changes", () => {
+  it("updates available filters when the reopened library schema changes", async () => {
     const commonProps = {
       activeLibraryPath: "/tmp/shop" as const,
       materials,
@@ -177,6 +177,7 @@ describe("MaterialsWorkspace", () => {
       />,
     );
 
+    await openFilters();
     expect(screen.getByLabelText("Filter by Material")).toBeTruthy();
     expect(screen.queryByLabelText("Filter by Notes")).toBeNull();
 
@@ -201,6 +202,7 @@ describe("MaterialsWorkspace", () => {
       />,
     );
 
+    await openFilters();
     expect(screen.queryByLabelText("Filter by Material")).toBeNull();
     expect(screen.getByLabelText("Filter by Notes")).toBeTruthy();
   });
@@ -225,41 +227,6 @@ describe("MaterialsWorkspace", () => {
     expect(screen.getAllByText("Aluminum").length).toBeGreaterThan(0);
     expect(within(screen.getByRole("table")).getByText("McMaster")).toBeTruthy();
     expect(screen.getByText("H-22")).toBeTruthy();
-  });
-
-  it("persists column picker changes and renders the selected columns", async () => {
-    vi.mocked(updateLibraryFieldSchema).mockResolvedValue(sampleLibrary);
-
-    render(
-      <MaterialsWorkspace
-        sessionLibraries={new Map([["/tmp/shop", sampleLibrary]])}
-        activeLibraryPath="/tmp/shop"
-        materials={materials}
-        onRefreshLibrary={async () => undefined}
-        filterMaterials={() => materials}
-      />,
-    );
-
-    await userEvent.click(screen.getByRole("button", { name: /Choose columns/i }));
-    await userEvent.click(screen.getByLabelText("Alloy column"));
-    await userEvent.click(screen.getByLabelText("Notes column"));
-    await userEvent.click(screen.getByLabelText("Heat Number column"));
-    await userEvent.click(screen.getByLabelText("Identifiers column"));
-    await userEvent.click(screen.getByRole("button", { name: /Save columns/i }));
-
-    expect(updateLibraryFieldSchema).toHaveBeenCalledWith(
-      sampleLibrary,
-      expect.objectContaining({
-        tableColumns: expect.arrayContaining([
-          { kind: "field", key: "notes" },
-          { kind: "identifier", key: "heat_number" },
-        ]),
-      }),
-    );
-    expect(screen.queryByRole("button", { name: /^Alloy$/i })).toBeNull();
-    expect(screen.getByRole("button", { name: /^Notes$/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^Heat Number$/i })).toBeTruthy();
-    expect(within(screen.getByRole("table")).getByText("H-22")).toBeTruthy();
   });
 
   it("renders the add form from the library field schema and saves keyed values", async () => {

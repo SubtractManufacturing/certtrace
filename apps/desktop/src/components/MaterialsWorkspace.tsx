@@ -6,8 +6,6 @@ import {
 } from "@certtrace/library-engine";
 import {
   defaultFieldSchemaV1,
-  type MaterialTableColumnV1,
-  materialTableColumnIdentity,
 } from "@certtrace/types";
 import {
   Button,
@@ -18,7 +16,7 @@ import {
   DialogTitle,
   SearchInput,
 } from "@certtrace/ui";
-import { Columns3, Plus } from "lucide-react";
+import { ListFilter, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ActiveLibraryPath } from "../hooks/useLibrarySession";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
@@ -27,12 +25,11 @@ import {
   addMaterial,
   fetchMaterialAttachments,
   openLibraryAtPath,
-  updateLibraryFieldSchema,
 } from "../lib/library-client";
-import { materialColumnOptions } from "../lib/material-columns";
 import { ErrorBanner } from "./ErrorBanner";
 import { MaterialDetailPanel } from "./MaterialDetailPanel";
-import { emptyMaterialFilters, MaterialFiltersBar } from "./MaterialFiltersBar";
+import { MaterialFiltersFlyout } from "./MaterialFiltersFlyout";
+import { emptyMaterialFilters } from "./MaterialFiltersPanel";
 import {
   type MaterialFormValues,
   MaterialSchemaForm,
@@ -72,10 +69,8 @@ export function MaterialsWorkspace({
   const [localError, setLocalError] = useState<string | null>(null);
   const [formValues, setFormValues] = useState<MaterialFormValues>(emptyFormValues);
   const [schemaFilters, setSchemaFilters] = useState<MaterialFilterValues>(emptyMaterialFilters);
-  const [columnPickerOpen, setColumnPickerOpen] = useState(false);
-  const [tableColumns, setTableColumns] = useState<MaterialTableColumnV1[] | undefined>();
-  const [draftColumns, setDraftColumns] = useState<MaterialTableColumnV1[]>([]);
-  const [columnsSaving, setColumnsSaving] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<MaterialFilterValues>(emptyMaterialFilters);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const searchInputId = "materials-search-input";
 
   const showLibraryColumn = activeLibraryPath === "all";
@@ -96,10 +91,6 @@ export function MaterialsWorkspace({
   );
 
   const listSchema = activeSingleLibrary?.fieldSchema ?? defaultFieldSchemaV1;
-  const visibleListSchema = useMemo(
-    () => (tableColumns ? { ...listSchema, tableColumns } : listSchema),
-    [listSchema, tableColumns],
-  );
 
   const searchPlaceholder =
     activeLibraryPath === "all"
@@ -147,9 +138,13 @@ export function MaterialsWorkspace({
     setSchemaFilters(emptyMaterialFilters);
   }, [activeLibraryPath]);
 
-  useEffect(() => {
-    setTableColumns(activeSingleLibrary?.fieldSchema.tableColumns);
-  }, [activeSingleLibrary]);
+  const libraryMaterials = useMemo(
+    () =>
+      activeLibraryPath && activeLibraryPath !== "all"
+        ? materials.filter((entry) => entry.libraryPath === activeLibraryPath)
+        : [],
+    [activeLibraryPath, materials],
+  );
 
   const loadAttachmentCounts = useCallback(async () => {
     const counts = new Map<string, number>();
@@ -231,25 +226,14 @@ export function MaterialsWorkspace({
     }
   }
 
-  async function saveTableColumns() {
-    if (!activeSingleLibrary) {
-      return;
-    }
+  function openFilters() {
+    setDraftFilters(schemaFilters);
+    setFiltersOpen(true);
+  }
 
-    setColumnsSaving(true);
-    setLocalError(null);
-    try {
-      const nextSchema = { ...activeSingleLibrary.fieldSchema, tableColumns: draftColumns };
-      setTableColumns(draftColumns);
-      await updateLibraryFieldSchema(activeSingleLibrary, nextSchema);
-      await onRefreshLibrary(activeSingleLibrary.paths.root);
-      setColumnPickerOpen(false);
-    } catch (err) {
-      setTableColumns(activeSingleLibrary.fieldSchema.tableColumns);
-      setLocalError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setColumnsSaving(false);
-    }
+  function applyFilters() {
+    setSchemaFilters(draftFilters);
+    setFiltersOpen(false);
   }
 
   return (
@@ -269,19 +253,11 @@ export function MaterialsWorkspace({
                 type="button"
                 variant="outline"
                 className="shrink-0"
-                aria-label="Choose columns"
-                onClick={() => {
-                  setDraftColumns(
-                    tableColumns ??
-                      activeSingleLibrary.fieldSchema.tableColumns ??
-                      defaultFieldSchemaV1.tableColumns ??
-                      [],
-                  );
-                  setColumnPickerOpen(true);
-                }}
+                aria-label="Open filters"
+                onClick={() => openFilters()}
               >
-                <Columns3 className="mr-2 h-4 w-4" />
-                Columns
+                <ListFilter className="mr-2 h-4 w-4" />
+                Filters
               </Button>
             ) : null}
             <Button
@@ -294,13 +270,6 @@ export function MaterialsWorkspace({
               Add material
             </Button>
           </div>
-          {activeSingleLibrary ? (
-            <MaterialFiltersBar
-              schema={activeSingleLibrary.fieldSchema}
-              values={schemaFilters}
-              onChange={setSchemaFilters}
-            />
-          ) : null}
         </header>
 
         <div className="flex-1 overflow-auto p-6">
@@ -317,7 +286,7 @@ export function MaterialsWorkspace({
           ) : (
             <MaterialTable
               materials={filteredMaterials}
-              schema={visibleListSchema}
+              schema={listSchema}
               resolveSchema={(libraryPath) =>
                 sessionLibraries.get(libraryPath)?.fieldSchema ?? defaultFieldSchemaV1
               }
@@ -353,57 +322,17 @@ export function MaterialsWorkspace({
         />
       ) : null}
 
-      <Dialog open={columnPickerOpen} onOpenChange={setColumnPickerOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Choose material columns</DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[55vh] space-y-2 overflow-y-auto">
-            {activeSingleLibrary
-              ? materialColumnOptions(activeSingleLibrary.fieldSchema).map((option) => {
-                  const identity = materialTableColumnIdentity(option.column);
-                  const checked = draftColumns.some(
-                    (column) => materialTableColumnIdentity(column) === identity,
-                  );
-                  return (
-                    <label
-                      key={identity}
-                      className="flex items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
-                    >
-                      <input
-                        type="checkbox"
-                        aria-label={`${option.label.replace(" (compact)", "")} column`}
-                        checked={checked}
-                        onChange={(event) =>
-                          setDraftColumns((current) =>
-                            event.target.checked
-                              ? [...current, option.column]
-                              : current.filter(
-                                  (column) => materialTableColumnIdentity(column) !== identity,
-                                ),
-                          )
-                        }
-                      />
-                      {option.label}
-                    </label>
-                  );
-                })
-              : null}
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setColumnPickerOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={columnsSaving || draftColumns.length === 0}
-              onClick={() => void saveTableColumns()}
-            >
-              Save columns
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {activeSingleLibrary ? (
+        <MaterialFiltersFlyout
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
+          schema={activeSingleLibrary.fieldSchema}
+          materials={libraryMaterials}
+          values={draftFilters}
+          onChange={setDraftFilters}
+          onApply={applyFilters}
+        />
+      ) : null}
 
       <Dialog
         open={addOpen}
