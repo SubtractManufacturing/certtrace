@@ -5,6 +5,10 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
 import {
+  chooseSelectOption,
+  getSelectValue,
+} from "../test/select-helpers";
+import {
   addLibraryFieldOption,
   addMaterial,
 } from "../lib/library-client";
@@ -123,10 +127,12 @@ describe("MaterialsWorkspace", () => {
     expect(screen.queryByLabelText("Filter by Heat Number")).toBeNull();
 
     const storageFilter = screen.getByLabelText("Filter by Storage Location");
-    expect(within(storageFilter).getByRole("option", { name: "Rack A" })).toBeTruthy();
-    expect(within(storageFilter).getByRole("option", { name: "Rack B" })).toBeTruthy();
+    await userEvent.click(storageFilter);
+    expect(screen.getByRole("option", { name: "Rack A" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Rack B" })).toBeTruthy();
+    await userEvent.click(storageFilter);
 
-    await userEvent.selectOptions(screen.getByLabelText("Filter by Supplier"), "mcmaster");
+    await chooseSelectOption(screen.getByLabelText("Filter by Supplier"), "McMaster");
     await applyFilters();
 
     expect(within(screen.getByRole("table")).getByText("6061")).toBeTruthy();
@@ -148,19 +154,24 @@ describe("MaterialsWorkspace", () => {
 
     const familyFilter = screen.getByLabelText("Filter by Material");
     const alloyFilter = screen.getByLabelText("Filter by Alloy");
-    expect(within(alloyFilter).queryByRole("option", { name: "6061" })).toBeNull();
+    await userEvent.click(alloyFilter);
+    expect(screen.queryByRole("option", { name: "6061" })).toBeNull();
+    await userEvent.click(alloyFilter);
 
-    await userEvent.selectOptions(familyFilter, "aluminum");
+    await chooseSelectOption(familyFilter, "Aluminum");
 
-    expect(within(alloyFilter).getByRole("option", { name: "6061" })).toBeTruthy();
-    expect(within(alloyFilter).queryByRole("option", { name: "1018" })).toBeNull();
+    await userEvent.click(alloyFilter);
+    expect(screen.getByRole("option", { name: "6061" })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: "1018" })).toBeNull();
+    await userEvent.click(alloyFilter);
 
-    await userEvent.selectOptions(alloyFilter, "6061");
-    await userEvent.selectOptions(familyFilter, "steel");
+    await chooseSelectOption(alloyFilter, "6061");
+    await chooseSelectOption(familyFilter, "Steel");
 
-    expect((alloyFilter as HTMLSelectElement).value).toBe("");
-    expect(within(alloyFilter).getByRole("option", { name: "1018" })).toBeTruthy();
-    expect(within(alloyFilter).queryByRole("option", { name: "6061" })).toBeNull();
+    expect(getSelectValue(alloyFilter)).toBe("");
+    await userEvent.click(alloyFilter);
+    expect(screen.getByRole("option", { name: "1018" })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: "6061" })).toBeNull();
   });
 
   it("updates available filters when the reopened library schema changes", async () => {
@@ -262,8 +273,8 @@ describe("MaterialsWorkspace", () => {
     expect(screen.getByLabelText("Lot Number")).toBeTruthy();
     expect(screen.getByLabelText("Purchase Order")).toBeTruthy();
 
-    await userEvent.selectOptions(screen.getByLabelText("Material"), "aluminum");
-    await userEvent.selectOptions(screen.getByLabelText("Alloy"), "6061");
+    await chooseSelectOption(screen.getByLabelText("Material"), "Aluminum");
+    await chooseSelectOption(screen.getByLabelText("Alloy"), "6061");
     await userEvent.type(screen.getByLabelText("Heat Number"), "H-100");
 
     await userEvent.click(screen.getAllByRole("button", { name: /^Add material$/i }).at(-1)!);
@@ -315,7 +326,7 @@ describe("MaterialsWorkspace", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: /Add material/i }));
-    await userEvent.selectOptions(screen.getByLabelText("Material"), "aluminum");
+    await chooseSelectOption(screen.getByLabelText("Material"), "Aluminum");
     await userEvent.click(screen.getByRole("button", { name: /Add Alloy option/i }));
     await userEvent.type(screen.getByLabelText("New Alloy option"), "5052 H32");
 
@@ -328,7 +339,7 @@ describe("MaterialsWorkspace", () => {
       label: "5052 H32",
       currentValues: { family: "aluminum" },
     });
-    expect((screen.getByLabelText("Alloy") as HTMLSelectElement).value).toBe("5052_h32");
+    expect(getSelectValue(screen.getByLabelText("Alloy"))).toBe("5052_h32");
   });
 
   it("blocks save when required schema fields are empty", async () => {

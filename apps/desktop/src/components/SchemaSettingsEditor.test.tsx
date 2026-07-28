@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { chooseSelectOption } from "../test/select-helpers";
 import { SchemaSettingsEditor } from "./SchemaSettingsEditor";
 
 function renderEditor(onRemoveDefinition?: (input: RemoveSchemaDefinitionInput) => Promise<void>) {
@@ -66,7 +67,7 @@ describe("SchemaSettingsEditor", () => {
     const onChange = renderEditor();
 
     await userEvent.type(screen.getByLabelText("New field label"), "Inspection score");
-    await userEvent.selectOptions(screen.getByLabelText("New field type"), "number");
+    await chooseSelectOption(screen.getByLabelText("New field type"), "Number");
     await userEvent.click(screen.getByRole("button", { name: "Add field" }));
 
     expect(onChange.mock.calls.at(-1)?.[0].fields.at(-1)).toEqual({
@@ -81,7 +82,7 @@ describe("SchemaSettingsEditor", () => {
   it("changes an existing field type", async () => {
     const onChange = renderEditor();
 
-    await userEvent.selectOptions(screen.getByLabelText("Type for field family"), "text");
+    await chooseSelectOption(screen.getByLabelText("Type for field family"), "Text");
 
     expect(onChange.mock.calls.at(-1)?.[0].fields[0]).toEqual({
       key: "family",
@@ -212,10 +213,7 @@ describe("SchemaSettingsEditor", () => {
     renderEditor(onRemoveDefinition);
 
     await userEvent.click(screen.getByRole("button", { name: "Remove Heat Number" }));
-    await userEvent.selectOptions(
-      screen.getByLabelText("Replacement for Heat Number"),
-      "lot_number",
-    );
+    await chooseSelectOption(screen.getByLabelText("Replacement for Heat Number"), "Lot Number");
     await userEvent.click(screen.getByRole("button", { name: "Replace saved values" }));
 
     expect(onRemoveDefinition).toHaveBeenCalledWith({

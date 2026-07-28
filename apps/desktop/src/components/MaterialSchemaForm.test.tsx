@@ -5,6 +5,10 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
+  chooseSelectOption,
+  listOpenSelectOptionValues,
+} from "../test/select-helpers";
+import {
   type MaterialFormValues,
   MaterialSchemaForm,
   validateMaterialValues,
@@ -86,7 +90,7 @@ describe("MaterialSchemaForm", () => {
 
     render(<Harness />);
 
-    await userEvent.selectOptions(screen.getByLabelText("Material"), "aluminum");
+    await chooseSelectOption(screen.getByLabelText("Material"), "Aluminum");
     expect(onChange).toHaveBeenCalledWith({
       fields: { family: "aluminum" },
       identifiers: {},
@@ -122,19 +126,14 @@ describe("MaterialSchemaForm", () => {
 
     render(<Harness />);
 
-    await userEvent.selectOptions(screen.getByLabelText("Material"), "aluminum");
-    const alloy = screen.getByLabelText("Alloy") as HTMLSelectElement;
-    expect(Array.from(alloy.options, (option) => option.value)).toEqual([
-      "",
-      "6061",
-      "7075",
-      "2024",
-    ]);
+    await chooseSelectOption(screen.getByLabelText("Material"), "Aluminum");
+    const alloy = screen.getByLabelText("Alloy");
+    expect(await listOpenSelectOptionValues(alloy)).toEqual(["", "6061", "7075", "2024"]);
 
-    await userEvent.selectOptions(alloy, "6061");
-    await userEvent.selectOptions(screen.getByLabelText("Material"), "steel");
+    await chooseSelectOption(alloy, "6061");
+    await chooseSelectOption(screen.getByLabelText("Material"), "Steel");
     expect(onChange.mock.calls.at(-1)?.[0].fields).toEqual({ family: "steel" });
-    expect(Array.from(alloy.options, (option) => option.value)).toEqual(["", "1018", "4140"]);
+    expect(await listOpenSelectOptionValues(alloy)).toEqual(["", "1018", "4140"]);
   });
 
   it("does not render or require a field hidden by its dependency", () => {
