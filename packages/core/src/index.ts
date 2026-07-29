@@ -2,6 +2,7 @@ export {
   APP_SETTINGS_FILENAME,
   AppSettingsError,
   readAppSettings,
+  removeLibraryFromAppSettings,
   removeRecentLibrary,
   touchRecentLibrary,
   writeAppSettings,

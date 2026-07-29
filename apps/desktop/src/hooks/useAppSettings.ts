@@ -46,6 +46,10 @@ export function useAppSettings() {
     [settings?.theme, prefersDark],
   );
 
+  const applySettings = useCallback((next: AppSettingsV1) => {
+    setSettings(next);
+  }, []);
+
   const updateSettings = useCallback(
     async (partial: Partial<AppSettingsV1>) => {
       if (!settings) {
@@ -71,6 +75,7 @@ export function useAppSettings() {
     error,
     resolvedTheme,
     refresh,
+    applySettings,
     updateSettings,
     setTheme,
   };

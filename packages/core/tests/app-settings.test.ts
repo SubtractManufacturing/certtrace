@@ -7,6 +7,7 @@ import { createDefaultAppSettingsV1 } from "@certtrace/types";
 import { describe, expect, it } from "vitest";
 import {
   readAppSettings,
+  removeLibraryFromAppSettings,
   removeRecentLibrary,
   touchRecentLibrary,
   writeAppSettings,
@@ -101,5 +102,31 @@ describe("app settings", () => {
 
     expect(reopened.recentLibraries.map((entry) => entry.path)).toEqual(["/a", "/b"]);
     expect(trimmed.recentLibraries.map((entry) => entry.path)).toEqual(["/b"]);
+  });
+
+  it("clears defaultLibraryOnLaunch when removing that library", () => {
+    const withLibraries = touchRecentLibrary(
+      touchRecentLibrary(createDefaultAppSettingsV1(), { path: "/a", name: "A" }),
+      { path: "/b", name: "B" },
+    );
+    const configured = { ...withLibraries, defaultLibraryOnLaunch: "/a" as const };
+
+    const removed = removeLibraryFromAppSettings(configured, "/a");
+
+    expect(removed.recentLibraries.map((entry) => entry.path)).toEqual(["/b"]);
+    expect(removed.defaultLibraryOnLaunch).toBeNull();
+  });
+
+  it("keeps defaultLibraryOnLaunch when removing a different library", () => {
+    const withLibraries = touchRecentLibrary(
+      touchRecentLibrary(createDefaultAppSettingsV1(), { path: "/a", name: "A" }),
+      { path: "/b", name: "B" },
+    );
+    const configured = { ...withLibraries, defaultLibraryOnLaunch: "/a" as const };
+
+    const removed = removeLibraryFromAppSettings(configured, "/b");
+
+    expect(removed.recentLibraries.map((entry) => entry.path)).toEqual(["/a"]);
+    expect(removed.defaultLibraryOnLaunch).toBe("/a");
   });
 });

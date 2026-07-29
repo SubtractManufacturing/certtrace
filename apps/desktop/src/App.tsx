@@ -55,6 +55,7 @@ function App() {
     error: settingsError,
     setTheme,
     updateSettings,
+    applySettings,
     refresh: refreshSettings,
   } = useAppSettings();
   const session = useLibrarySession();
@@ -233,12 +234,14 @@ function App() {
       if (deleteFolder) {
         await deleteLibraryFolder(path);
       }
-      await forgetRecentLibrary(path);
-      session.removeLibraryFromSession(path);
-      if (settings?.defaultLibraryOnLaunch === path) {
-        await updateSettings({ defaultLibraryOnLaunch: null });
+      const nextSettings = await forgetRecentLibrary(path);
+      applySettings(nextSettings);
+      const sessionPathsToRemove = [...session.sessionLibraries.entries()]
+        .filter(([sessionPath, library]) => sessionPath === path || library.paths.root === path)
+        .map(([sessionPath]) => sessionPath);
+      for (const sessionPath of sessionPathsToRemove) {
+        session.removeLibraryFromSession(sessionPath);
       }
-      await refreshSettings();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       throw err;

@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addLibraryFieldOption,
   createLibraryWithOptions,
+  deleteLibraryFolder,
   pickParentFolder,
   removeLibrarySchemaDefinition,
   updateLibraryFieldSchema,
@@ -157,5 +158,25 @@ describe("library-client", () => {
 
     await expect(removeLibrarySchemaDefinition(library, input)).resolves.toBe(reopened);
     expect(removeSchemaDefinition).toHaveBeenCalledWith(library, input);
+  });
+
+  it("deletes an existing library folder from disk", async () => {
+    const { remove } = await import("@tauri-apps/plugin-fs");
+
+    await deleteLibraryFolder("/libraries/main");
+
+    expect(allowLibraryDirectory).toHaveBeenCalledWith("/libraries/main", { recursive: true });
+    expect(remove).toHaveBeenCalledWith("/libraries/main", { recursive: true });
+  });
+
+  it("treats a missing library folder as already deleted", async () => {
+    const { remove } = await import("@tauri-apps/plugin-fs");
+    const missingPathError =
+      "failed to get metadata of path: /Users/jacobm/Documents/Sandbox with error: No such file or directory (os error 2)";
+    vi.mocked(allowLibraryDirectory).mockRejectedValueOnce(missingPathError);
+
+    await expect(deleteLibraryFolder("/Users/jacobm/Documents/Sandbox")).resolves.toBeUndefined();
+
+    expect(remove).not.toHaveBeenCalled();
   });
 });

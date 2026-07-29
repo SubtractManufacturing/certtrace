@@ -19,6 +19,7 @@ import {
   updateNamingRules,
   updateWordLists,
 } from "@certtrace/library-engine";
+import { isNotFoundError } from "@certtrace/file-storage";
 import type {
   AttachedFile,
   FieldSchemaV1,
@@ -166,6 +167,21 @@ export async function fetchMaterialAttachments(
 
 export async function deleteLibraryFolder(path: string): Promise<void> {
   const { remove } = await import("@tauri-apps/plugin-fs");
-  await grantLibraryAccess(path);
-  await remove(path, { recursive: true });
+
+  try {
+    await grantLibraryAccess(path);
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      return;
+    }
+    throw error;
+  }
+
+  try {
+    await remove(path, { recursive: true });
+  } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw error;
+    }
+  }
 }
