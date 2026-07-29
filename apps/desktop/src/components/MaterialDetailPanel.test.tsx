@@ -31,7 +31,7 @@ vi.mock("../lib/library-client", () => ({
 vi.mock("../lib/label-client", () => ({
   generateStandardQrLabelPdfBytes: vi.fn(async () => new Uint8Array()),
   openPathWithOpener: vi.fn(),
-  printLabelPdfFromObjectUrl: vi.fn(),
+  printLabelPdf: vi.fn(),
   saveLabelPdfViaDialog: vi.fn(),
 }));
 
@@ -55,20 +55,12 @@ const material = {
 describe("MaterialDetailPanel attachments", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    Object.defineProperty(URL, "createObjectURL", {
-      configurable: true,
-      value: vi.fn(() => "blob:label"),
-    });
-    Object.defineProperty(URL, "revokeObjectURL", {
-      configurable: true,
-      value: vi.fn(),
-    });
     vi.mocked(fetchMaterialAttachments).mockResolvedValue([
       { name: "cert.pdf", format: "pdf", kindKey: "mtr" },
     ]);
   });
 
-  it("assigns a kind and supports rename, delete, and share", async () => {
+  it("assigns a kind per file and supports rename, delete, and share", async () => {
     vi.mocked(pickAttachmentFiles).mockResolvedValue(["/incoming/coc.pdf"]);
     vi.spyOn(window, "prompt").mockReturnValue("renamed-cert.pdf");
 
@@ -84,14 +76,13 @@ describe("MaterialDetailPanel attachments", () => {
 
     expect(await screen.findByText("MTR · PDF")).toBeTruthy();
 
-    await chooseSelectOption(screen.getByLabelText("Attachment kind"), "COC");
-    await userEvent.click(screen.getByRole("button", { name: "Add files" }));
-    expect(attachFilesToMaterial).toHaveBeenCalledWith(
-      library,
-      material.id,
-      ["/incoming/coc.pdf"],
-      "coc",
-    );
+    await userEvent.click(screen.getByRole("button", { name: /Add attachments/i }));
+    await chooseSelectOption(screen.getByLabelText("Type for coc.pdf"), "COC");
+    await userEvent.click(screen.getByRole("button", { name: /Attach files/i }));
+
+    expect(attachFilesToMaterial).toHaveBeenCalledWith(library, material.id, [
+      { sourcePath: "/incoming/coc.pdf", kindKey: "coc" },
+    ]);
 
     await userEvent.click(screen.getByRole("button", { name: "Rename cert.pdf" }));
     expect(renameAttachment).toHaveBeenCalledWith(

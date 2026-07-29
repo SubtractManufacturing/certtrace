@@ -10,12 +10,13 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   Select,
 } from "@certtrace/ui";
-import { FileText, FolderOpen, Pencil, Printer, Share2, Trash2, X } from "lucide-react";
+import { FileText, FolderOpen, Pencil, Plus, Printer, Share2, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   attachFilesToMaterial,
@@ -25,8 +26,9 @@ import {
   revealAttachmentInFolder,
 } from "../lib/attachment-client";
 import {
+  generateStandardQrLabelPdfBytes,
   openPathWithOpener,
-  printLabelPdfFromObjectUrl,
+  printLabelPdf,
   saveLabelPdfViaDialog,
 } from "../lib/label-client";
 import {
@@ -41,12 +43,21 @@ import {
   validateMaterialValues,
 } from "./MaterialSchemaForm";
 
+interface PendingAttachment {
+  sourcePath: string;
+  kindKey: string;
+}
+
 interface MaterialDetailPanelProps {
   library: OpenLibraryResult;
   material: MaterialMetadataV1;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onMaterialUpdated: (material: MaterialMetadataV1) => void;
+}
+
+function attachmentFilename(path: string): string {
+  return path.split(/[/\\]/).pop() ?? path;
 }
 
 export function MaterialDetailPanel({
@@ -56,15 +67,14 @@ export function MaterialDetailPanel({
   onOpenChange,
   onMaterialUpdated,
 }: MaterialDetailPanelProps) {
+  const defaultAttachmentKind = library.fieldSchema.attachmentKinds[0]?.key ?? "";
   const [draft, setDraft] = useState<MaterialFormValues>({
     fields: material.fields,
     identifiers: material.identifiers,
   });
   const [attachments, setAttachments] = useState<AttachedFile[]>([]);
-  const [labelPdfUrl, setLabelPdfUrl] = useState<string | null>(null);
-  const [attachmentKindKey, setAttachmentKindKey] = useState(
-    library.fieldSchema.attachmentKinds[0]?.key ?? "",
-  );
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -92,38 +102,6 @@ export function MaterialDetailPanel({
     };
   }, [library, material.id]);
 
-  useEffect(() => {
-    let cancelled = false;
-    let objectUrl: string | null = null;
-
-    async function loadLabelPreview() {
-      const { generateStandardQrLabelPdfBytes } = await import("../lib/label-client");
-      const bytes = await generateStandardQrLabelPdfBytes(material);
-      objectUrl = URL.createObjectURL(
-        new Blob([Uint8Array.from(bytes)], { type: "application/pdf" }),
-      );
-      if (!cancelled) {
-        setLabelPdfUrl(objectUrl);
-      }
-    }
-
-    void loadLabelPreview();
-    return () => {
-      cancelled = true;
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
-  }, [material]);
-
-  useEffect(() => {
-    return () => {
-      if (labelPdfUrl) {
-        URL.revokeObjectURL(labelPdfUrl);
-      }
-    };
-  }, [labelPdfUrl]);
-
   function resetDraft() {
     setDraft({ fields: material.fields, identifiers: material.identifiers });
     setError(null);
@@ -132,6 +110,8 @@ export function MaterialDetailPanel({
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
       resetDraft();
+      setUploadDialogOpen(false);
+      setPendingAttachments([]);
     }
     onOpenChange(nextOpen);
   }
@@ -168,16 +148,55 @@ export function MaterialDetailPanel({
     }
   }
 
-  async function handleAddFiles() {
+  async function handleChooseAttachments() {
     const paths = await pickAttachmentFiles();
     if (paths.length === 0) {
       return;
     }
+
+    setPendingAttachments(
+      paths.map((sourcePath) => ({
+        sourcePath,
+        kindKey: defaultAttachmentKind,
+      })),
+    );
+    setUploadDialogOpen(true);
+  }
+
+  function handleUploadDialogOpenChange(nextOpen: boolean) {
+    setUploadDialogOpen(nextOpen);
+    if (!nextOpen) {
+      setPendingAttachments([]);
+    }
+  }
+
+  function updatePendingAttachmentKind(sourcePath: string, kindKey: string) {
+    setPendingAttachments((current) =>
+      current.map((entry) =>
+        entry.sourcePath === sourcePath ? { ...entry, kindKey } : entry,
+      ),
+    );
+  }
+
+  async function handleConfirmAttachments() {
+    if (pendingAttachments.length === 0) {
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
-      await attachFilesToMaterial(library, material.id, paths, attachmentKindKey || undefined);
+      await attachFilesToMaterial(
+        library,
+        material.id,
+        pendingAttachments.map((entry) => ({
+          sourcePath: entry.sourcePath,
+          kindKey: entry.kindKey || undefined,
+        })),
+      );
       setAttachments(await fetchMaterialAttachments(library, material.id));
+      setUploadDialogOpen(false);
+      setPendingAttachments([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -186,13 +205,11 @@ export function MaterialDetailPanel({
   }
 
   async function handlePrintLabel() {
-    if (!labelPdfUrl) {
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
-      await printLabelPdfFromObjectUrl(labelPdfUrl, material.id);
+      const bytes = await generateStandardQrLabelPdfBytes(material);
+      await printLabelPdf(bytes, material.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -254,158 +271,208 @@ export function MaterialDetailPanel({
     }
   }
 
+  const hasAttachmentKinds = library.fieldSchema.attachmentKinds.length > 0;
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className="flex max-h-[min(90vh,100dvh-2rem)] w-full max-w-3xl flex-col gap-0 overflow-hidden lg:max-w-4xl"
-      >
-        <DialogHeader className="shrink-0 px-6 pt-6">
-          <DialogTitle>{material.id}</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="flex max-h-[min(90vh,100dvh-2rem)] w-full max-w-3xl flex-col gap-0 overflow-hidden lg:max-w-4xl">
+          <DialogHeader className="shrink-0 px-6 pt-6">
+            <DialogTitle>{material.id}</DialogTitle>
+          </DialogHeader>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
-          <MaterialSchemaForm
-            schema={library.fieldSchema}
-            values={draft}
-            onChange={setDraft}
-            onAddOption={(input) => addLibraryFieldOption(library, input)}
-            idPrefix="detail-material"
-          />
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-4">
+            <MaterialSchemaForm
+              schema={library.fieldSchema}
+              values={draft}
+              onChange={setDraft}
+              onAddOption={(input) => addLibraryFieldOption(library, input)}
+              idPrefix="detail-material"
+            />
 
-          <div className="flex flex-wrap gap-2">
-            {library.fieldSchema.attachmentKinds.length > 0 ? (
-              <Select
-                aria-label="Attachment kind"
-                value={attachmentKindKey}
-                disabled={busy}
-                onChange={(event) => setAttachmentKindKey(event.target.value)}
-                className="w-auto"
-              >
-                {library.fieldSchema.attachmentKinds.map((kind) => (
-                  <option key={kind.key} value={kind.key}>
-                    {kind.label}
-                  </option>
-                ))}
-              </Select>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={() => void handleAddFiles()}
-            >
-              Add files
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={() => void saveLabelPdfViaDialog(material)}
-            >
-              Export label PDF
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy || !labelPdfUrl}
-              onClick={() => void handlePrintLabel()}
-            >
-              <Printer className="mr-2 h-4 w-4" />
-              Print label
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => void openPathWithOpener(getMaterialFolderPath(library, material.id))}
-            >
-              <FolderOpen className="mr-2 h-4 w-4" />
-              Open folder
-            </Button>
+            <section>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold">Attachments</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => void handleChooseAttachments()}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add attachments
+                </Button>
+              </div>
+              {attachments.length === 0 ? (
+                <p className="mt-2 text-sm text-slate-500">No attachments yet.</p>
+              ) : (
+                <ul className="mt-2 space-y-2">
+                  {attachments.map((file) => (
+                    <li
+                      key={file.name}
+                      className="flex items-center justify-between gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"
+                    >
+                      <button
+                        type="button"
+                        className="inline-flex min-w-0 flex-1 items-center gap-2 text-left"
+                        onClick={() => void handleOpenAttachment(file)}
+                      >
+                        <FileText className="h-4 w-4 shrink-0 text-slate-500" />
+                        <span className="truncate">{file.name}</span>
+                        <span className="text-xs text-slate-500">
+                          {library.fieldSchema.attachmentKinds.find(
+                            (kind) => kind.key === file.kindKey,
+                          )?.label ?? "Uncategorized"}
+                          {" · "}
+                          {attachmentFormatLabel(file.format)}
+                        </span>
+                      </button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Rename ${file.name}`}
+                        onClick={() => void handleRenameAttachment(file)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Share ${file.name}`}
+                        onClick={() => void handleRevealAttachment(file)}
+                      >
+                        <Share2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Delete ${file.name}`}
+                        onClick={() => void handleRemoveAttachment(file.name)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section>
+              <h3 className="text-sm font-semibold">Label</h3>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                Export or print the QR label for this material.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => void saveLabelPdfViaDialog(material)}
+                >
+                  Export label PDF
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => void handlePrintLabel()}
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print label
+                </Button>
+              </div>
+            </section>
+
+            {error ? <ErrorBanner message={error} /> : null}
           </div>
 
-          <section>
-            <h3 className="text-sm font-semibold">Attachments</h3>
-            {attachments.length === 0 ? (
-              <p className="mt-2 text-sm text-slate-500">No attachments yet.</p>
-            ) : (
-              <ul className="mt-2 space-y-2">
-                {attachments.map((file) => (
-                  <li
-                    key={file.name}
-                    className="flex items-center justify-between gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"
-                  >
-                    <button
-                      type="button"
-                      className="inline-flex min-w-0 flex-1 items-center gap-2 text-left"
-                      onClick={() => void handleOpenAttachment(file)}
-                    >
-                      <FileText className="h-4 w-4 shrink-0 text-slate-500" />
-                      <span className="truncate">{file.name}</span>
-                      <span className="text-xs text-slate-500">
-                        {library.fieldSchema.attachmentKinds.find((kind) => kind.key === file.kindKey)
-                          ?.label ?? "Uncategorized"}
-                        {" · "}
-                        {attachmentFormatLabel(file.format)}
-                      </span>
-                    </button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      aria-label={`Rename ${file.name}`}
-                      onClick={() => void handleRenameAttachment(file)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      aria-label={`Share ${file.name}`}
-                      onClick={() => void handleRevealAttachment(file)}
-                    >
-                      <Share2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      aria-label={`Delete ${file.name}`}
-                      onClick={() => void handleRemoveAttachment(file.name)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          <DialogFooter className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 px-6 py-4 dark:border-slate-800">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              aria-label="Open material folder"
+              onClick={() => void openPathWithOpener(getMaterialFolderPath(library, material.id))}
+            >
+              <FolderOpen className="h-4 w-4" />
+            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" disabled={busy} onClick={handleCancel}>
+                Cancel
+              </Button>
+              <Button type="button" disabled={busy} onClick={() => void handleSave()}>
+                Save changes
+              </Button>
+            </div>
+          </DialogFooter>
 
-          <section>
-            <h3 className="text-sm font-semibold">Label preview</h3>
-            {labelPdfUrl ? (
-              <div className="mt-2 overflow-hidden rounded-md border border-slate-200 dark:border-slate-700">
-                <iframe src={labelPdfUrl} title="Label preview" className="h-40 w-full bg-white" />
-              </div>
-            ) : null}
-          </section>
+          <DialogClose aria-label="Cancel">
+            <X className="h-4 w-4" />
+          </DialogClose>
+        </DialogContent>
+      </Dialog>
 
-          {error ? <ErrorBanner message={error} /> : null}
-        </div>
+      <Dialog open={uploadDialogOpen} onOpenChange={handleUploadDialogOpenChange}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Attach files</DialogTitle>
+            <DialogDescription>
+              Choose a type for each file before adding them to this material.
+            </DialogDescription>
+          </DialogHeader>
 
-        <DialogFooter className="shrink-0 border-t border-slate-200 px-6 py-4 dark:border-slate-800">
-          <Button type="button" variant="outline" disabled={busy} onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Button type="button" disabled={busy} onClick={() => void handleSave()}>
-            Save changes
-          </Button>
-        </DialogFooter>
+          <ul className="space-y-3">
+            {pendingAttachments.map((entry) => {
+              const filename = attachmentFilename(entry.sourcePath);
+              return (
+                <li
+                  key={entry.sourcePath}
+                  className="flex items-center gap-3 rounded-md border border-slate-200 px-3 py-2 dark:border-slate-700"
+                >
+                  <FileText className="h-4 w-4 shrink-0 text-slate-500" />
+                  <span className="min-w-0 flex-1 truncate text-sm">{filename}</span>
+                  {hasAttachmentKinds ? (
+                    <Select
+                      aria-label={`Type for ${filename}`}
+                      value={entry.kindKey}
+                      disabled={busy}
+                      className="w-36"
+                      onChange={(event) =>
+                        updatePendingAttachmentKind(entry.sourcePath, event.target.value)
+                      }
+                    >
+                      {library.fieldSchema.attachmentKinds.map((kind) => (
+                        <option key={kind.key} value={kind.key}>
+                          {kind.label}
+                        </option>
+                      ))}
+                    </Select>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
 
-        <DialogClose aria-label="Cancel">
-          <X className="h-4 w-4" />
-        </DialogClose>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => handleUploadDialogOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="button" disabled={busy} onClick={() => void handleConfirmAttachments()}>
+              Attach files
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

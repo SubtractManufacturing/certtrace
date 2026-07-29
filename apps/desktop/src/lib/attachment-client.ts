@@ -22,20 +22,27 @@ export async function pickAttachmentFiles(): Promise<string[]> {
   return Array.isArray(selected) ? selected : [selected];
 }
 
+export interface AttachmentUpload {
+  sourcePath: string;
+  kindKey?: string;
+}
+
 export async function attachFilesToMaterial(
   library: OpenLibraryResult,
   materialId: string,
-  sourcePaths: string[],
-  kindKey?: string,
+  uploads: AttachmentUpload[],
 ): Promise<AttachedFile[]> {
-  if (sourcePaths.length === 0) {
+  if (uploads.length === 0) {
     return [];
   }
 
   return attachFiles(
     library,
     materialId,
-    sourcePaths.map((sourcePath) => ({ sourcePath, kindKey })),
+    uploads.map((upload) => ({
+      sourcePath: upload.sourcePath,
+      kindKey: upload.kindKey,
+    })),
   );
 }
 
