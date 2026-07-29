@@ -105,4 +105,17 @@ describe("WelcomeView", () => {
     const logo = await screen.findByRole("img", { name: "CertTrace" });
     expect(logo.className).toContain("h-14");
   });
+
+  it("opens library help from the welcome card", async () => {
+    renderWelcome(
+      <WelcomeView onOpenLibrary={async () => undefined} onStartCreateLibrary={() => undefined} />,
+    );
+
+    await userEvent.click(await screen.findByRole("button", { name: "What is a library?" }));
+
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "What is a library?" })).toBeTruthy();
+    expect(screen.getByText(/A library is a folder on your computer/)).toBeTruthy();
+    expect(screen.getByText(/CertTrace creates a new library folder inside it/)).toBeTruthy();
+  });
 });
