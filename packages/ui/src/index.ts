@@ -57,3 +57,12 @@ export {
   useTheme,
 } from "./components/theme-provider.js";
 export { cn } from "./lib/utils.js";
+export {
+  OVERLAY_TRANSITION_MS,
+  dialogPanelClassName,
+  overlayBackdropClassName,
+  overlayMotionState,
+  sheetPanelClassName,
+  useOverlayPresence,
+  type OverlayMotionState,
+} from "./lib/overlay-motion.js";

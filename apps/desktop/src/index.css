@@ -1,12 +1,13 @@
 @import "tailwindcss";
 
-@source "../../../packages/ui/src/**/*.tsx";
+@source "../../../packages/ui/src/**/*.{ts,tsx}";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   :root {
     color-scheme: light;
+    --certtrace-overlay-duration: 200ms;
     --background: 248 250 252;
     --foreground: 15 23 42;
     --card: 255 255 255;
@@ -125,33 +126,42 @@
     background-color: rgb(15 23 42);
   }
 
-  .certtrace-sheet-root {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
+  .certtrace-overlay-backdrop {
+    opacity: 0;
+    transition: opacity var(--certtrace-overlay-duration) ease-out;
   }
 
-  .certtrace-sheet-overlay {
-    position: absolute;
-    inset: 0;
-    background-color: rgb(0 0 0 / 0.5);
+  .certtrace-overlay-backdrop[data-state="open"] {
+    opacity: 1;
   }
 
-  .certtrace-sheet-panel {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10;
-    display: flex;
-    width: 100%;
-    max-width: 28rem;
-    flex-direction: column;
-    overflow-y: auto;
-    border-left: 1px solid rgb(var(--border));
-    background-color: rgb(var(--card));
-    color: rgb(var(--card-foreground));
-    padding: 1.5rem;
-    box-shadow: 0 10px 15px rgb(15 23 42 / 0.1);
+  .certtrace-dialog-panel {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+    transition:
+      opacity var(--certtrace-overlay-duration) ease-out,
+      transform var(--certtrace-overlay-duration) ease-out;
+  }
+
+  .certtrace-dialog-panel[data-state="open"] {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .certtrace-sheet-panel-motion {
+    transform: translateX(100%);
+    transition: transform var(--certtrace-overlay-duration) ease-out;
+  }
+
+  .certtrace-sheet-panel-motion[data-state="open"] {
+    transform: translateX(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .certtrace-overlay-backdrop,
+    .certtrace-dialog-panel,
+    .certtrace-sheet-panel-motion {
+      transition: none;
+    }
   }
 }
