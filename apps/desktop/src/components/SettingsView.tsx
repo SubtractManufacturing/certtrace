@@ -3,18 +3,21 @@ import type {
   DefaultLibraryOnLaunch,
   RecentLibraryEntryV1,
 } from "@certtrace/types";
-import { Button, Label, Select, Switch } from "@certtrace/ui";
+import type { Theme } from "@certtrace/ui";
+import { Button, Label, Select, Switch, ThemeProvider } from "@certtrace/ui";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { FolderOpen, Plus } from "lucide-react";
+import { FolderOpen, Plus, Settings, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { openAppDataFolder } from "../lib/app-data-client";
 import { APP_VERSION } from "../lib/update-check";
 import { LATEST_RELEASE_PAGE_URL } from "../lib/update-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { RemoveLibraryDialog } from "./RemoveLibraryDialog";
+import { SkyThemeToggle } from "./SkyThemeToggle";
 
 interface SettingsViewProps {
   theme: AppSettingsTheme;
+  resolvedTheme: Theme;
   checkForUpdates: boolean;
   defaultLibraryOnLaunch: DefaultLibraryOnLaunch;
   recentLibraries: RecentLibraryEntryV1[];
@@ -31,12 +34,14 @@ interface SettingsViewProps {
   onAddLibrary: () => void;
   onCreateLibrary: () => void;
   onRemoveLibrary: (path: string, deleteFolder: boolean) => Promise<void>;
+  onOpenLibrarySettings: (path: string) => void;
   onCheckForUpdatesNow: () => void;
   onInstallUpdate: () => void;
 }
 
 export function SettingsView({
   theme,
+  resolvedTheme,
   checkForUpdates,
   defaultLibraryOnLaunch,
   recentLibraries,
@@ -53,6 +58,7 @@ export function SettingsView({
   onAddLibrary,
   onCreateLibrary,
   onRemoveLibrary,
+  onOpenLibrarySettings,
   onCheckForUpdatesNow,
   onInstallUpdate,
 }: SettingsViewProps) {
@@ -73,28 +79,42 @@ export function SettingsView({
   }
 
   const launchOptions = recentLibraries;
+  const useSystemTheme = theme === "system";
 
   return (
     <>
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 overflow-auto px-6 py-6">
+      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 overflow-auto px-6 py-6">
         <header>
           <h1 className="text-2xl font-semibold">Settings</h1>
         </header>
 
         <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="text-lg font-semibold">Appearance</h2>
-          <label className="mt-4 block max-w-xs space-y-1 text-sm">
-            <Label>Theme</Label>
-            <Select
-              value={theme}
-              onChange={(event) =>
-                onThemeChange(event.target.value as AppSettingsTheme)
-              }
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">Appearance</h2>
+            <ThemeProvider
+              theme={resolvedTheme}
+              onThemeChange={(next) => {
+                if (!useSystemTheme) {
+                  onThemeChange(next);
+                }
+              }}
             >
-              <option value="system">System</option>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </Select>
+              <SkyThemeToggle
+                disabled={useSystemTheme}
+                className="h-[25px] w-[47px]"
+              />
+            </ThemeProvider>
+          </div>
+          <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400 dark:border-slate-600 dark:bg-slate-950 dark:focus:ring-slate-500"
+              checked={useSystemTheme}
+              onChange={(event) => {
+                onThemeChange(event.target.checked ? "system" : resolvedTheme);
+              }}
+            />
+            Use system theme
           </label>
         </section>
 
@@ -105,14 +125,41 @@ export function SettingsView({
             CertTrace starts.
           </p>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={onAddLibrary}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add library
-            </Button>
-            <Button type="button" variant="outline" onClick={onCreateLibrary}>
-              Create library
-            </Button>
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={onAddLibrary}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add library
+              </Button>
+              <Button type="button" variant="outline" onClick={onCreateLibrary}>
+                Create library
+              </Button>
+            </div>
+            <label className="ml-auto flex items-center gap-2 text-sm">
+              <Label className="shrink-0 font-normal text-slate-600 dark:text-slate-400">
+                Open on launch
+              </Label>
+              <Select
+                className="w-auto min-w-[11rem]"
+                value={defaultLibraryOnLaunch ?? ""}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  onDefaultLibraryChange(
+                    value === "" ? null : (value as DefaultLibraryOnLaunch),
+                  );
+                }}
+              >
+                <option value="">Recent library</option>
+                {launchOptions.length > 1 ? (
+                  <option value="all">All libraries</option>
+                ) : null}
+                {launchOptions.map((entry) => (
+                  <option key={entry.path} value={entry.path}>
+                    {entry.name}
+                  </option>
+                ))}
+              </Select>
+            </label>
           </div>
 
           {recentLibraries.length > 0 ? (
@@ -128,14 +175,25 @@ export function SettingsView({
                       {entry.path}
                     </p>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setLibraryToRemove(entry)}
-                  >
-                    Remove
-                  </Button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label={`Library settings for ${entry.name}`}
+                      className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                      onClick={() => onOpenLibrarySettings(entry.path)}
+                    >
+                      <Settings className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      title={`Remove ${entry.name}`}
+                      aria-label={`Remove ${entry.name}`}
+                      className="rounded-md p-1 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+                      onClick={() => setLibraryToRemove(entry)}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -144,29 +202,6 @@ export function SettingsView({
               No libraries added yet.
             </p>
           )}
-
-          <label className="mt-4 block max-w-xs space-y-1 text-sm">
-            <Label>Default library on launch</Label>
-            <Select
-              value={defaultLibraryOnLaunch ?? ""}
-              onChange={(event) => {
-                const value = event.target.value;
-                onDefaultLibraryChange(
-                  value === "" ? null : (value as DefaultLibraryOnLaunch),
-                );
-              }}
-            >
-              <option value="">Most recent library</option>
-              {launchOptions.length > 1 ? (
-                <option value="all">All libraries</option>
-              ) : null}
-              {launchOptions.map((entry) => (
-                <option key={entry.path} value={entry.path}>
-                  {entry.name}
-                </option>
-              ))}
-            </Select>
-          </label>
         </section>
 
         <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">

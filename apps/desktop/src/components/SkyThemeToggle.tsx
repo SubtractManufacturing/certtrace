@@ -6,7 +6,13 @@ const THEME_MS = "duration-500";
  * Pill-shaped day/night theme switch: sun + cloud (light) / moon + stars (dark).
  * Visual-only control — no text labels.
  */
-export function SkyThemeToggle({ className }: { className?: string }) {
+export function SkyThemeToggle({
+  className,
+  disabled,
+}: {
+  className?: string;
+  disabled?: boolean;
+}) {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
 
@@ -16,9 +22,14 @@ export function SkyThemeToggle({ className }: { className?: string }) {
       role="switch"
       aria-checked={isDark}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      onClick={toggleTheme}
+      disabled={disabled}
+      onClick={() => {
+        if (!disabled) {
+          toggleTheme();
+        }
+      }}
       className={cn(
-        "group relative h-6 w-[2.8125rem] shrink-0 rounded-full border-[1.5px] p-[2px] transition-[background-color,border-color,box-shadow] ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50 dark:focus-visible:ring-sky-500 dark:focus-visible:ring-offset-slate-950",
+        "group relative h-6 w-[2.8125rem] shrink-0 rounded-full border-[1.5px] p-[2px] transition-[background-color,border-color,box-shadow,opacity] ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:ring-sky-500 dark:focus-visible:ring-offset-slate-950",
         THEME_MS,
         isDark
           ? "border-slate-400/80 bg-[#0b1220] shadow-[inset_0_1px_2px_rgba(0,0,0,0.45)]"

@@ -265,6 +265,19 @@ function App() {
     }
   }
 
+  async function handleOpenLibrarySettings(path: string) {
+    setError(null);
+    try {
+      if (!session.sessionLibraries.has(path)) {
+        await session.openLibrary(path);
+      }
+      session.setActiveLibraryPath(path);
+      setActiveView("library-settings");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   if (settingsLoading || bootstrapping) {
     return (
       <ThemeProvider theme={resolvedTheme}>
@@ -320,7 +333,15 @@ function App() {
         libraries={libraryPickerOptions}
         activeLibraryPath={session.activeLibraryPath}
         onLibraryChange={(path) => void handleLibraryChange(path)}
-        onOpenLibrarySettings={() => setActiveView("library-settings")}
+        onOpenLibrarySettings={() => {
+          const path =
+            session.activeLibraryPath && session.activeLibraryPath !== "all"
+              ? session.activeLibraryPath
+              : libraryPickerOptions[0]?.path;
+          if (path) {
+            void handleOpenLibrarySettings(path);
+          }
+        }}
       >
         {activeView === "materials" ? (
           <MaterialsWorkspace
@@ -338,6 +359,7 @@ function App() {
         {activeView === "settings" && settings ? (
           <SettingsView
             theme={settings.theme}
+            resolvedTheme={resolvedTheme}
             checkForUpdates={settings.checkForUpdates}
             defaultLibraryOnLaunch={settings.defaultLibraryOnLaunch}
             recentLibraries={librariesForSettings}
@@ -356,6 +378,7 @@ function App() {
             onAddLibrary={() => void handleAddLibraryFromSettings()}
             onCreateLibrary={() => setShowCreateWizard(true)}
             onRemoveLibrary={(path, deleteFolder) => handleRemoveLibrary(path, deleteFolder)}
+            onOpenLibrarySettings={(path) => void handleOpenLibrarySettings(path)}
             onCheckForUpdatesNow={() => void updateCheck.checkNow()}
             onInstallUpdate={() => void updateCheck.installNow()}
           />
