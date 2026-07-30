@@ -29,7 +29,7 @@ import {
   revealAttachmentInFolder,
 } from "../lib/attachment-client";
 import {
-  generateStandardQrLabelPdfBytes,
+  generateLibraryLabelPdfBytes,
   openPathWithOpener,
   printLabelPdf,
   saveLabelPdfViaDialog,
@@ -214,7 +214,7 @@ export function MaterialDetailPanel({
     setBusy(true);
     setError(null);
     try {
-      const bytes = await generateStandardQrLabelPdfBytes(material);
+      const bytes = await generateLibraryLabelPdfBytes(library, [material]);
       await printLabelPdf(bytes, material.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -407,7 +407,7 @@ export function MaterialDetailPanel({
                   type="button"
                   variant="outline"
                   disabled={busy}
-                  onClick={() => void saveLabelPdfViaDialog(material)}
+                  onClick={() => void saveLabelPdfViaDialog(library, material)}
                 >
                   Export label PDF
                 </Button>

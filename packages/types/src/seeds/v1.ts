@@ -1,7 +1,47 @@
-import type { FieldSchemaV1, LibraryConfigV1, NamingRulesV1, WordListsV1 } from "../schemas/v1.js";
+import {
+  type FieldSchemaV1,
+  LABEL_CONTENT_MATERIAL_ID,
+  LABEL_CONTENT_QR,
+  type LabelTemplate,
+  type LibraryConfigV1,
+  type NamingRulesV1,
+  SCHEMA_VERSION,
+  type WordListsV1,
+} from "../schemas/v1.js";
+
+/** Stable ids for shipped starter Label Templates (ordinary data — editable/deletable). */
+export const STARTER_LABEL_TEMPLATE_4X6_ID = "starter-4x6" as const;
+export const STARTER_LABEL_TEMPLATE_LETTER_ID = "starter-letter" as const;
+
+const STARTER_LABEL_CONTENT_KEYS = [
+  "family",
+  "alloy",
+  "temper",
+  LABEL_CONTENT_MATERIAL_ID,
+  LABEL_CONTENT_QR,
+] as const;
+
+export function createStarterLabelTemplates(): LabelTemplate[] {
+  return [
+    {
+      id: STARTER_LABEL_TEMPLATE_4X6_ID,
+      name: "4×6 in",
+      size: { kind: "catalog", catalogId: "4x6" },
+      displayUnit: "in",
+      contentKeys: [...STARTER_LABEL_CONTENT_KEYS],
+    },
+    {
+      id: STARTER_LABEL_TEMPLATE_LETTER_ID,
+      name: "8.5×11 in",
+      size: { kind: "catalog", catalogId: "letter" },
+      displayUnit: "in",
+      contentKeys: [...STARTER_LABEL_CONTENT_KEYS],
+    },
+  ];
+}
 
 export const defaultWordListsV1: WordListsV1 = {
-  version: 1,
+  version: SCHEMA_VERSION,
   lists: {
     animals: {
       label: "Animals",
@@ -23,7 +63,7 @@ export const defaultWordListsV1: WordListsV1 = {
 };
 
 export const defaultNamingRulesV1: NamingRulesV1 = {
-  version: 1,
+  version: SCHEMA_VERSION,
   activeStrategyId: "material-animal-number",
   strategies: [
     {
@@ -75,18 +115,20 @@ export const defaultNamingRulesV1: NamingRulesV1 = {
 };
 
 export function createDefaultLibraryConfigV1(name: string): LibraryConfigV1 {
+  const labelTemplates = createStarterLabelTemplates();
   return {
-    version: 1,
+    version: SCHEMA_VERSION,
     name,
     idStrategy: defaultNamingRulesV1.activeStrategyId,
-    labelTemplate: "standard-qr",
+    labelTemplates,
+    defaultLabelTemplateId: STARTER_LABEL_TEMPLATE_4X6_ID,
     searchAllFields: false,
   };
 }
 
 /** Product default field schema, identifier kinds, attachment kinds, and starter options. */
 export const defaultFieldSchemaV1: FieldSchemaV1 = {
-  version: 1,
+  version: SCHEMA_VERSION,
   tableColumns: [
     { kind: "id" },
     { kind: "field", key: "family" },

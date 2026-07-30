@@ -29,7 +29,7 @@ vi.mock("../lib/library-client", () => ({
 }));
 
 vi.mock("../lib/label-client", () => ({
-  generateStandardQrLabelPdfBytes: vi.fn(async () => new Uint8Array()),
+  generateLibraryLabelPdfBytes: vi.fn(async () => new Uint8Array()),
   openPathWithOpener: vi.fn(),
   printLabelPdf: vi.fn(),
   saveLabelPdfViaDialog: vi.fn(),
@@ -41,10 +41,26 @@ const library = {
     materials: "/libraries/main/materials",
   },
   fieldSchema: defaultFieldSchemaV1,
+  config: {
+    version: 2,
+    name: "Main",
+    idStrategy: "numeric",
+    labelTemplates: [
+      {
+        id: "starter-4x6",
+        name: "4×6 in",
+        size: { kind: "catalog", catalogId: "4x6" },
+        displayUnit: "in",
+        contentKeys: ["material_id", "qr"],
+      },
+    ],
+    defaultLabelTemplateId: "starter-4x6",
+    searchAllFields: false,
+  },
 } as OpenLibraryResult;
 
 const material = {
-  version: 1 as const,
+  version: 2 as const,
   id: "AL-falcon-101",
   fields: {},
   identifiers: {},

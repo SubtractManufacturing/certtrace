@@ -14,7 +14,9 @@ import {
   fieldSchemaV1Schema,
   type IdentifierKindV1,
   identifierKindV1Schema,
+  type LabelTemplate,
   type LibraryConfigV1,
+  labelTemplateSchema,
   libraryConfigV1Schema,
   materialTableColumnIdentity,
   NAMING_RULES_JSON,
@@ -200,10 +202,77 @@ export function canReplaceFieldDefinition(
 export interface CreateLibraryOptions {
   name: string;
   idStrategy?: string;
-  labelTemplate?: string;
   namingRules?: NamingRulesV1;
   wordLists?: WordListsV1;
   fieldSchema?: FieldSchemaV1;
+}
+
+export function addLabelTemplate(
+  config: LibraryConfigV1,
+  template: LabelTemplate,
+): LibraryConfigV1 {
+  const validated = labelTemplateSchema.parse(template);
+  if (config.labelTemplates.some((entry) => entry.id === validated.id)) {
+    throw new LibraryError(`Label Template id already exists: ${validated.id}`);
+  }
+
+  return libraryConfigV1Schema.parse({
+    ...config,
+    labelTemplates: [...config.labelTemplates, validated],
+  });
+}
+
+export function updateLabelTemplate(
+  config: LibraryConfigV1,
+  template: LabelTemplate,
+): LibraryConfigV1 {
+  const validated = labelTemplateSchema.parse(template);
+  if (!config.labelTemplates.some((entry) => entry.id === validated.id)) {
+    throw new LibraryError(`Label Template not found: ${validated.id}`);
+  }
+
+  return libraryConfigV1Schema.parse({
+    ...config,
+    labelTemplates: config.labelTemplates.map((entry) =>
+      entry.id === validated.id ? validated : entry,
+    ),
+  });
+}
+
+export function deleteLabelTemplate(config: LibraryConfigV1, templateId: string): LibraryConfigV1 {
+  if (config.labelTemplates.length <= 1) {
+    throw new LibraryError("Cannot delete the last Label Template.");
+  }
+
+  const next = config.labelTemplates.filter((entry) => entry.id !== templateId);
+  if (next.length === config.labelTemplates.length) {
+    throw new LibraryError(`Label Template not found: ${templateId}`);
+  }
+
+  const defaultLabelTemplateId =
+    config.defaultLabelTemplateId === templateId ? next[0]!.id : config.defaultLabelTemplateId;
+
+  return libraryConfigV1Schema.parse({
+    ...config,
+    labelTemplates: next,
+    defaultLabelTemplateId,
+  });
+}
+
+export function setDefaultLabelTemplate(
+  config: LibraryConfigV1,
+  templateId: string,
+): LibraryConfigV1 {
+  if (!config.labelTemplates.some((entry) => entry.id === templateId)) {
+    throw new LibraryError(
+      `Default Label Template must reference an existing template: ${templateId}`,
+    );
+  }
+
+  return libraryConfigV1Schema.parse({
+    ...config,
+    defaultLabelTemplateId: templateId,
+  });
 }
 
 export async function updateLibraryConfig(
@@ -464,7 +533,6 @@ export function buildCreateLibraryConfig(options: CreateLibraryOptions): {
   const config = libraryConfigV1Schema.parse({
     ...createDefaultLibraryConfigV1(options.name.trim()),
     idStrategy,
-    labelTemplate: options.labelTemplate ?? "standard-qr",
   });
 
   return { config, namingRules, wordLists, fieldSchema };

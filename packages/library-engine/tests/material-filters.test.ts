@@ -10,7 +10,7 @@ import {
 
 const materials: MaterialMetadataV1[] = [
   {
-    version: 1,
+    version: 2,
     id: "AL-falcon-101",
     fields: {
       family: "aluminum",
@@ -23,7 +23,7 @@ const materials: MaterialMetadataV1[] = [
     updatedAt: "2026-05-28T12:00:00.000Z",
   },
   {
-    version: 1,
+    version: 2,
     id: "AL-river-102",
     fields: {
       family: "aluminum",

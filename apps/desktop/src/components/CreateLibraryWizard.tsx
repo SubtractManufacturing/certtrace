@@ -69,7 +69,6 @@ export function CreateLibraryWizard({
       await onCreate(parentDir, {
         name: trimmed,
         idStrategy: defaultNamingRulesV1.activeStrategyId,
-        labelTemplate: "standard-qr",
         namingRules: defaultNamingRulesV1,
         wordLists: defaultWordListsV1,
       });

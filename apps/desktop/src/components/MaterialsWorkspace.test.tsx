@@ -25,7 +25,7 @@ const sampleLibrary = {
 const materials: IndexedMaterial[] = [
   {
     id: "AL-falcon-101",
-    version: 1,
+    version: 2,
     fields: {
       family: "aluminum",
       alloy: "6061",
@@ -43,7 +43,7 @@ const materials: IndexedMaterial[] = [
   },
   {
     id: "AL-river-102",
-    version: 1,
+    version: 2,
     fields: {
       family: "aluminum",
       alloy: "7075",
@@ -237,7 +237,7 @@ describe("MaterialsWorkspace", () => {
   it("renders the add form from the library field schema and saves keyed values", async () => {
     vi.mocked(addMaterial).mockResolvedValue({
       id: "AL-new-103",
-      version: 1,
+      version: 2,
       fields: {},
       identifiers: {},
       createdAt: "2026-05-28T12:00:00.000Z",

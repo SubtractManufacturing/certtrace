@@ -14,6 +14,7 @@ import {
   libraryConfigV1Schema,
   materialMetadataV1Schema,
   namingRulesV1Schema,
+  SCHEMA_VERSION,
   wordListsV1Schema,
 } from "../src/schemas/v1.js";
 import {
@@ -30,15 +31,23 @@ function readFixture(relativePath: string): unknown {
 }
 
 describe("libraryConfigV1Schema", () => {
-  it("validates a small library fixture", () => {
-    const parsed = libraryConfigV1Schema.parse(
-      readFixture("fixtures/libraries/small/.certtrace/library.json"),
-    );
-    expect(parsed.name).toBe("Main Shop Materials");
+  it("validates default seed config with starter Label Templates", () => {
+    const parsed = libraryConfigV1Schema.parse(createDefaultLibraryConfigV1("QA Archive"));
+    expect(parsed.name).toBe("QA Archive");
+    expect(parsed.defaultLabelTemplateId).toBe("starter-4x6");
+    expect(parsed.labelTemplates.map((template) => template.id)).toEqual([
+      "starter-4x6",
+      "starter-letter",
+    ]);
   });
 
-  it("validates default seed config", () => {
-    expect(createDefaultLibraryConfigV1("QA Archive").name).toBe("QA Archive");
+  it("rejects a default Label Template id that is missing", () => {
+    const seed = createDefaultLibraryConfigV1("QA Archive");
+    const result = libraryConfigV1Schema.safeParse({
+      ...seed,
+      defaultLabelTemplateId: "missing",
+    });
+    expect(result.success).toBe(false);
   });
 });
 
@@ -107,7 +116,7 @@ describe("fieldSchemaV1Schema", () => {
 
   it("rejects select fields without options", () => {
     const result = fieldSchemaV1Schema.safeParse({
-      version: 1,
+      version: SCHEMA_VERSION,
       fields: [
         {
           key: "family",
@@ -125,7 +134,7 @@ describe("fieldSchemaV1Schema", () => {
 
   it("rejects reserved system keys as field definitions", () => {
     const result = fieldSchemaV1Schema.safeParse({
-      version: 1,
+      version: SCHEMA_VERSION,
       fields: [
         {
           key: "id",
@@ -143,16 +152,17 @@ describe("fieldSchemaV1Schema", () => {
 });
 
 describe("materialMetadataV1Schema", () => {
-  it("validates a material fixture", () => {
-    const parsed = materialMetadataV1Schema.parse(
-      readFixture("fixtures/libraries/small/materials/AL-falcon-104/metadata.json"),
-    );
+  it("validates material metadata at the current schema version", () => {
+    const fixture = readFixture(
+      "fixtures/libraries/small/materials/AL-falcon-104/metadata.json",
+    ) as Record<string, unknown>;
+    const parsed = materialMetadataV1Schema.parse({ ...fixture, version: SCHEMA_VERSION });
     expect(parsed.id).toBe("AL-falcon-104");
   });
 
   it("rejects invalid material ids", () => {
     const result = materialMetadataV1Schema.safeParse({
-      version: 1,
+      version: SCHEMA_VERSION,
       id: "bad id with spaces",
       fields: {},
       identifiers: {},

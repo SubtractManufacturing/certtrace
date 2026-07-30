@@ -14,6 +14,7 @@ import {
   materialMetadataPath,
   materialMetadataV1Schema,
   NAMING_RULES_JSON,
+  SCHEMA_VERSION,
   WORD_LISTS_JSON,
 } from "@certtrace/types";
 import { LibraryError } from "./errors.js";
@@ -59,6 +60,7 @@ export {
   type AddFieldOptionInput,
   type AddFieldOptionResult,
   addFieldOption,
+  addLabelTemplate,
   addNamingStrategy,
   type CreateLibraryOptions,
   canReplaceFieldDefinition,
@@ -70,10 +72,13 @@ export {
   defaultFieldSchemaV1,
   defaultNamingRulesV1,
   defaultWordListsV1,
+  deleteLabelTemplate,
   deleteNamingStrategy,
   duplicateNamingStrategy,
   renameNamingStrategy,
+  setDefaultLabelTemplate,
   updateFieldSchema,
+  updateLabelTemplate,
   updateLibraryConfig,
   updateNamingRules,
   updateWordLists,
@@ -329,7 +334,7 @@ export async function createMaterial(
 
   const now = new Date().toISOString();
   const metadata = materialMetadataV1Schema.parse({
-    version: 1,
+    version: SCHEMA_VERSION,
     id,
     fields: input.fields ?? {},
     identifiers: input.identifiers ?? {},
