@@ -8,8 +8,6 @@ import {
 import {
   createStarterLabelTemplates,
   LABEL_SIZE_CATALOG,
-  type LabelContentAlign,
-  type LabelContentSize,
   type LabelDisplayUnit,
   type LabelSizeCatalogId,
   type LabelTemplate,
@@ -19,7 +17,6 @@ import {
 } from "@certtrace/types";
 import {
   Button,
-  cn,
   Dialog,
   DialogClose,
   DialogContent,
@@ -30,7 +27,6 @@ import {
   Input,
   Label,
   Select,
-  Switch,
   Table,
   TableBody,
   TableCell,
@@ -38,43 +34,14 @@ import {
   TableHeader,
   TableRow,
 } from "@certtrace/ui";
-import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
-  GripVertical,
-  Pencil,
-  Plus,
-  Star,
-  Trash2,
-  X,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Pencil, Plus, Star, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { formatDimensionInput, parseDimensionInput } from "../lib/label-dimensions";
-import {
-  createSampleLabelMaterial,
-  disableContentItem,
-  enableContentItem,
-  labelContentListRows,
-  labelContentOptions,
-  patchContentItem,
-  reorderContentItems,
-} from "../lib/label-template-content";
+import { createSampleLabelMaterial } from "../lib/label-template-content";
 import { fetchMaterials, updateLibraryConfigPartial } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { LabelLivePreview } from "./LabelLivePreview";
-
-const ALIGN_OPTIONS: { value: LabelContentAlign; label: string; Icon: typeof AlignLeft }[] = [
-  { value: "left", label: "Left align", Icon: AlignLeft },
-  { value: "center", label: "Center", Icon: AlignCenter },
-  { value: "right", label: "Right align", Icon: AlignRight },
-];
-
-const SIZE_OPTIONS: { value: LabelContentSize; label: string; short: string }[] = [
-  { value: "small", label: "Small", short: "S" },
-  { value: "medium", label: "Medium", short: "M" },
-  { value: "large", label: "Large", short: "L" },
-];
+import { LabelTemplateContentList } from "./LabelTemplateContentList";
 
 const SAMPLE_PREVIEW_VALUE = "__sample__";
 
@@ -121,53 +88,6 @@ export function LabelTemplatesEditor({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
-  const [draggingKey, setDraggingKey] = useState<string | null>(null);
-  const dragKeyRef = useRef<string | null>(null);
-  const dragOverKeyRef = useRef<string | null>(null);
-  const contentListRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!draggingKey) {
-      return;
-    }
-
-    function handlePointerMove(event: PointerEvent) {
-      const fromKey = dragKeyRef.current;
-      const list = contentListRef.current;
-      if (!fromKey || !list) {
-        return;
-      }
-      const target = document.elementFromPoint(event.clientX, event.clientY);
-      const row = target?.closest<HTMLElement>("[data-content-key][data-enabled='true']");
-      if (!row || !list.contains(row)) {
-        return;
-      }
-      const toKey = row.dataset.contentKey;
-      if (!toKey || toKey === fromKey || toKey === dragOverKeyRef.current) {
-        return;
-      }
-      dragOverKeyRef.current = toKey;
-      patchDraft((template) => ({
-        ...template,
-        content: reorderContentItems(template.content, fromKey, toKey),
-      }));
-    }
-
-    function endDrag() {
-      dragKeyRef.current = null;
-      dragOverKeyRef.current = null;
-      setDraggingKey(null);
-    }
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", endDrag);
-    window.addEventListener("pointercancel", endDrag);
-    return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", endDrag);
-      window.removeEventListener("pointercancel", endDrag);
-    };
-  }, [draggingKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -556,141 +476,16 @@ export function LabelTemplatesEditor({
 
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Content</p>
-                  <div
-                    ref={contentListRef}
-                    className="space-y-1 rounded-md border border-slate-200 p-2 dark:border-slate-700"
-                  >
-                    {labelContentListRows(
-                      labelContentOptions(library.fieldSchema),
-                      draft.content,
-                    ).map((row) => {
-                      const enabled = row.kind === "enabled";
-                      const option = row.option;
-                      const item = row.kind === "enabled" ? row.item : null;
-                      return (
-                        <div
-                          key={option.key}
-                          data-content-key={option.key}
-                          data-enabled={enabled ? "true" : "false"}
-                          className={cn(
-                            "flex items-center gap-2 rounded-md px-1.5 py-1.5 text-sm",
-                            enabled
-                              ? "hover:bg-slate-50 dark:hover:bg-slate-800"
-                              : "opacity-60",
-                            draggingKey === option.key && "bg-sky-50 dark:bg-sky-950/40",
-                          )}
-                        >
-                          {enabled ? (
-                            <button
-                              type="button"
-                              className="shrink-0 cursor-grab touch-none rounded p-0.5 text-slate-400 hover:text-slate-600 active:cursor-grabbing dark:hover:text-slate-200"
-                              aria-label={`Drag to reorder ${option.label}`}
-                              onPointerDown={(event) => {
-                                event.preventDefault();
-                                dragKeyRef.current = option.key;
-                                dragOverKeyRef.current = option.key;
-                                setDraggingKey(option.key);
-                              }}
-                            >
-                              <GripVertical className="h-4 w-4" aria-hidden />
-                            </button>
-                          ) : (
-                            <span className="inline-flex w-5 shrink-0" aria-hidden />
-                          )}
-
-                          <Switch
-                            aria-label={`Include ${option.label}`}
-                            checked={enabled}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                patchDraft((template) => ({
-                                  ...template,
-                                  content: enableContentItem(template.content, option.key),
-                                }));
-                                return;
-                              }
-                              const next = disableContentItem(draft.content, option.key);
-                              if (!next) {
-                                setModalError(
-                                  "A Label Template must include at least one content slot.",
-                                );
-                                return;
-                              }
-                              patchDraft((template) => ({ ...template, content: next }));
-                            }}
-                          />
-
-                          <span className="min-w-0 flex-1 truncate">{option.label}</span>
-
-                          {enabled && item ? (
-                            <div className="flex shrink-0 items-center gap-1.5">
-                              <div
-                                role="radiogroup"
-                                aria-label={`Align ${option.label}`}
-                                className="inline-flex rounded-md border border-slate-200 p-0.5 dark:border-slate-600"
-                              >
-                                {ALIGN_OPTIONS.map(({ value, label, Icon }) => (
-                                  <button
-                                    key={value}
-                                    type="button"
-                                    role="radio"
-                                    aria-checked={item.align === value}
-                                    aria-label={label}
-                                    className={cn(
-                                      "rounded px-1 py-0.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100",
-                                      item.align === value &&
-                                        "bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-slate-50",
-                                    )}
-                                    onClick={() =>
-                                      patchDraft((template) => ({
-                                        ...template,
-                                        content: patchContentItem(template.content, option.key, {
-                                          align: value,
-                                        }),
-                                      }))
-                                    }
-                                  >
-                                    <Icon className="h-3.5 w-3.5" aria-hidden />
-                                  </button>
-                                ))}
-                              </div>
-                              <div
-                                role="radiogroup"
-                                aria-label={`Size ${option.label}`}
-                                className="inline-flex overflow-hidden rounded-md border border-slate-200 text-[11px] font-medium leading-none dark:border-slate-600"
-                              >
-                                {SIZE_OPTIONS.map(({ value, label, short }, index) => (
-                                  <button
-                                    key={value}
-                                    type="button"
-                                    role="radio"
-                                    aria-checked={item.size === value}
-                                    aria-label={label}
-                                    className={cn(
-                                      "px-1.5 py-1 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100",
-                                      index > 0 && "border-l border-slate-200 dark:border-slate-600",
-                                      item.size === value &&
-                                        "bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-slate-50",
-                                    )}
-                                    onClick={() =>
-                                      patchDraft((template) => ({
-                                        ...template,
-                                        content: patchContentItem(template.content, option.key, {
-                                          size: value,
-                                        }),
-                                      }))
-                                    }
-                                  >
-                                    {short}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <LabelTemplateContentList
+                    fieldSchema={library.fieldSchema}
+                    content={draft.content}
+                    onContentChange={(nextContent) =>
+                      patchDraft((template) => ({ ...template, content: nextContent }))
+                    }
+                    onInvalidDisable={() =>
+                      setModalError("A Label Template must include at least one content slot.")
+                    }
+                  />
                 </div>
 
                 {modalError ? <ErrorBanner message={modalError} /> : null}
