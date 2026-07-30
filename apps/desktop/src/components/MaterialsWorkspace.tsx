@@ -4,7 +4,7 @@ import {
   type MaterialFilterValues,
   type OpenLibraryResult,
 } from "@certtrace/library-engine";
-import { defaultFieldSchemaV1 } from "@certtrace/types";
+import { defaultFieldSchemaV1, type MaterialMetadataV1 } from "@certtrace/types";
 import {
   Button,
   Dialog,
@@ -25,6 +25,7 @@ import {
   openLibraryAtPath,
 } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
+import { LabelPreviewDialog } from "./LabelPreviewDialog";
 import { MaterialDetailPanel } from "./MaterialDetailPanel";
 import { MaterialFiltersFlyout } from "./MaterialFiltersFlyout";
 import { emptyMaterialFilters } from "./MaterialFiltersPanel";
@@ -68,6 +69,7 @@ export function MaterialsWorkspace({
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [formValues, setFormValues] = useState<MaterialFormValues>(emptyFormValues);
+  const [labelPreviewMaterial, setLabelPreviewMaterial] = useState<MaterialMetadataV1 | null>(null);
   const [schemaFilters, setSchemaFilters] = useState<MaterialFilterValues>(emptyMaterialFilters);
   const [draftFilters, setDraftFilters] = useState<MaterialFilterValues>(emptyMaterialFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -187,7 +189,7 @@ export function MaterialsWorkspace({
     setFormValues(emptyFormValues);
   }
 
-  async function handleAddMaterial() {
+  async function handleAddMaterial(options?: { openLabelPreview?: boolean }) {
     if (!activeLibraryPath || activeLibraryPath === "all") {
       setLocalError("Select a single library before adding materials.");
       return;
@@ -214,10 +216,13 @@ export function MaterialsWorkspace({
         fields: formValues.fields,
         identifiers: formValues.identifiers,
       };
-      await addMaterial(library, input);
+      const created = await addMaterial(library, input);
       await onRefreshLibrary(activeLibraryPath);
       setAddOpen(false);
       resetAddForm();
+      if (options?.openLabelPreview) {
+        setLabelPreviewMaterial(created);
+      }
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -368,9 +373,33 @@ export function MaterialsWorkspace({
             <Button type="button" disabled={submitting} onClick={() => void handleAddMaterial()}>
               Add material
             </Button>
+            <Button
+              type="button"
+              disabled={submitting}
+              onClick={() => void handleAddMaterial({ openLabelPreview: true })}
+            >
+              Print and Add
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {activeSingleLibrary && labelPreviewMaterial ? (
+        <LabelPreviewDialog
+          library={activeSingleLibrary}
+          material={labelPreviewMaterial}
+          open
+          onOpenChange={(open) => {
+            if (!open) {
+              setLabelPreviewMaterial(null);
+            }
+          }}
+          onEditTemplates={() => {
+            setLabelPreviewMaterial(null);
+            onEditLabelTemplates?.(activeSingleLibrary.paths.root);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

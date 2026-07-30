@@ -16,9 +16,28 @@ vi.mock("../lib/library-client", () => ({
   updateLibraryFieldSchema: vi.fn(),
 }));
 
+vi.mock("../lib/label-client", () => ({
+  generateLibraryLabelPdf: vi.fn(async () => ({ pdf: new Uint8Array([1]), warnings: [] })),
+  printLabelPdf: vi.fn(),
+  saveLabelPdfViaDialog: vi.fn(),
+}));
+
 const sampleLibrary = {
   paths: { root: "/tmp/shop", materials: "/tmp/shop/materials" },
-  config: { name: "Main Shop", searchAllFields: true },
+  config: {
+    name: "Main Shop",
+    searchAllFields: true,
+    labelTemplates: [
+      {
+        id: "starter-4x6",
+        name: "4×6 in",
+        size: { kind: "catalog", catalogId: "4x6" },
+        displayUnit: "in",
+        contentKeys: ["family", "alloy", "temper", "material_id", "qr"],
+      },
+    ],
+    defaultLabelTemplateId: "starter-4x6",
+  },
   fieldSchema: defaultFieldSchemaV1,
 } as OpenLibraryResult;
 
@@ -361,5 +380,78 @@ describe("MaterialsWorkspace", () => {
 
     expect(screen.getByText(/Material is required/i)).toBeTruthy();
     expect(addMaterial).not.toHaveBeenCalled();
+  });
+
+  it("Print and Add creates the Material and opens Label preview", async () => {
+    const created = {
+      id: "AL-new-104",
+      version: 2 as const,
+      fields: { family: "aluminum", alloy: "6061" },
+      identifiers: { heat_number: "H-200" },
+      createdAt: "2026-05-28T12:00:00.000Z",
+      updatedAt: "2026-05-28T12:00:00.000Z",
+    };
+    vi.mocked(addMaterial).mockResolvedValue(created);
+    const onRefreshLibrary = vi.fn(async () => undefined);
+
+    render(
+      <MaterialsWorkspace
+        sessionLibraries={new Map([["/tmp/shop", sampleLibrary]])}
+        activeLibraryPath="/tmp/shop"
+        materials={materials}
+        onRefreshLibrary={onRefreshLibrary}
+        filterMaterials={() => materials}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Add material/i }));
+    await chooseSelectOption(screen.getByLabelText("Material"), "Aluminum");
+    await chooseSelectOption(screen.getByLabelText("Alloy"), "6061");
+    await userEvent.type(screen.getByLabelText("Heat Number"), "H-200");
+    await userEvent.click(screen.getByRole("button", { name: /^Print and Add$/i }));
+
+    expect(addMaterial).toHaveBeenCalledWith(
+      sampleLibrary,
+      expect.objectContaining({
+        fields: expect.objectContaining({
+          family: "aluminum",
+          alloy: "6061",
+        }),
+        identifiers: expect.objectContaining({
+          heat_number: "H-200",
+        }),
+      }),
+    );
+    expect(onRefreshLibrary).toHaveBeenCalledWith("/tmp/shop");
+    expect(await screen.findByRole("heading", { name: /Label preview/i })).toBeTruthy();
+    expect(screen.getByText(/Preview and print or save a Label for AL-new-104/i)).toBeTruthy();
+  });
+
+  it("plain Add material saves without opening Label preview", async () => {
+    vi.mocked(addMaterial).mockResolvedValue({
+      id: "AL-new-105",
+      version: 2,
+      fields: {},
+      identifiers: {},
+      createdAt: "2026-05-28T12:00:00.000Z",
+      updatedAt: "2026-05-28T12:00:00.000Z",
+    });
+
+    render(
+      <MaterialsWorkspace
+        sessionLibraries={new Map([["/tmp/shop", sampleLibrary]])}
+        activeLibraryPath="/tmp/shop"
+        materials={materials}
+        onRefreshLibrary={async () => undefined}
+        filterMaterials={() => materials}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Add material/i }));
+    await chooseSelectOption(screen.getByLabelText("Material"), "Aluminum");
+    await userEvent.click(screen.getAllByRole("button", { name: /^Add material$/i }).at(-1)!);
+
+    expect(addMaterial).toHaveBeenCalled();
+    expect(screen.queryByRole("heading", { name: /Label preview/i })).toBeNull();
   });
 });
