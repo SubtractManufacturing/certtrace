@@ -84,4 +84,49 @@ describe("Select", () => {
 
     expect(screen.queryByRole("listbox")).toBeNull();
   });
+
+  it("updates the trigger for uncontrolled selects", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <Select aria-label="Theme" defaultValue="" onChange={onChange}>
+        <option value="">Select…</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </Select>,
+    );
+
+    const combobox = screen.getByRole("combobox", { name: "Theme" });
+    expect(combobox.getAttribute("data-value")).toBe("");
+
+    await user.click(combobox);
+    await user.click(screen.getByRole("option", { name: "Dark" }));
+
+    expect(onChange).toHaveBeenCalledOnce();
+    expect(combobox.getAttribute("data-value")).toBe("dark");
+    expect(combobox.textContent).toContain("Dark");
+  });
+
+  it("moves keyboard highlight with arrow keys", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Select aria-label="Theme" value="" onChange={() => undefined}>
+        <option value="">Select…</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </Select>,
+    );
+
+    const combobox = screen.getByRole("combobox", { name: "Theme" });
+    combobox.focus();
+    await user.keyboard("{ArrowDown}");
+    await user.keyboard("{ArrowDown}");
+
+    const highlighted = screen
+      .getAllByRole("option")
+      .find((option) => option.getAttribute("data-highlighted") === "true");
+    expect(highlighted?.getAttribute("data-value")).toBe("light");
+  });
 });

@@ -3,6 +3,7 @@ import {
   type ChangeEvent,
   Children,
   isValidElement,
+  type KeyboardEvent,
   type ReactElement,
   type ReactNode,
   type SelectHTMLAttributes,
@@ -172,6 +173,10 @@ export function Select({
   const listRef = useRef<HTMLDivElement>(null);
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const open = openProp ?? uncontrolledOpen;
+  const isControlled = value !== undefined;
+  const [uncontrolledValue, setUncontrolledValue] = useState<string | string[] | undefined>(
+    undefined,
+  );
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number } | null>(
     null,
@@ -188,7 +193,7 @@ export function Select({
   );
 
   const selectedValues = useMemo(() => {
-    const raw = value ?? defaultValue ?? (multiple ? [] : "");
+    const raw = isControlled ? value : (uncontrolledValue ?? defaultValue ?? (multiple ? [] : ""));
     if (multiple) {
       return Array.isArray(raw)
         ? raw.map(String)
@@ -197,10 +202,10 @@ export function Select({
           : [String(raw)];
     }
     return Array.isArray(raw) ? [String(raw[0] ?? "")] : [String(raw ?? "")];
-  }, [value, defaultValue, multiple]);
+  }, [defaultValue, isControlled, multiple, uncontrolledValue, value]);
 
   const selectedValue = multiple ? selectedValues : (selectedValues[0] ?? "");
-  const enabledOptions = options.filter((option) => !option.disabled);
+  const enabledOptions = useMemo(() => options.filter((option) => !option.disabled), [options]);
   const selectedLabels = options
     .filter((option) => selectedValues.includes(option.value))
     .map((option) => option.label);
@@ -259,15 +264,21 @@ export function Select({
         const next = selectedValues.includes(option.value)
           ? selectedValues.filter((entry) => entry !== option.value)
           : [...selectedValues, option.value];
+        if (!isControlled) {
+          setUncontrolledValue(next);
+        }
         emitChange(next);
         return;
       }
 
+      if (!isControlled) {
+        setUncontrolledValue(option.value);
+      }
       emitChange(option.value);
       closeMenu();
       triggerRef.current?.focus();
     },
-    [closeMenu, emitChange, multiple, selectedValues],
+    [closeMenu, emitChange, isControlled, multiple, selectedValues],
   );
 
   useLayoutEffect(() => {
@@ -327,7 +338,7 @@ export function Select({
     setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
   }, [enabledOptions, multiple, open, selectedValue, selectedValues]);
 
-  function onTriggerKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+  function onTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
     if (disabled) {
       return;
     }
