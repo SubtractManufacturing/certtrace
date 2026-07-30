@@ -1,7 +1,6 @@
 import type { RemoveSchemaDefinitionInput } from "@certtrace/library-engine";
 import { defaultFieldSchemaV1 } from "@certtrace/types";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { chooseSelectOption } from "../test/select-helpers";
@@ -28,13 +27,16 @@ function renderEditor(onRemoveDefinition?: (input: RemoveSchemaDefinitionInput) 
   return onChange;
 }
 
-describe("SchemaSettingsEditor", () => {
+function setInputValue(element: HTMLElement, value: string) {
+  fireEvent.change(element, { target: { value } });
+}
+
+// Full default schema + many Selects is expensive to render; CI hosts need headroom.
+describe("SchemaSettingsEditor", { timeout: 20_000 }, () => {
   it("renames a field without changing its stable key", async () => {
     const onChange = renderEditor();
 
-    const label = screen.getByLabelText("Label for field family");
-    await userEvent.clear(label);
-    await userEvent.type(label, "Stock family");
+    setInputValue(screen.getByLabelText("Label for field family"), "Stock family");
 
     const updated = onChange.mock.calls.at(-1)?.[0];
     expect(updated.fields[0]).toMatchObject({
@@ -47,9 +49,9 @@ describe("SchemaSettingsEditor", () => {
   it("changes field flags and order", async () => {
     const onChange = renderEditor();
 
-    await userEvent.click(screen.getByLabelText("Required field Material"));
-    await userEvent.click(screen.getByLabelText("Filterable field Material"));
-    await userEvent.click(screen.getByRole("button", { name: "Move Material down" }));
+    fireEvent.click(screen.getByLabelText("Required field Material"));
+    fireEvent.click(screen.getByLabelText("Filterable field Material"));
+    fireEvent.click(screen.getByRole("button", { name: "Move Material down" }));
 
     const updated = onChange.mock.calls.at(-1)?.[0];
     expect(updated.fields.slice(0, 2).map((field: { key: string }) => field.key)).toEqual([
@@ -66,9 +68,9 @@ describe("SchemaSettingsEditor", () => {
   it("adds a typed field with a generated stable key", async () => {
     const onChange = renderEditor();
 
-    await userEvent.type(screen.getByLabelText("New field label"), "Inspection score");
+    setInputValue(screen.getByLabelText("New field label"), "Inspection score");
     await chooseSelectOption(screen.getByLabelText("New field type"), "Number");
-    await userEvent.click(screen.getByRole("button", { name: "Add field" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add field" }));
 
     expect(onChange.mock.calls.at(-1)?.[0].fields.at(-1)).toEqual({
       key: "inspection_score",
@@ -96,12 +98,8 @@ describe("SchemaSettingsEditor", () => {
   it("edits select option labels and short codes without changing option ids", async () => {
     const onChange = renderEditor();
 
-    const optionLabel = screen.getByLabelText("Option label aluminum for field family");
-    await userEvent.clear(optionLabel);
-    await userEvent.type(optionLabel, "Aluminium");
-    const shortCode = screen.getByLabelText("Option short code aluminum for field family");
-    await userEvent.clear(shortCode);
-    await userEvent.type(shortCode, "AU");
+    setInputValue(screen.getByLabelText("Option label aluminum for field family"), "Aluminium");
+    setInputValue(screen.getByLabelText("Option short code aluminum for field family"), "AU");
 
     expect(onChange.mock.calls.at(-1)?.[0].fields[0].options[0]).toEqual({
       id: "aluminum",
@@ -113,13 +111,11 @@ describe("SchemaSettingsEditor", () => {
   it("adds, renames, flags, and reorders identifier kinds", async () => {
     const onChange = renderEditor();
 
-    const label = screen.getByLabelText("Label for identifier heat_number");
-    await userEvent.clear(label);
-    await userEvent.type(label, "Mill Heat");
-    await userEvent.click(screen.getByLabelText("Required identifier Mill Heat"));
-    await userEvent.click(screen.getByRole("button", { name: "Move Mill Heat down" }));
-    await userEvent.type(screen.getByLabelText("New identifier label"), "Mill cert");
-    await userEvent.click(screen.getByRole("button", { name: "Add identifier" }));
+    setInputValue(screen.getByLabelText("Label for identifier heat_number"), "Mill Heat");
+    fireEvent.click(screen.getByLabelText("Required identifier Mill Heat"));
+    fireEvent.click(screen.getByRole("button", { name: "Move Mill Heat down" }));
+    setInputValue(screen.getByLabelText("New identifier label"), "Mill cert");
+    fireEvent.click(screen.getByRole("button", { name: "Add identifier" }));
 
     const updated = onChange.mock.calls.at(-1)?.[0];
     expect(updated.identifierKinds.slice(0, 2)).toEqual([
@@ -137,12 +133,10 @@ describe("SchemaSettingsEditor", () => {
   it("adds, renames, and removes attachment kinds", async () => {
     const onChange = renderEditor();
 
-    const label = screen.getByLabelText("Label for attachment kind mtr");
-    await userEvent.clear(label);
-    await userEvent.type(label, "Mill test report");
-    await userEvent.click(screen.getByRole("button", { name: "Remove Heat cert" }));
-    await userEvent.type(screen.getByLabelText("New attachment kind label"), "Inspection photo");
-    await userEvent.click(screen.getByRole("button", { name: "Add attachment kind" }));
+    setInputValue(screen.getByLabelText("Label for attachment kind mtr"), "Mill test report");
+    fireEvent.click(screen.getByRole("button", { name: "Remove Heat cert" }));
+    setInputValue(screen.getByLabelText("New attachment kind label"), "Inspection photo");
+    fireEvent.click(screen.getByRole("button", { name: "Add attachment kind" }));
 
     const updated = onChange.mock.calls.at(-1)?.[0];
     expect(updated.attachmentKinds).toEqual([
@@ -156,7 +150,7 @@ describe("SchemaSettingsEditor", () => {
   it("edits dependent select option mappings", async () => {
     const onChange = renderEditor();
 
-    await userEvent.click(screen.getByLabelText("Allow 6061 for Steel in Alloy"));
+    fireEvent.click(screen.getByLabelText("Allow 6061 for Steel in Alloy"));
 
     const alloy = onChange.mock.calls
       .at(-1)?.[0]
@@ -173,7 +167,7 @@ describe("SchemaSettingsEditor", () => {
     const onRemoveDefinition = vi.fn().mockResolvedValue(undefined);
     renderEditor(onRemoveDefinition);
 
-    await userEvent.click(screen.getByRole("button", { name: "Remove Supplier" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Supplier" }));
 
     expect(
       screen.getByText("Keep values already saved, but hide this field on new materials."),
@@ -181,7 +175,7 @@ describe("SchemaSettingsEditor", () => {
     expect(
       screen.getByText("Permanently erase this field and its values from every material."),
     ).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: "Disable new entries" }));
+    fireEvent.click(screen.getByRole("button", { name: "Disable new entries" }));
 
     expect(onRemoveDefinition).toHaveBeenCalledWith({
       definitionType: "field",
@@ -194,12 +188,12 @@ describe("SchemaSettingsEditor", () => {
     const onRemoveDefinition = vi.fn().mockResolvedValue(undefined);
     renderEditor(onRemoveDefinition);
 
-    await userEvent.click(screen.getByRole("button", { name: "Remove Notes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Notes" }));
     const deleteButton = screen.getByRole("button", { name: "Delete all values" });
     expect((deleteButton as HTMLButtonElement).disabled).toBe(true);
 
-    await userEvent.type(screen.getByLabelText("Type Notes to confirm"), "Notes");
-    await userEvent.click(deleteButton);
+    setInputValue(screen.getByLabelText("Type Notes to confirm"), "Notes");
+    fireEvent.click(deleteButton);
 
     expect(onRemoveDefinition).toHaveBeenCalledWith({
       definitionType: "field",
@@ -212,9 +206,9 @@ describe("SchemaSettingsEditor", () => {
     const onRemoveDefinition = vi.fn().mockResolvedValue(undefined);
     renderEditor(onRemoveDefinition);
 
-    await userEvent.click(screen.getByRole("button", { name: "Remove Heat Number" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Heat Number" }));
     await chooseSelectOption(screen.getByLabelText("Replacement for Heat Number"), "Lot Number");
-    await userEvent.click(screen.getByRole("button", { name: "Replace saved values" }));
+    fireEvent.click(screen.getByRole("button", { name: "Replace saved values" }));
 
     expect(onRemoveDefinition).toHaveBeenCalledWith({
       definitionType: "identifierKind",

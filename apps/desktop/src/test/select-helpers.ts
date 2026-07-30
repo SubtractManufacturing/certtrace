@@ -1,34 +1,38 @@
-import { screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
-function getSelectListbox(combobox: HTMLElement): HTMLElement {
+async function getSelectListbox(combobox: HTMLElement): Promise<HTMLElement> {
   const listboxId = combobox.getAttribute("aria-controls");
-  if (listboxId) {
-    const listbox = document.getElementById(listboxId);
-    if (listbox) {
-      return listbox;
-    }
-  }
 
-  return screen.getByRole("listbox");
+  return waitFor(() => {
+    if (listboxId) {
+      const listbox = document.getElementById(listboxId);
+      if (listbox) {
+        return listbox;
+      }
+    }
+
+    return screen.getByRole("listbox");
+  });
 }
 
 export async function chooseSelectOption(
   combobox: HTMLElement,
   optionLabel: string | RegExp,
 ): Promise<void> {
-  await userEvent.click(combobox);
-  const listbox = getSelectListbox(combobox);
-  await userEvent.click(within(listbox).getByRole("option", { name: optionLabel }));
+  // fireEvent avoids user-event pointer-bounds checks that flake in jsdom when
+  // the portaled listbox reports a 0×0 layout rect.
+  fireEvent.click(combobox);
+  const listbox = await getSelectListbox(combobox);
+  fireEvent.click(within(listbox).getByRole("option", { name: optionLabel }));
 }
 
 export async function listOpenSelectOptionValues(combobox: HTMLElement): Promise<string[]> {
-  await userEvent.click(combobox);
-  const listbox = getSelectListbox(combobox);
+  fireEvent.click(combobox);
+  const listbox = await getSelectListbox(combobox);
   const values = within(listbox)
     .getAllByRole("option")
     .map((option) => option.getAttribute("data-value") ?? "");
-  await userEvent.click(combobox);
+  fireEvent.click(combobox);
   return values;
 }
 
