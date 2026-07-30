@@ -4,7 +4,7 @@ import { buildSearchIndex, rankSearchResults, searchMaterials } from "../src/sea
 
 function sampleMaterial(overrides: Partial<MaterialMetadataV1> = {}): MaterialMetadataV1 {
   return {
-    version: 2,
+    version: 3,
     id: "AL-falcon-104",
     fields: {
       family: "aluminum",

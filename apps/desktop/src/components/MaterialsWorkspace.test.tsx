@@ -1,5 +1,5 @@
 import type { OpenLibraryResult } from "@certtrace/library-engine";
-import { defaultFieldSchemaV1 } from "@certtrace/types";
+import { createLabelContentItem, defaultFieldSchemaV1 } from "@certtrace/types";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -33,7 +33,7 @@ const sampleLibrary = {
         name: "4×6 in",
         size: { kind: "catalog", catalogId: "4x6" },
         displayUnit: "in",
-        contentKeys: ["family", "alloy", "temper", "material_id", "qr"],
+        content: ["family", "alloy", "temper", "material_id", "qr"].map((key) => createLabelContentItem(key)),
       },
     ],
     defaultLabelTemplateId: "starter-4x6",
@@ -44,7 +44,7 @@ const sampleLibrary = {
 const materials: IndexedMaterial[] = [
   {
     id: "AL-falcon-101",
-    version: 2,
+    version: 3,
     fields: {
       family: "aluminum",
       alloy: "6061",
@@ -62,7 +62,7 @@ const materials: IndexedMaterial[] = [
   },
   {
     id: "AL-river-102",
-    version: 2,
+    version: 3,
     fields: {
       family: "aluminum",
       alloy: "7075",
@@ -256,7 +256,7 @@ describe("MaterialsWorkspace", () => {
   it("renders the add form from the library field schema and saves keyed values", async () => {
     vi.mocked(addMaterial).mockResolvedValue({
       id: "AL-new-103",
-      version: 2,
+      version: 3,
       fields: {},
       identifiers: {},
       createdAt: "2026-05-28T12:00:00.000Z",
@@ -385,7 +385,7 @@ describe("MaterialsWorkspace", () => {
   it("Print and Add creates the Material and opens Label preview", async () => {
     const created = {
       id: "AL-new-104",
-      version: 2 as const,
+      version: 3 as const,
       fields: { family: "aluminum", alloy: "6061" },
       identifiers: { heat_number: "H-200" },
       createdAt: "2026-05-28T12:00:00.000Z",
@@ -430,7 +430,7 @@ describe("MaterialsWorkspace", () => {
   it("plain Add material saves without opening Label preview", async () => {
     vi.mocked(addMaterial).mockResolvedValue({
       id: "AL-new-105",
-      version: 2,
+      version: 3,
       fields: {},
       identifiers: {},
       createdAt: "2026-05-28T12:00:00.000Z",

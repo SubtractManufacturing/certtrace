@@ -8,6 +8,7 @@ export {
   writeAppSettings,
 } from "./app-settings.js";
 export {
+  alignedLeftPt,
   computeLabelPageLayout,
   createApproxTextMeasurer,
   LABEL_VALUE_LINE_GAP_PT,

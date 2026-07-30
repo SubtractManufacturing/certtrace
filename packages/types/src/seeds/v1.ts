@@ -1,4 +1,5 @@
 import {
+  createLabelContentItem,
   type FieldSchemaV1,
   LABEL_CONTENT_MATERIAL_ID,
   LABEL_CONTENT_QR,
@@ -22,20 +23,21 @@ const STARTER_LABEL_CONTENT_KEYS = [
 ] as const;
 
 export function createStarterLabelTemplates(): LabelTemplate[] {
+  const content = STARTER_LABEL_CONTENT_KEYS.map((key) => createLabelContentItem(key));
   return [
     {
       id: STARTER_LABEL_TEMPLATE_4X6_ID,
       name: "4×6 in",
       size: { kind: "catalog", catalogId: "4x6" },
       displayUnit: "in",
-      contentKeys: [...STARTER_LABEL_CONTENT_KEYS],
+      content: content.map((item) => ({ ...item })),
     },
     {
       id: STARTER_LABEL_TEMPLATE_LETTER_ID,
       name: "8.5×11 in",
       size: { kind: "catalog", catalogId: "letter" },
       displayUnit: "in",
-      contentKeys: [...STARTER_LABEL_CONTENT_KEYS],
+      content: content.map((item) => ({ ...item })),
     },
   ];
 }

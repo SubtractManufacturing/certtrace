@@ -12,7 +12,7 @@ import {
 } from "./MaterialSchemaForm";
 
 const customSchema: FieldSchemaV1 = {
-  version: 2,
+  version: 3,
   fields: [
     {
       key: "family",
@@ -135,7 +135,7 @@ describe("MaterialSchemaForm", () => {
 
   it("does not render or require a field hidden by its dependency", () => {
     const schema: FieldSchemaV1 = {
-      version: 2,
+      version: 3,
       fields: [
         {
           key: "shape",
@@ -181,7 +181,7 @@ describe("MaterialSchemaForm", () => {
 
   it("reports required fields and identifier kinds that are empty", () => {
     const schema: FieldSchemaV1 = {
-      version: 2,
+      version: 3,
       fields: [
         {
           key: "family",
@@ -221,7 +221,7 @@ describe("MaterialSchemaForm", () => {
 
   it("hides disabled definitions and does not require them on new materials", () => {
     const schema: FieldSchemaV1 = {
-      version: 2,
+      version: 3,
       fields: [
         {
           key: "legacy_grade",
@@ -259,7 +259,7 @@ describe("MaterialSchemaForm", () => {
 
   it("shows saved values for disabled definitions without allowing changes", () => {
     const schema: FieldSchemaV1 = {
-      version: 2,
+      version: 3,
       fields: [
         {
           key: "legacy_grade",

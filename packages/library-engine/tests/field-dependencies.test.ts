@@ -83,7 +83,7 @@ describe("field dependencies", () => {
 
   it("requires fields only while they are visible", () => {
     const schema: FieldSchemaV1 = {
-      version: 2,
+      version: 3,
       fields: [
         {
           key: "shape",

@@ -149,6 +149,7 @@ export function LabelLivePreview({
                     left: element.leftPt,
                     top: element.topPt,
                     width: element.widthPt,
+                    textAlign: element.align,
                   }}
                 >
                   <div
@@ -206,10 +207,23 @@ export function LabelLivePreview({
                   height: element.heightPt,
                 }}
               >
+              <div
+                className="h-full w-full"
+                style={{
+                  display: "flex",
+                  justifyContent:
+                    element.align === "center"
+                      ? "center"
+                      : element.align === "right"
+                        ? "flex-end"
+                        : "flex-start",
+                }}
+              >
                 <LabelBarcodePreview payload={element.payload} />
               </div>
-            );
-          })}
+            </div>
+              );
+            })}
         </div>
       </div>
       {showOverflowWarning && layout.overflow ? (

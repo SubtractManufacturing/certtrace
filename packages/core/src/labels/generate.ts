@@ -10,6 +10,7 @@ import {
 import { PDFDocument, type PDFFont, rgb, StandardFonts } from "pdf-lib";
 import { renderBarcodePngBytes, renderQrDataUrl } from "./code-images.js";
 import {
+  alignedLeftPt,
   computeLabelPageLayout,
   LABEL_VALUE_LINE_GAP_PT,
   type LabelContentLine,
@@ -36,7 +37,7 @@ export interface GenerateLabelPdfResult {
   pdf: Uint8Array;
   /** Resolved text lines per Material (excludes qr/barcode slots). */
   lines: LabelContentLine[][];
-  /** Ordered layout slots per Material (honors template contentKeys order). */
+  /** Ordered layout slots per Material (honors template content order). */
   slots: LabelLayoutSlot[][];
   /** Machine-readable payloads per Material when those slots are included. */
   codePayloads: LabelCodePayloads[];
@@ -138,15 +139,16 @@ export function resolveLabelLayout(
   const lines: LabelContentLine[] = [];
   const codes: LabelCodePayloads = {};
 
-  for (const key of template.contentKeys) {
+  for (const item of template.content) {
+    const { key, align, size } = item;
     if (key === LABEL_CONTENT_QR) {
       codes.qr = material.id;
-      slots.push({ kind: "qr", payload: material.id });
+      slots.push({ kind: "qr", payload: material.id, align, size });
       continue;
     }
     if (key === LABEL_CONTENT_BARCODE) {
       codes.barcode = material.id;
-      slots.push({ kind: "barcode", payload: material.id });
+      slots.push({ kind: "barcode", payload: material.id, align, size });
       continue;
     }
 
@@ -157,7 +159,7 @@ export function resolveLabelLayout(
       value: value.length > 0 ? value : EMPTY_PLACEHOLDER,
     };
     lines.push(line);
-    slots.push({ kind: "text", line });
+    slots.push({ kind: "text", line, align, size });
   }
 
   return { slots, lines, codes };
@@ -194,8 +196,9 @@ async function drawMaterialPage(
   for (const element of layout.elements) {
     if (element.kind === "field") {
       const labelBaselineY = heightPt - element.topPt - element.labelFontSizePt;
+      const labelWidth = font.widthOfTextAtSize(element.line.label, element.labelFontSizePt);
       page.drawText(element.line.label, {
-        x: element.leftPt,
+        x: alignedLeftPt(element.leftPt, element.widthPt, labelWidth, element.align),
         y: labelBaselineY,
         size: element.labelFontSizePt,
         font,
@@ -206,8 +209,9 @@ async function drawMaterialPage(
         element.topPt + element.labelFontSizePt + LABEL_VALUE_LINE_GAP_PT + element.valueFontSizePt;
       const valueFont = element.valueBold ? fontBold : font;
       for (const line of element.valueLines) {
+        const lineWidth = valueFont.widthOfTextAtSize(line, element.valueFontSizePt);
         page.drawText(line, {
-          x: element.leftPt,
+          x: alignedLeftPt(element.leftPt, element.widthPt, lineWidth, element.align),
           y: heightPt - valueTopPt,
           size: element.valueFontSizePt,
           font: valueFont,
@@ -236,7 +240,7 @@ async function drawMaterialPage(
       (barcodeImage.height / barcodeImage.width) * barcodeWidth,
     );
     page.drawImage(barcodeImage, {
-      x: element.leftPt,
+      x: alignedLeftPt(element.leftPt, element.widthPt, barcodeWidth, element.align),
       y: heightPt - element.topPt - barcodeHeight,
       width: barcodeWidth,
       height: barcodeHeight,

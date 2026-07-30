@@ -9,7 +9,7 @@ import {
 describe("defaultMaterialColumns", () => {
   it("returns the shipped default column set when those keys exist in the schema", () => {
     const schema: FieldSchemaV1 = {
-      version: 2,
+      version: 3,
       fields: [
         {
           key: "family",
@@ -78,7 +78,7 @@ describe("defaultMaterialColumns", () => {
 
   it("omits default field columns whose keys are missing from the schema", () => {
     const schema: FieldSchemaV1 = {
-      version: 2,
+      version: 3,
       fields: [
         {
           key: "family",
@@ -110,7 +110,7 @@ describe("defaultMaterialColumns", () => {
 
   it("resolves selected field and identifier columns and drops deleted definitions", () => {
     const schema: FieldSchemaV1 = {
-      version: 2,
+      version: 3,
       fields: [
         {
           key: "notes",

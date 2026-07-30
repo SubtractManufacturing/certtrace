@@ -14,7 +14,7 @@ describe("schema migrations", () => {
     const parsed = migrateLibraryConfig(JSON.parse(raw));
 
     expect(parsed.name).toBe("Main Shop Materials");
-    expect(parsed.version).toBe(2);
+    expect(parsed.version).toBe(3);
     expect(parsed.defaultLabelTemplateId).toBe("starter-4x6");
     expect(parsed.labelTemplates).toHaveLength(2);
   });
@@ -27,7 +27,7 @@ describe("schema migrations", () => {
     const parsed = migrateMaterialMetadata(JSON.parse(raw));
 
     expect(parsed.id).toBe("AL-falcon-104");
-    expect(parsed.version).toBe(2);
+    expect(parsed.version).toBe(3);
   });
 
   it("rejects libraries created with a newer schema version", () => {

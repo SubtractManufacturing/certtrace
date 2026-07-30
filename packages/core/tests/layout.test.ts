@@ -1,4 +1,5 @@
 import {
+  createLabelContentItem,
   LABEL_CONTENT_BARCODE,
   LABEL_CONTENT_MATERIAL_ID,
   LABEL_CONTENT_QR,
@@ -8,7 +9,7 @@ import {
 } from "@certtrace/types";
 import { describe, expect, it } from "vitest";
 import type { LabelLayoutSlot } from "../src/labels/layout.js";
-import { computeLabelPageLayout } from "../src/labels/layout.js";
+import { alignedLeftPt, computeLabelPageLayout } from "../src/labels/layout.js";
 
 const material: MaterialMetadataV1 = {
   version: SCHEMA_VERSION,
@@ -29,37 +30,78 @@ const template4x6: LabelTemplate = {
   name: "4x6 in",
   size: { kind: "catalog", catalogId: "4x6" },
   displayUnit: "in",
-  contentKeys: ["family", LABEL_CONTENT_MATERIAL_ID, LABEL_CONTENT_QR, LABEL_CONTENT_BARCODE],
+  content: ["family", LABEL_CONTENT_MATERIAL_ID, LABEL_CONTENT_QR, LABEL_CONTENT_BARCODE].map(
+    (key) => createLabelContentItem(key),
+  ),
 };
 
-function slotsFromKeys(keys: string[]): LabelLayoutSlot[] {
-  return keys.map((key) => {
-    if (key === LABEL_CONTENT_QR) {
-      return { kind: "qr", payload: material.id };
+function slotsFromTemplate(template: LabelTemplate): LabelLayoutSlot[] {
+  return template.content.map((item) => {
+    if (item.key === LABEL_CONTENT_QR) {
+      return { kind: "qr", payload: material.id, align: item.align, size: item.size };
     }
-    if (key === LABEL_CONTENT_BARCODE) {
-      return { kind: "barcode", payload: material.id };
+    if (item.key === LABEL_CONTENT_BARCODE) {
+      return { kind: "barcode", payload: material.id, align: item.align, size: item.size };
     }
     return {
       kind: "text",
-      line: { key, label: key, value: key === LABEL_CONTENT_MATERIAL_ID ? material.id : "Value" },
+      line: {
+        key: item.key,
+        label: item.key,
+        value: item.key === LABEL_CONTENT_MATERIAL_ID ? material.id : "Value",
+      },
+      align: item.align,
+      size: item.size,
     };
   });
 }
 
 describe("computeLabelPageLayout", () => {
   it("uses 4x6 page dimensions in points", () => {
-    const layout = computeLabelPageLayout(template4x6, slotsFromKeys(template4x6.contentKeys));
+    const layout = computeLabelPageLayout(template4x6, slotsFromTemplate(template4x6));
     expect(layout.widthPt).toBeCloseTo(4 * 72, 1);
     expect(layout.heightPt).toBeCloseTo(6 * 72, 1);
   });
 
   it("sizes QR codes relative to the page width", () => {
-    const layout = computeLabelPageLayout(template4x6, [{ kind: "qr", payload: material.id }]);
+    const layout = computeLabelPageLayout(template4x6, [
+      { kind: "qr", payload: material.id, align: "left", size: "medium" },
+    ]);
     const qr = layout.elements.find((element) => element.kind === "qr");
     expect(qr?.kind).toBe("qr");
     if (qr?.kind === "qr") {
       expect(qr.sizePt).toBeCloseTo((layout.widthPt - layout.marginPt * 2) * 0.35, 1);
+    }
+  });
+
+  it("scales QR size by content size weight", () => {
+    const medium = computeLabelPageLayout(template4x6, [
+      { kind: "qr", payload: material.id, align: "left", size: "medium" },
+    ]);
+    const large = computeLabelPageLayout(template4x6, [
+      { kind: "qr", payload: material.id, align: "left", size: "large" },
+    ]);
+    const mediumQr = medium.elements.find((element) => element.kind === "qr");
+    const largeQr = large.elements.find((element) => element.kind === "qr");
+    expect(mediumQr?.kind).toBe("qr");
+    expect(largeQr?.kind).toBe("qr");
+    if (mediumQr?.kind === "qr" && largeQr?.kind === "qr") {
+      expect(largeQr.sizePt).toBeCloseTo(mediumQr.sizePt * 1.25, 1);
+    }
+  });
+
+  it("centers QR when align is center", () => {
+    const layout = computeLabelPageLayout(template4x6, [
+      { kind: "qr", payload: material.id, align: "center", size: "medium" },
+    ]);
+    const qr = layout.elements.find((element) => element.kind === "qr");
+    expect(qr?.kind).toBe("qr");
+    if (qr?.kind === "qr") {
+      const contentWidth = layout.widthPt - layout.marginPt * 2;
+      expect(qr.leftPt).toBeCloseTo(
+        alignedLeftPt(layout.marginPt, contentWidth, qr.sizePt, "center"),
+        1,
+      );
     }
   });
 
@@ -72,6 +114,8 @@ describe("computeLabelPageLayout", () => {
           label: "Notes",
           value: "This is a very long note that should wrap across multiple lines on a label.",
         },
+        align: "left",
+        size: "medium",
       },
     ];
     const layout = computeLabelPageLayout(template4x6, slots);
@@ -88,7 +132,7 @@ describe("computeLabelPageLayout", () => {
       name: "Tiny",
       size: { kind: "custom", widthIn: 1, heightIn: 0.5 },
       displayUnit: "in",
-      contentKeys: [
+      content: [
         "family",
         "alloy",
         "temper",
@@ -97,9 +141,9 @@ describe("computeLabelPageLayout", () => {
         LABEL_CONTENT_MATERIAL_ID,
         LABEL_CONTENT_QR,
         LABEL_CONTENT_BARCODE,
-      ],
+      ].map((key) => createLabelContentItem(key)),
     };
-    const layout = computeLabelPageLayout(tinyTemplate, slotsFromKeys(tinyTemplate.contentKeys));
+    const layout = computeLabelPageLayout(tinyTemplate, slotsFromTemplate(tinyTemplate));
     expect(layout.overflow).toBe(true);
   });
 });

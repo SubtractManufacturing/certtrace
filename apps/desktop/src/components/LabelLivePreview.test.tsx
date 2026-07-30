@@ -1,10 +1,10 @@
-import { defaultFieldSchemaV1 } from "@certtrace/types";
+import { createLabelContentItem, defaultFieldSchemaV1 } from "@certtrace/types";
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { LabelLivePreview } from "./LabelLivePreview";
 
 const material = {
-  version: 2 as const,
+  version: 3 as const,
   id: "AL-falcon-104",
   fields: {
     family: "aluminum",
@@ -25,7 +25,7 @@ describe("LabelLivePreview", () => {
           name: "Codes",
           size: { kind: "catalog", catalogId: "4x6" },
           displayUnit: "in",
-          contentKeys: ["family", "qr", "barcode"],
+          content: ["family", "qr", "barcode"].map((key) => createLabelContentItem(key)),
         }}
         material={material}
         fieldSchema={defaultFieldSchemaV1}

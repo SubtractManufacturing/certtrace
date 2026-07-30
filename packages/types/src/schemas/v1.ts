@@ -1,11 +1,42 @@
 import { z } from "zod";
 
-export const SCHEMA_VERSION = 2 as const;
+export const SCHEMA_VERSION = 3 as const;
 
 /** Well-known Label Template content keys (not Field/Identifier keys). */
 export const LABEL_CONTENT_MATERIAL_ID = "material_id" as const;
 export const LABEL_CONTENT_QR = "qr" as const;
 export const LABEL_CONTENT_BARCODE = "barcode" as const;
+
+export const labelContentAlignSchema = z.enum(["left", "center", "right"]);
+export type LabelContentAlign = z.infer<typeof labelContentAlignSchema>;
+
+export const labelContentSizeSchema = z.enum(["small", "medium", "large"]);
+export type LabelContentSize = z.infer<typeof labelContentSizeSchema>;
+
+/** Relative layout weight for Small / Medium / Large content slots. */
+export const LABEL_CONTENT_SIZE_WEIGHT: Record<LabelContentSize, number> = {
+  small: 0.85,
+  medium: 1,
+  large: 1.25,
+};
+
+export const labelContentItemSchema = z.object({
+  key: z.string().min(1),
+  align: labelContentAlignSchema,
+  size: labelContentSizeSchema,
+});
+export type LabelContentItem = z.infer<typeof labelContentItemSchema>;
+
+export function createLabelContentItem(
+  key: string,
+  overrides?: Partial<Pick<LabelContentItem, "align" | "size">>,
+): LabelContentItem {
+  return {
+    key,
+    align: overrides?.align ?? "left",
+    size: overrides?.size ?? "medium",
+  };
+}
 
 export const labelDisplayUnitSchema = z.enum(["in", "mm"]);
 export type LabelDisplayUnit = z.infer<typeof labelDisplayUnitSchema>;
@@ -40,8 +71,11 @@ export const labelTemplateSchema = z.object({
   name: z.string().min(1),
   size: labelSizeSchema,
   displayUnit: labelDisplayUnitSchema,
-  /** Ordered content: core slots (`material_id`, `qr`, `barcode`), Field keys, or Identifier kind keys. */
-  contentKeys: z.array(z.string().min(1)).min(1),
+  /**
+   * Ordered enabled content slots: core keys (`material_id`, `qr`, `barcode`),
+   * Field keys, or Identifier kind keys, each with align and relative size.
+   */
+  content: z.array(labelContentItemSchema).min(1),
 });
 export type LabelTemplate = z.infer<typeof labelTemplateSchema>;
 

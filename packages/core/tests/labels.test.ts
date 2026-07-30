@@ -1,4 +1,5 @@
 import {
+  createLabelContentItem,
   createStarterLabelTemplates,
   defaultFieldSchemaV1,
   LABEL_CONTENT_BARCODE,
@@ -78,7 +79,7 @@ describe("generateLabelPdf", () => {
       name: "Placeholders",
       size: { kind: "catalog", catalogId: "4x6" },
       displayUnit: "in",
-      contentKeys: ["family", "alloy", LABEL_CONTENT_MATERIAL_ID],
+      content: ["family", "alloy", LABEL_CONTENT_MATERIAL_ID].map((key) => createLabelContentItem(key)),
     };
 
     const { lines } = await generateLabelPdf({
@@ -100,7 +101,7 @@ describe("generateLabelPdf", () => {
       name: "Codes",
       size: { kind: "catalog", catalogId: "letter" },
       displayUnit: "in",
-      contentKeys: ["family", LABEL_CONTENT_MATERIAL_ID, LABEL_CONTENT_QR, LABEL_CONTENT_BARCODE],
+      content: ["family", LABEL_CONTENT_MATERIAL_ID, LABEL_CONTENT_QR, LABEL_CONTENT_BARCODE].map((key) => createLabelContentItem(key)),
     };
 
     const result = await generateLabelPdf({
@@ -121,13 +122,13 @@ describe("generateLabelPdf", () => {
     expect(result.pdf.byteLength).toBeGreaterThan(500);
   });
 
-  it("honors contentKeys order including QR before text", async () => {
+  it("honors content order including QR before text", async () => {
     const template: LabelTemplate = {
       id: "qr-first",
       name: "QR first",
       size: { kind: "catalog", catalogId: "4x6" },
       displayUnit: "in",
-      contentKeys: [LABEL_CONTENT_QR, "family", LABEL_CONTENT_MATERIAL_ID],
+      content: [LABEL_CONTENT_QR, "family", LABEL_CONTENT_MATERIAL_ID].map((key) => createLabelContentItem(key)),
     };
 
     const { slots } = await generateLabelPdf({
@@ -149,7 +150,7 @@ describe("generateLabelPdf", () => {
       name: "Tiny",
       size: { kind: "custom", widthIn: 1, heightIn: 0.5 },
       displayUnit: "in",
-      contentKeys: [
+      content: [
         "family",
         "alloy",
         "temper",
@@ -158,7 +159,7 @@ describe("generateLabelPdf", () => {
         LABEL_CONTENT_MATERIAL_ID,
         LABEL_CONTENT_QR,
         LABEL_CONTENT_BARCODE,
-      ],
+      ].map((key) => createLabelContentItem(key)),
     };
 
     const { pdf, warnings } = await generateLabelPdf({

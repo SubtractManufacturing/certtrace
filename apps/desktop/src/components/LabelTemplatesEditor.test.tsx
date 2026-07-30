@@ -1,5 +1,6 @@
 import type { OpenLibraryResult } from "@certtrace/library-engine";
 import {
+  createLabelContentItem,
   createDefaultLibraryConfigV1,
   createStarterLabelTemplates,
   defaultFieldSchemaV1,
@@ -245,7 +246,7 @@ describe("LabelTemplatesEditor", () => {
     }
   });
 
-  it("toggles content slots and reorders the included stack", async () => {
+  it("toggles content slots and edits align/size on enabled rows", async () => {
     const library = sampleLibrary();
     mockPersist(library);
 
@@ -260,19 +261,25 @@ describe("LabelTemplatesEditor", () => {
     await userEvent.click(screen.getByRole("button", { name: /Edit 4×6 in/i }));
     await userEvent.click(screen.getByLabelText(/Include Barcode/i));
     await userEvent.click(screen.getByLabelText(/Include Temper/i));
-    await userEvent.click(screen.getByRole("button", { name: /Move Material id up/i }));
+    await userEvent.click(screen.getAllByRole("radio", { name: /^Center$/i })[0]!);
+    await userEvent.click(screen.getAllByRole("radio", { name: /^Large$/i })[0]!);
 
     await userEvent.click(screen.getByRole("button", { name: /^Save$/i }));
     await waitFor(() => expect(updateLibraryConfigPartial).toHaveBeenCalled());
     const saved = vi.mocked(updateLibraryConfigPartial).mock.calls.at(-1)?.[1]
       ?.labelTemplates?.[0];
-    expect(saved?.contentKeys).toEqual([
+    expect(saved?.content.map((item) => item.key)).toEqual([
       "family",
-      "material_id",
       "alloy",
+      "material_id",
       "qr",
       "barcode",
     ]);
+    expect(saved?.content[0]).toMatchObject({
+      key: "family",
+      align: "center",
+      size: "large",
+    });
   });
 
   it("shows a live preview with the sample Material and can preview with a real Material", async () => {

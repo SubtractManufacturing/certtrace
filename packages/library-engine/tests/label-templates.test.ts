@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createNodeFileSystem } from "@certtrace/file-storage/node";
 import {
+  createLabelContentItem,
   createStarterLabelTemplates,
   STARTER_LABEL_TEMPLATE_4X6_ID,
   STARTER_LABEL_TEMPLATE_LETTER_ID,
@@ -33,13 +34,19 @@ describe("label template seeding and migration", () => {
         STARTER_LABEL_TEMPLATE_LETTER_ID,
       ]);
       expect(library.config.defaultLabelTemplateId).toBe(STARTER_LABEL_TEMPLATE_4X6_ID);
-      expect(library.config.labelTemplates[0]?.contentKeys).toEqual([
+      expect(library.config.labelTemplates[0]?.content.map((item) => item.key)).toEqual([
         "family",
         "alloy",
         "temper",
         "material_id",
         "qr",
       ]);
+      expect(library.config.labelTemplates[0]?.content.every((item) => item.align === "left")).toBe(
+        true,
+      );
+      expect(library.config.labelTemplates[0]?.content.every((item) => item.size === "medium")).toBe(
+        true,
+      );
     } finally {
       await rm(parentDir, { recursive: true, force: true });
     }
@@ -54,17 +61,43 @@ describe("label template seeding and migration", () => {
       searchAllFields: true,
     });
 
-    expect(migrated.version).toBe(2);
+    expect(migrated.version).toBe(3);
     expect(migrated.defaultLabelTemplateId).toBe(STARTER_LABEL_TEMPLATE_4X6_ID);
     expect(migrated.labelTemplates).toEqual(createStarterLabelTemplates());
     expect(migrated).not.toHaveProperty("labelTemplate");
+  });
+
+  it("migrates v2 contentKeys to structured content items", () => {
+    const migrated = migrateLibraryConfig({
+      version: 2,
+      name: "Shop",
+      idStrategy: "numeric",
+      labelTemplates: [
+        {
+          id: "custom",
+          name: "Custom",
+          size: { kind: "catalog", catalogId: "4x6" },
+          displayUnit: "in",
+          contentKeys: ["family", "material_id", "qr"],
+        },
+      ],
+      defaultLabelTemplateId: "custom",
+      searchAllFields: false,
+    });
+
+    expect(migrated.version).toBe(3);
+    expect(migrated.labelTemplates[0]?.content).toEqual([
+      createLabelContentItem("family"),
+      createLabelContentItem("material_id"),
+      createLabelContentItem("qr"),
+    ]);
   });
 });
 
 describe("label template invariants", () => {
   const starters = createStarterLabelTemplates();
   const base = {
-    version: 2 as const,
+    version: 3 as const,
     name: "Shop",
     idStrategy: "numeric",
     labelTemplates: starters,
@@ -101,7 +134,7 @@ describe("label template invariants", () => {
       name: "Custom",
       size: { kind: "custom" as const, widthIn: 3, heightIn: 2 },
       displayUnit: "in" as const,
-      contentKeys: ["material_id"],
+      content: ["material_id"].map((key) => createLabelContentItem(key)),
     };
 
     const withAdded = addLabelTemplate(base, custom);
@@ -121,7 +154,7 @@ describe("openLibrary migrates legacy library.json", () => {
     const fs = createNodeFileSystem();
     const library = await openLibrary(fs, join(fixturesRoot, "empty"));
 
-    expect(library.config.version).toBe(2);
+    expect(library.config.version).toBe(3);
     expect(library.config.defaultLabelTemplateId).toBe(STARTER_LABEL_TEMPLATE_4X6_ID);
     expect(library.config.labelTemplates.map((t) => t.id)).toContain(
       STARTER_LABEL_TEMPLATE_LETTER_ID,

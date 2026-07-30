@@ -1,5 +1,5 @@
 import type { OpenLibraryResult } from "@certtrace/library-engine";
-import { defaultFieldSchemaV1 } from "@certtrace/types";
+import { createLabelContentItem, defaultFieldSchemaV1 } from "@certtrace/types";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -47,7 +47,7 @@ const library = {
   },
   fieldSchema: defaultFieldSchemaV1,
   config: {
-    version: 2,
+    version: 3,
     name: "Main",
     idStrategy: "numeric",
     labelTemplates: [
@@ -56,7 +56,7 @@ const library = {
         name: "4×6 in",
         size: { kind: "catalog", catalogId: "4x6" },
         displayUnit: "in",
-        contentKeys: ["material_id", "qr"],
+        content: ["material_id", "qr"].map((key) => createLabelContentItem(key)),
       },
     ],
     defaultLabelTemplateId: "starter-4x6",
@@ -65,7 +65,7 @@ const library = {
 } as OpenLibraryResult;
 
 const material = {
-  version: 2 as const,
+  version: 3 as const,
   id: "AL-falcon-101",
   fields: {},
   identifiers: {},

@@ -1,8 +1,10 @@
 import {
+  createLabelContentItem,
   LABEL_CONTENT_BARCODE,
   LABEL_CONTENT_MATERIAL_ID,
   LABEL_CONTENT_QR,
   type FieldSchemaV1,
+  type LabelContentItem,
   type MaterialMetadataV1,
   SCHEMA_VERSION,
 } from "@certtrace/types";
@@ -11,6 +13,10 @@ export interface LabelContentOption {
   key: string;
   label: string;
 }
+
+export type LabelContentListRow =
+  | { kind: "enabled"; item: LabelContentItem; option: LabelContentOption }
+  | { kind: "disabled"; option: LabelContentOption };
 
 /** Built-in sample Material for Label Template WYSIWYG when no real Material is chosen. */
 export function createSampleLabelMaterial(): MaterialMetadataV1 {
@@ -57,20 +63,67 @@ export function labelContentOptions(fieldSchema: FieldSchemaV1): LabelContentOpt
   return [...core, ...fields, ...identifiers];
 }
 
-export function moveContentKey(
-  contentKeys: string[],
-  key: string,
-  offset: -1 | 1,
-): string[] | null {
-  const index = contentKeys.indexOf(key);
-  if (index < 0) {
-    return null;
+/** Enabled rows in template order, then disabled options in catalog order. */
+export function labelContentListRows(
+  options: LabelContentOption[],
+  content: LabelContentItem[],
+): LabelContentListRow[] {
+  const optionByKey = new Map(options.map((option) => [option.key, option]));
+  const enabledKeys = new Set(content.map((item) => item.key));
+
+  const enabled: LabelContentListRow[] = content.map((item) => ({
+    kind: "enabled",
+    item,
+    option: optionByKey.get(item.key) ?? { key: item.key, label: item.key },
+  }));
+
+  const disabled: LabelContentListRow[] = options
+    .filter((option) => !enabledKeys.has(option.key))
+    .map((option) => ({ kind: "disabled", option }));
+
+  return [...enabled, ...disabled];
+}
+
+export function reorderContentItems(
+  content: LabelContentItem[],
+  fromKey: string,
+  toKey: string,
+): LabelContentItem[] {
+  const from = content.findIndex((item) => item.key === fromKey);
+  const to = content.findIndex((item) => item.key === toKey);
+  if (from < 0 || to < 0 || from === to) {
+    return content;
   }
-  const target = index + offset;
-  if (target < 0 || target >= contentKeys.length) {
-    return null;
-  }
-  const next = [...contentKeys];
-  [next[index], next[target]] = [next[target]!, next[index]!];
+  const next = [...content];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item!);
   return next;
+}
+
+export function enableContentItem(
+  content: LabelContentItem[],
+  key: string,
+): LabelContentItem[] {
+  if (content.some((item) => item.key === key)) {
+    return content;
+  }
+  return [...content, createLabelContentItem(key)];
+}
+
+export function disableContentItem(
+  content: LabelContentItem[],
+  key: string,
+): LabelContentItem[] | null {
+  if (content.length <= 1) {
+    return null;
+  }
+  return content.filter((item) => item.key !== key);
+}
+
+export function patchContentItem(
+  content: LabelContentItem[],
+  key: string,
+  patch: Partial<Pick<LabelContentItem, "align" | "size">>,
+): LabelContentItem[] {
+  return content.map((item) => (item.key === key ? { ...item, ...patch } : item));
 }
