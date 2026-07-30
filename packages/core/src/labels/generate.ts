@@ -7,21 +7,19 @@ import {
   labelTemplateSizePoints,
   type MaterialMetadataV1,
 } from "@certtrace/types";
-import bwipjs from "bwip-js";
-import { PDFDocument, type PDFFont, type PDFPage, rgb, StandardFonts } from "pdf-lib";
-import QRCode from "qrcode";
+import { PDFDocument, type PDFFont, rgb, StandardFonts } from "pdf-lib";
+import { renderBarcodePngBytes, renderQrDataUrl } from "./code-images.js";
+import {
+  computeLabelPageLayout,
+  LABEL_VALUE_LINE_GAP_PT,
+  type LabelContentLine,
+  type LabelLayoutSlot,
+  type LabelTextMeasurer,
+} from "./layout.js";
+
+export type { LabelContentLine, LabelLayoutSlot } from "./layout.js";
 
 const EMPTY_PLACEHOLDER = "—";
-const MARGIN = 18;
-const MIN_FONT_SIZE = 7;
-const DEFAULT_FONT_SIZE = 12;
-const LABEL_FONT_SIZE = 9;
-
-export interface LabelContentLine {
-  key: string;
-  label: string;
-  value: string;
-}
 
 export interface LabelCodePayloads {
   qr?: string;
@@ -34,11 +32,6 @@ export interface GenerateLabelPdfInput {
   fieldSchema: FieldSchemaV1;
 }
 
-export type LabelLayoutSlot =
-  | { kind: "text"; line: LabelContentLine }
-  | { kind: "qr"; payload: string }
-  | { kind: "barcode"; payload: string };
-
 export interface GenerateLabelPdfResult {
   pdf: Uint8Array;
   /** Resolved text lines per Material (excludes qr/barcode slots). */
@@ -48,6 +41,14 @@ export interface GenerateLabelPdfResult {
   /** Machine-readable payloads per Material when those slots are included. */
   codePayloads: LabelCodePayloads[];
   warnings: string[];
+}
+
+function createPdfTextMeasurer(font: PDFFont, fontBold: PDFFont): LabelTextMeasurer {
+  return {
+    widthOfText(text, fontSizePt, bold) {
+      return (bold ? fontBold : font).widthOfTextAtSize(text, fontSizePt);
+    },
+  };
 }
 
 function rawFieldValue(material: MaterialMetadataV1, key: string): string {
@@ -172,58 +173,11 @@ export function resolveLabelLines(
 }
 
 async function embedQr(pdf: PDFDocument, payload: string, sizePx: number) {
-  const dataUrl = await QRCode.toDataURL(payload, {
-    margin: 0,
-    width: sizePx,
-    errorCorrectionLevel: "M",
-  });
-  return pdf.embedPng(dataUrl);
+  return pdf.embedPng(await renderQrDataUrl(payload, sizePx));
 }
 
 async function embedBarcode(pdf: PDFDocument, payload: string) {
-  const png = await bwipjs.toBuffer({
-    bcid: "code128",
-    text: payload,
-    scale: 2,
-    height: 10,
-    includetext: false,
-  });
-  return pdf.embedPng(png);
-}
-
-function drawWrappedText(
-  page: PDFPage,
-  text: string,
-  x: number,
-  y: number,
-  maxWidth: number,
-  size: number,
-  font: PDFFont,
-): number {
-  const words = text.split(/\s+/);
-  let line = "";
-  let cursorY = y;
-  const lineHeight = size + 2;
-
-  for (const word of words) {
-    const candidate = line.length === 0 ? word : `${line} ${word}`;
-    if (font.widthOfTextAtSize(candidate, size) <= maxWidth) {
-      line = candidate;
-      continue;
-    }
-    if (line.length > 0) {
-      page.drawText(line, { x, y: cursorY, size, font, color: rgb(0, 0, 0) });
-      cursorY -= lineHeight;
-    }
-    line = word;
-  }
-
-  if (line.length > 0) {
-    page.drawText(line, { x, y: cursorY, size, font, color: rgb(0, 0, 0) });
-    cursorY -= lineHeight;
-  }
-
-  return cursorY;
+  return pdf.embedPng(await renderBarcodePngBytes(payload));
 }
 
 async function drawMaterialPage(
@@ -233,86 +187,63 @@ async function drawMaterialPage(
   font: PDFFont,
   fontBold: PDFFont,
 ): Promise<{ warning?: string }> {
+  const layout = computeLabelPageLayout(template, slots, createPdfTextMeasurer(font, fontBold));
   const { widthPt, heightPt } = labelTemplateSizePoints(template.size);
   const page = pdf.addPage([widthPt, heightPt]);
 
-  const contentWidth = widthPt - MARGIN * 2;
-  let cursorY = heightPt - MARGIN;
-  let fontSize = DEFAULT_FONT_SIZE;
-
-  const textSlots = slots.filter((slot) => slot.kind === "text");
-  const qrSize = Math.min(96, contentWidth * 0.35, heightPt * 0.35);
-  const estimatedCodeHeight = slots.reduce((sum, slot) => {
-    if (slot.kind === "qr") {
-      return sum + qrSize + 12;
-    }
-    if (slot.kind === "barcode") {
-      return sum + 40;
-    }
-    return sum;
-  }, 0);
-  const estimatedTextHeight = textSlots.length * (fontSize + LABEL_FONT_SIZE + 10);
-  const available = heightPt - MARGIN * 2 - estimatedCodeHeight;
-
-  if (estimatedTextHeight > available && textSlots.length > 0) {
-    fontSize = Math.max(
-      MIN_FONT_SIZE,
-      Math.floor(available / textSlots.length - LABEL_FONT_SIZE - 4),
-    );
-  }
-
-  for (const slot of slots) {
-    if (slot.kind === "text") {
-      const { line } = slot;
-      page.drawText(line.label, {
-        x: MARGIN,
-        y: cursorY - LABEL_FONT_SIZE,
-        size: LABEL_FONT_SIZE,
+  for (const element of layout.elements) {
+    if (element.kind === "field") {
+      const labelBaselineY = heightPt - element.topPt - element.labelFontSizePt;
+      page.drawText(element.line.label, {
+        x: element.leftPt,
+        y: labelBaselineY,
+        size: element.labelFontSizePt,
         font,
         color: rgb(0.35, 0.35, 0.35),
       });
-      cursorY -= LABEL_FONT_SIZE + 2;
-      cursorY = drawWrappedText(
-        page,
-        line.value,
-        MARGIN,
-        cursorY - fontSize,
-        contentWidth,
-        fontSize,
-        line.key === LABEL_CONTENT_MATERIAL_ID ? fontBold : font,
-      );
-      cursorY -= 6;
+
+      let valueTopPt =
+        element.topPt + element.labelFontSizePt + LABEL_VALUE_LINE_GAP_PT + element.valueFontSizePt;
+      const valueFont = element.valueBold ? fontBold : font;
+      for (const line of element.valueLines) {
+        page.drawText(line, {
+          x: element.leftPt,
+          y: heightPt - valueTopPt,
+          size: element.valueFontSizePt,
+          font: valueFont,
+          color: rgb(0, 0, 0),
+        });
+        valueTopPt += element.valueFontSizePt + LABEL_VALUE_LINE_GAP_PT;
+      }
       continue;
     }
 
-    if (slot.kind === "qr") {
-      const qrImage = await embedQr(pdf, slot.payload, Math.round(qrSize * 4));
-      cursorY -= qrSize;
+    if (element.kind === "qr") {
+      const qrImage = await embedQr(pdf, element.payload, Math.round(element.sizePt * 4));
       page.drawImage(qrImage, {
-        x: MARGIN,
-        y: Math.max(MARGIN, cursorY),
-        width: qrSize,
-        height: qrSize,
+        x: element.leftPt,
+        y: heightPt - element.topPt - element.sizePt,
+        width: element.sizePt,
+        height: element.sizePt,
       });
-      cursorY -= 8;
       continue;
     }
 
-    const barcodeImage = await embedBarcode(pdf, slot.payload);
-    const barcodeWidth = Math.min(contentWidth, barcodeImage.width);
-    const barcodeHeight = Math.min(36, (barcodeImage.height / barcodeImage.width) * barcodeWidth);
-    cursorY -= barcodeHeight;
+    const barcodeImage = await embedBarcode(pdf, element.payload);
+    const barcodeWidth = Math.min(element.widthPt, barcodeImage.width);
+    const barcodeHeight = Math.min(
+      element.heightPt,
+      (barcodeImage.height / barcodeImage.width) * barcodeWidth,
+    );
     page.drawImage(barcodeImage, {
-      x: MARGIN,
-      y: Math.max(MARGIN, cursorY),
+      x: element.leftPt,
+      y: heightPt - element.topPt - barcodeHeight,
       width: barcodeWidth,
       height: barcodeHeight,
     });
-    cursorY -= 8;
   }
 
-  const overflowed = cursorY < MARGIN;
-  return overflowed
+  return layout.overflow
     ? { warning: `Label content may not fit the ${template.name} paper size.` }
     : {};
 }

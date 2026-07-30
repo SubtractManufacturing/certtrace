@@ -8,6 +8,19 @@ export {
   writeAppSettings,
 } from "./app-settings.js";
 export {
+  computeLabelPageLayout,
+  createApproxTextMeasurer,
+  LABEL_VALUE_LINE_GAP_PT,
+  type LabelLayoutElement,
+  type LabelPageLayout,
+  type LabelTextMeasurer,
+} from "./labels/layout.js";
+export {
+  renderBarcodePreviewDataUrl,
+  renderBarcodePngBytes,
+  renderQrDataUrl,
+} from "./labels/code-images.js";
+export {
   type GenerateLabelPdfInput,
   type GenerateLabelPdfResult,
   generateLabelPdf,
