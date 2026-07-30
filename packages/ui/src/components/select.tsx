@@ -3,8 +3,8 @@ import {
   type ChangeEvent,
   Children,
   isValidElement,
-  type KeyboardEvent,
   type ReactElement,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
   type SelectHTMLAttributes,
   useCallback,
@@ -338,7 +338,7 @@ export function Select({
     setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
   }, [enabledOptions, multiple, open, selectedValue, selectedValues]);
 
-  function onTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+  function onTriggerKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>) {
     if (disabled) {
       return;
     }
