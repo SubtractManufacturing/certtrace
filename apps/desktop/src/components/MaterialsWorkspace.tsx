@@ -4,9 +4,7 @@ import {
   type MaterialFilterValues,
   type OpenLibraryResult,
 } from "@certtrace/library-engine";
-import {
-  defaultFieldSchemaV1,
-} from "@certtrace/types";
+import { defaultFieldSchemaV1 } from "@certtrace/types";
 import {
   Button,
   Dialog,

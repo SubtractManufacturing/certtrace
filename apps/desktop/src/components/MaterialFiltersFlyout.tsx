@@ -1,3 +1,4 @@
+import type { MaterialFilterValues } from "@certtrace/library-engine";
 import type { FieldSchemaV1, MaterialMetadataV1 } from "@certtrace/types";
 import {
   Button,
@@ -9,7 +10,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@certtrace/ui";
-import type { MaterialFilterValues } from "@certtrace/library-engine";
 import { X } from "lucide-react";
 import { MaterialFiltersPanel } from "./MaterialFiltersPanel";
 

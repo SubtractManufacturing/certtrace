@@ -62,12 +62,9 @@ export function SettingsView({
   onCheckForUpdatesNow,
   onInstallUpdate,
 }: SettingsViewProps) {
-  const [libraryToRemove, setLibraryToRemove] =
-    useState<RecentLibraryEntryV1 | null>(null);
+  const [libraryToRemove, setLibraryToRemove] = useState<RecentLibraryEntryV1 | null>(null);
   const [appDataError, setAppDataError] = useState<string | null>(null);
-  const [removeLibraryError, setRemoveLibraryError] = useState<string | null>(
-    null,
-  );
+  const [removeLibraryError, setRemoveLibraryError] = useState<string | null>(null);
 
   async function handleOpenAppDataFolder() {
     setAppDataError(null);
@@ -99,10 +96,7 @@ export function SettingsView({
                 }
               }}
             >
-              <SkyThemeToggle
-                disabled={useSystemTheme}
-                className="h-[25px] w-[47px]"
-              />
+              <SkyThemeToggle disabled={useSystemTheme} className="h-[25px] w-[47px]" />
             </ThemeProvider>
           </div>
           <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
@@ -121,8 +115,7 @@ export function SettingsView({
         <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <h2 className="text-lg font-semibold">Libraries</h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Add libraries here and choose which one opens automatically when
-            CertTrace starts.
+            Add libraries here and choose which one opens automatically when CertTrace starts.
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -144,15 +137,11 @@ export function SettingsView({
                 value={defaultLibraryOnLaunch ?? ""}
                 onChange={(event) => {
                   const value = event.target.value;
-                  onDefaultLibraryChange(
-                    value === "" ? null : (value as DefaultLibraryOnLaunch),
-                  );
+                  onDefaultLibraryChange(value === "" ? null : (value as DefaultLibraryOnLaunch));
                 }}
               >
                 <option value="">Recent library</option>
-                {launchOptions.length > 1 ? (
-                  <option value="all">All libraries</option>
-                ) : null}
+                {launchOptions.length > 1 ? <option value="all">All libraries</option> : null}
                 {launchOptions.map((entry) => (
                   <option key={entry.path} value={entry.path}>
                     {entry.name}
@@ -171,9 +160,7 @@ export function SettingsView({
                 >
                   <div className="min-w-0">
                     <p className="truncate font-medium">{entry.name}</p>
-                    <p className="truncate text-xs text-slate-500">
-                      {entry.path}
-                    </p>
+                    <p className="truncate text-xs text-slate-500">{entry.path}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <button
@@ -198,9 +185,7 @@ export function SettingsView({
               ))}
             </ul>
           ) : (
-            <p className="mt-4 text-sm text-slate-500">
-              No libraries added yet.
-            </p>
+            <p className="mt-4 text-sm text-slate-500">No libraries added yet.</p>
           )}
         </section>
 
@@ -224,9 +209,7 @@ export function SettingsView({
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Button
               type="button"
-              variant={
-                updateAvailable && canInstallInApp ? "default" : "outline"
-              }
+              variant={updateAvailable && canInstallInApp ? "default" : "outline"}
               className={
                 updateAvailable && canInstallInApp
                   ? "bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
@@ -260,17 +243,10 @@ export function SettingsView({
               Open in browser
             </Button>
             {updateError ? (
-              <p className="text-sm text-red-600 dark:text-red-400">
-                {updateError}
-              </p>
+              <p className="text-sm text-red-600 dark:text-red-400">{updateError}</p>
             ) : null}
-            {hasCheckedForUpdates &&
-            !updateError &&
-            !checkingForUpdates &&
-            !updateAvailable ? (
-              <p className="text-sm text-slate-500">
-                You are on the latest version.
-              </p>
+            {hasCheckedForUpdates && !updateError && !checkingForUpdates && !updateAvailable ? (
+              <p className="text-sm text-slate-500">You are on the latest version.</p>
             ) : null}
           </div>
         </section>
@@ -278,9 +254,8 @@ export function SettingsView({
         <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <h2 className="text-lg font-semibold">About & privacy</h2>
           <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-            CertTrace stores libraries on your filesystem and keeps app
-            preferences locally. No material data is sent to the cloud unless
-            you explicitly export or share files.
+            CertTrace stores libraries on your filesystem and keeps app preferences locally. No
+            material data is sent to the cloud unless you explicitly export or share files.
           </p>
           <p className="mt-2 text-sm text-slate-500">Version {APP_VERSION}</p>
           {appDataError ? (
@@ -312,9 +287,7 @@ export function SettingsView({
           void onRemoveLibrary(path, deleteFolder)
             .then(() => setLibraryToRemove(null))
             .catch((err) => {
-              setRemoveLibraryError(
-                err instanceof Error ? err.message : String(err),
-              );
+              setRemoveLibraryError(err instanceof Error ? err.message : String(err));
             });
         }}
       />

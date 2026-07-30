@@ -1,11 +1,11 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import {
-  Children,
   type ChangeEvent,
+  Children,
+  isValidElement,
   type ReactElement,
   type ReactNode,
   type SelectHTMLAttributes,
-  isValidElement,
   useCallback,
   useEffect,
   useId,
@@ -45,7 +45,9 @@ function optionLabel(children: ReactNode): string {
   if (typeof children === "string" || typeof children === "number") {
     return String(children);
   }
-  return Children.toArray(children).map((child) => optionLabel(child)).join("");
+  return Children.toArray(children)
+    .map((child) => optionLabel(child))
+    .join("");
 }
 
 function parseSelectOptions(children: ReactNode): ParsedOption[] {
@@ -68,7 +70,9 @@ function parseSelectOptions(children: ReactNode): ParsedOption[] {
 
     const rawValue = element.props.value;
     const value =
-      rawValue === undefined || rawValue === null ? optionLabel(element.props.children) : String(rawValue);
+      rawValue === undefined || rawValue === null
+        ? optionLabel(element.props.children)
+        : String(rawValue);
 
     options.push({
       value,
@@ -160,7 +164,6 @@ export function Select({
   onOpenChange,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
-  ...props
 }: SelectProps) {
   const options = useMemo(() => parseSelectOptions(children), [children]);
   const listboxId = useId();
@@ -187,7 +190,11 @@ export function Select({
   const selectedValues = useMemo(() => {
     const raw = value ?? defaultValue ?? (multiple ? [] : "");
     if (multiple) {
-      return Array.isArray(raw) ? raw.map(String) : raw === "" || raw === undefined ? [] : [String(raw)];
+      return Array.isArray(raw)
+        ? raw.map(String)
+        : raw === "" || raw === undefined
+          ? []
+          : [String(raw)];
     }
     return Array.isArray(raw) ? [String(raw[0] ?? "")] : [String(raw ?? "")];
   }, [value, defaultValue, multiple]);
@@ -203,7 +210,7 @@ export function Select({
     ? selectedLabels.length > 0
       ? selectedLabels.join(", ")
       : (placeholderOption?.label ?? "Select…")
-    : selectedLabels[0] ?? placeholderOption?.label ?? "Select…";
+    : (selectedLabels[0] ?? placeholderOption?.label ?? "Select…");
 
   const showPlaceholder = multiple ? selectedLabels.length === 0 : selectedValue === "";
 
@@ -233,7 +240,7 @@ export function Select({
   const closeMenu = useCallback(() => {
     setOpen(false);
     setHighlightedIndex(-1);
-  }, []);
+  }, [setOpen]);
 
   const emitChange = useCallback(
     (nextValue: string | string[]) => {
@@ -268,7 +275,7 @@ export function Select({
       return;
     }
     updateMenuPosition();
-  }, [open, options, updateMenuPosition]);
+  }, [open, updateMenuPosition]);
 
   useEffect(() => {
     if (!open) {
@@ -326,7 +333,12 @@ export function Select({
     }
 
     if (!open) {
-      if (event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "Enter" || event.key === " ") {
+      if (
+        event.key === "ArrowDown" ||
+        event.key === "ArrowUp" ||
+        event.key === "Enter" ||
+        event.key === " "
+      ) {
         event.preventDefault();
         setOpen(true);
       }
@@ -412,7 +424,9 @@ export function Select({
             );
           })}
           {footer ? (
-            <div className="shrink-0 border-t border-slate-200 pt-1 dark:border-slate-700">{footer}</div>
+            <div className="shrink-0 border-t border-slate-200 pt-1 dark:border-slate-700">
+              {footer}
+            </div>
           ) : null}
         </div>
         {name ? (

@@ -223,7 +223,9 @@ export function MaterialSchemaForm({
                 value={stringValue}
                 open={canAddOption ? openSelectField === field.key : undefined}
                 onOpenChange={
-                  canAddOption ? (nextOpen) => handleSelectOpenChange(field.key, nextOpen) : undefined
+                  canAddOption
+                    ? (nextOpen) => handleSelectOpenChange(field.key, nextOpen)
+                    : undefined
                 }
                 footer={canAddOption ? addOptionFooter(field.key, field.label, false) : undefined}
                 onChange={(event) => setField(field.key, event.target.value || undefined)}

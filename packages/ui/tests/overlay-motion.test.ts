@@ -1,8 +1,8 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  OVERLAY_TRANSITION_MS,
   dialogPanelClassName,
+  OVERLAY_TRANSITION_MS,
   overlayBackdropClassName,
   overlayMotionState,
   sheetPanelClassName,

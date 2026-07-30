@@ -86,26 +86,11 @@
       "dependsOn": {
         "fieldKey": "family",
         "filterOptionsBy": {
-          "aluminum": [
-            "6061",
-            "7075",
-            "2024"
-          ],
-          "steel": [
-            "1018",
-            "4140"
-          ],
-          "stainless": [
-            "304",
-            "316"
-          ],
-          "brass": [
-            "360"
-          ],
-          "plastic": [
-            "ultem",
-            "delrin"
-          ]
+          "aluminum": ["6061", "7075", "2024"],
+          "steel": ["1018", "4140"],
+          "stainless": ["304", "316"],
+          "brass": ["360"],
+          "plastic": ["ultem", "delrin"]
         }
       }
     },
@@ -148,23 +133,10 @@
       "dependsOn": {
         "fieldKey": "family",
         "filterOptionsBy": {
-          "aluminum": [
-            "t6",
-            "t6511",
-            "o"
-          ],
-          "steel": [
-            "annealed",
-            "normalized",
-            "hardened"
-          ],
-          "stainless": [
-            "annealed",
-            "h900"
-          ],
-          "brass": [
-            "o"
-          ],
+          "aluminum": ["t6", "t6511", "o"],
+          "steel": ["annealed", "normalized", "hardened"],
+          "stainless": ["annealed", "h900"],
+          "brass": ["o"],
           "plastic": []
         }
       }

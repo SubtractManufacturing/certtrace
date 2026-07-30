@@ -100,119 +100,119 @@ export function AdvancedLibrarySettingsView({
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{library.config.name}</p>
         </header>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="text-lg font-semibold">Material schema</h2>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Configure receiving fields and lookup identifiers. Stable keys remain unchanged when
-          labels are renamed.
-        </p>
-        <div className="mt-4">
-          <SchemaSettingsEditor
-            schema={fieldSchema}
-            onChange={setFieldSchema}
-            onRemoveDefinition={removeDefinition}
-          />
-        </div>
-      </section>
-
-      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">ID strategies</h2>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const created = addNamingStrategy(namingRules, {
-                  id: `strategy-${Date.now()}`,
-                  label: "New strategy",
-                  template: "{number}",
-                  numberPad: 0,
-                });
-                setNamingRules(created);
-                setSelectedStrategyId(created.strategies.at(-1)?.id ?? created.activeStrategyId);
-              }}
-            >
-              Add strategy
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={!selectedStrategy}
-              onClick={() => {
-                const duplicated = duplicateNamingStrategy(
-                  namingRules,
-                  selectedStrategy.id,
-                  `${selectedStrategy.id}-copy`,
-                  `${selectedStrategy.label} copy`,
-                );
-                setNamingRules(duplicated);
-                setSelectedStrategyId(`${selectedStrategy.id}-copy`);
-              }}
-            >
-              Duplicate
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={!selectedStrategy || namingRules.strategies.length <= 1}
-              onClick={() => {
-                const next = deleteNamingStrategy(namingRules, selectedStrategy.id);
-                setNamingRules(next);
-                setSelectedStrategyId(next.activeStrategyId);
-              }}
-            >
-              Delete
-            </Button>
-          </div>
-        </div>
-
-        <label className="mt-4 block space-y-1 text-sm">
-          <Label>Active strategy</Label>
-          <Select
-            value={selectedStrategyId}
-            onChange={(event) => setSelectedStrategyId(event.target.value)}
-          >
-            {namingRules.strategies.map((strategy) => (
-              <option key={strategy.id} value={strategy.id}>
-                {strategy.label}
-              </option>
-            ))}
-          </Select>
-        </label>
-
-        {selectedStrategy ? (
+        <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="text-lg font-semibold">Material schema</h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Configure receiving fields and lookup identifiers. Stable keys remain unchanged when
+            labels are renamed.
+          </p>
           <div className="mt-4">
-            <IdTemplateBuilder
-              strategy={selectedStrategy}
-              wordLists={wordLists}
-              onChange={updateSelectedStrategy}
+            <SchemaSettingsEditor
+              schema={fieldSchema}
+              onChange={setFieldSchema}
+              onRemoveDefinition={removeDefinition}
             />
           </div>
-        ) : null}
+        </section>
 
-        {entropyWarning ? (
-          <p className="mt-3 text-sm text-amber-700 dark:text-amber-300">{entropyWarning}</p>
-        ) : null}
-      </section>
+        <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">ID strategies</h2>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const created = addNamingStrategy(namingRules, {
+                    id: `strategy-${Date.now()}`,
+                    label: "New strategy",
+                    template: "{number}",
+                    numberPad: 0,
+                  });
+                  setNamingRules(created);
+                  setSelectedStrategyId(created.strategies.at(-1)?.id ?? created.activeStrategyId);
+                }}
+              >
+                Add strategy
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!selectedStrategy}
+                onClick={() => {
+                  const duplicated = duplicateNamingStrategy(
+                    namingRules,
+                    selectedStrategy.id,
+                    `${selectedStrategy.id}-copy`,
+                    `${selectedStrategy.label} copy`,
+                  );
+                  setNamingRules(duplicated);
+                  setSelectedStrategyId(`${selectedStrategy.id}-copy`);
+                }}
+              >
+                Duplicate
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!selectedStrategy || namingRules.strategies.length <= 1}
+                onClick={() => {
+                  const next = deleteNamingStrategy(namingRules, selectedStrategy.id);
+                  setNamingRules(next);
+                  setSelectedStrategyId(next.activeStrategyId);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="text-lg font-semibold">Word lists</h2>
-        <div className="mt-4">
-          <WordListEditor wordLists={wordLists} onChange={setWordLists} />
+          <label className="mt-4 block space-y-1 text-sm">
+            <Label>Active strategy</Label>
+            <Select
+              value={selectedStrategyId}
+              onChange={(event) => setSelectedStrategyId(event.target.value)}
+            >
+              {namingRules.strategies.map((strategy) => (
+                <option key={strategy.id} value={strategy.id}>
+                  {strategy.label}
+                </option>
+              ))}
+            </Select>
+          </label>
+
+          {selectedStrategy ? (
+            <div className="mt-4">
+              <IdTemplateBuilder
+                strategy={selectedStrategy}
+                wordLists={wordLists}
+                onChange={updateSelectedStrategy}
+              />
+            </div>
+          ) : null}
+
+          {entropyWarning ? (
+            <p className="mt-3 text-sm text-amber-700 dark:text-amber-300">{entropyWarning}</p>
+          ) : null}
+        </section>
+
+        <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="text-lg font-semibold">Word lists</h2>
+          <div className="mt-4">
+            <WordListEditor wordLists={wordLists} onChange={setWordLists} />
+          </div>
+        </section>
+
+        {error ? <ErrorBanner message={error} /> : null}
+
+        <div>
+          <Button type="button" disabled={busy} onClick={() => void saveConfig()}>
+            Save library settings
+          </Button>
         </div>
-      </section>
-
-      {error ? <ErrorBanner message={error} /> : null}
-
-      <div>
-        <Button type="button" disabled={busy} onClick={() => void saveConfig()}>
-          Save library settings
-        </Button>
-      </div>
       </div>
     </div>
   );

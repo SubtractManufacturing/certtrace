@@ -1,8 +1,8 @@
 import type { OpenLibraryResult } from "@certtrace/library-engine";
 import {
   defaultFieldSchemaV1,
-  materialTableColumnIdentity,
   type MaterialTableColumnV1,
+  materialTableColumnIdentity,
 } from "@certtrace/types";
 import { Button } from "@certtrace/ui";
 import { useEffect, useMemo, useState } from "react";

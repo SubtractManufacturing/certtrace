@@ -166,7 +166,11 @@ export function SheetTitle({ className, ...props }: HTMLAttributes<HTMLHeadingEl
 export function SheetDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
   const { descriptionId } = useSheetContext("SheetDescription");
   return (
-    <p id={descriptionId} className={cn("text-sm text-slate-500 dark:text-slate-400", className)} />
+    <p
+      id={descriptionId}
+      className={cn("text-sm text-slate-500 dark:text-slate-400", className)}
+      {...props}
+    />
   );
 }
 

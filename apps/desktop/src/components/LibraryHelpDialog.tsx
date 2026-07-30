@@ -12,10 +12,7 @@ interface LibraryHelpDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function LibraryHelpDialog({
-  open,
-  onOpenChange,
-}: LibraryHelpDialogProps) {
+export function LibraryHelpDialog({ open, onOpenChange }: LibraryHelpDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
@@ -33,7 +30,9 @@ export function LibraryHelpDialog({
           </section>
 
           <section>
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Why create a library</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100">
+              Why create a library
+            </h3>
             <p className="mt-1">
               CertTrace uses a library to know where your data is saved. In a library you can:
             </p>

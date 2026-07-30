@@ -3,7 +3,6 @@ import { defaultFieldSchemaV1 } from "@certtrace/types";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { chooseSelectOption } from "../test/select-helpers";
 import {
   attachFilesToMaterial,
   deleteAttachment,
@@ -12,6 +11,7 @@ import {
   revealAttachmentInFolder,
 } from "../lib/attachment-client";
 import { fetchMaterialAttachments } from "../lib/library-client";
+import { chooseSelectOption } from "../test/select-helpers";
 import { MaterialDetailPanel } from "./MaterialDetailPanel";
 
 vi.mock("../lib/attachment-client", () => ({
@@ -76,7 +76,7 @@ describe("MaterialDetailPanel attachments", () => {
     expect(await screen.findByText("MTR · PDF")).toBeTruthy();
 
     await userEvent.click(screen.getByRole("button", { name: /Add attachments/i }));
-    await chooseSelectOption(screen.getByLabelText("Type for coc.pdf"), "COC");
+    await chooseSelectOption(await screen.findByLabelText("Type for coc.pdf"), "COC");
     await userEvent.click(screen.getByRole("button", { name: /Attach files/i }));
 
     expect(attachFilesToMaterial).toHaveBeenCalledWith(library, material.id, [

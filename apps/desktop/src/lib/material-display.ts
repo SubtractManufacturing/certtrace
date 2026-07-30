@@ -18,9 +18,7 @@ export function formatFieldValue(
   }
 
   if (Array.isArray(value)) {
-    return value
-      .map((id) => options?.find((option) => option.id === id)?.label ?? id)
-      .join(", ");
+    return value.map((id) => options?.find((option) => option.id === id)?.label ?? id).join(", ");
   }
 
   if (options) {

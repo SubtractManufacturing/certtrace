@@ -34,7 +34,9 @@ export function LibrarySettingsView({
               <button
                 type="button"
                 aria-expanded={columnsExpanded}
-                aria-label={columnsExpanded ? "Collapse material columns" : "Expand material columns"}
+                aria-label={
+                  columnsExpanded ? "Collapse material columns" : "Expand material columns"
+                }
                 className="rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                 onClick={() => setColumnsExpanded((expanded) => !expanded)}
               >

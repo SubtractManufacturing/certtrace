@@ -65,7 +65,12 @@ export function MaterialFiltersPanel({
       ))}
 
       {hasActiveFilters ? (
-        <Button type="button" variant="ghost" size="sm" onClick={() => onChange(emptyMaterialFilters)}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => onChange(emptyMaterialFilters)}
+        >
           Clear filters
         </Button>
       ) : null}

@@ -1,10 +1,10 @@
 import type { DefaultLibraryOnLaunch } from "@certtrace/types";
 import { ThemeProvider } from "@certtrace/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AdvancedLibrarySettingsView } from "./components/AdvancedLibrarySettingsView";
 import { AppShell, type AppView } from "./components/AppShell";
 import { CreateLibraryWizard } from "./components/CreateLibraryWizard";
 import { ErrorBanner } from "./components/ErrorBanner";
-import { AdvancedLibrarySettingsView } from "./components/AdvancedLibrarySettingsView";
 import { LibrarySettingsView } from "./components/LibrarySettingsView";
 import { MaterialsWorkspace } from "./components/MaterialsWorkspace";
 import { SettingsView } from "./components/SettingsView";
@@ -392,7 +392,7 @@ function App() {
             library={settingsLibraryForMenu}
             onOpenAdvancedSettings={() => setActiveView("library-advanced-settings")}
             onLibraryUpdated={(library) => session.updateLibraryInSession(library)}
-            onRefreshLibrary={() => void refreshLibraryMaterials(settingsLibraryForMenu.paths.root)}
+            onRefreshLibrary={() => refreshLibraryMaterials(settingsLibraryForMenu.paths.root)}
           />
         ) : null}
 

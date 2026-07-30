@@ -180,9 +180,7 @@ export function MaterialDetailPanel({
 
   function updatePendingAttachmentKind(sourcePath: string, kindKey: string) {
     setPendingAttachments((current) =>
-      current.map((entry) =>
-        entry.sourcePath === sourcePath ? { ...entry, kindKey } : entry,
-      ),
+      current.map((entry) => (entry.sourcePath === sourcePath ? { ...entry, kindKey } : entry)),
     );
   }
 

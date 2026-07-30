@@ -4,14 +4,8 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
-import {
-  chooseSelectOption,
-  getSelectValue,
-} from "../test/select-helpers";
-import {
-  addLibraryFieldOption,
-  addMaterial,
-} from "../lib/library-client";
+import { addLibraryFieldOption, addMaterial } from "../lib/library-client";
+import { chooseSelectOption, getSelectValue } from "../test/select-helpers";
 import { MaterialsWorkspace } from "./MaterialsWorkspace";
 
 vi.mock("../lib/library-client", () => ({
