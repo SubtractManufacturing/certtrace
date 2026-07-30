@@ -244,7 +244,7 @@ async function drawMaterialPage(
   }
 
   return layout.overflow
-    ? { warning: `Label content may not fit the ${template.name} paper size.` }
+    ? { warning: `Label content may not fit the ${template.name} label size.` }
     : {};
 }
 

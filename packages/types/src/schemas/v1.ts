@@ -10,13 +10,14 @@ export const LABEL_CONTENT_BARCODE = "barcode" as const;
 export const labelDisplayUnitSchema = z.enum(["in", "mm"]);
 export type LabelDisplayUnit = z.infer<typeof labelDisplayUnitSchema>;
 
-/** Shipped paper-size catalog ids. Starters use `4x6` and `letter`. */
-export const labelSizeCatalogIdSchema = z.enum(["4x6", "letter"]);
+/** Shipped label-size catalog ids. Starters use `4x6` and `letter`. */
+export const labelSizeCatalogIdSchema = z.enum(["3x1", "4x6", "letter"]);
 export type LabelSizeCatalogId = z.infer<typeof labelSizeCatalogIdSchema>;
 
 /** Canonical size in inches for each catalog entry (PDF uses 72 pt/in). */
 export const LABEL_SIZE_CATALOG: Record<LabelSizeCatalogId, { widthIn: number; heightIn: number }> =
   {
+    "3x1": { widthIn: 3, heightIn: 1 },
     "4x6": { widthIn: 4, heightIn: 6 },
     letter: { widthIn: 8.5, heightIn: 11 },
   };

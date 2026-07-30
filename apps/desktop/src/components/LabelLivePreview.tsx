@@ -217,7 +217,7 @@ export function LabelLivePreview({
           role="status"
           className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
         >
-          Label content may not fit the {template.name} paper size.
+          Label content may not fit the {template.name} label size.
         </p>
       ) : null}
     </div>

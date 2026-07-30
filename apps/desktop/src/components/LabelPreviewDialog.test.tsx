@@ -111,7 +111,7 @@ describe("LabelPreviewDialog", () => {
   it("shows an overflow warning without blocking Print or Save", async () => {
     vi.mocked(generateLibraryLabelPdf).mockResolvedValue({
       pdf: new Uint8Array([1]),
-      warnings: ["Label content may not fit the 4×6 in paper size."],
+      warnings: ["Label content may not fit the 4×6 in label size."],
     });
 
     render(
@@ -125,7 +125,7 @@ describe("LabelPreviewDialog", () => {
     );
 
     expect(
-      await screen.findByText(/Label content may not fit the 4×6 in paper size/i),
+      await screen.findByText(/Label content may not fit the 4×6 in label size/i),
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: /^Print$/i }).hasAttribute("disabled")).toBe(false);
     expect(screen.getByRole("button", { name: /Save PDF/i }).hasAttribute("disabled")).toBe(false);
