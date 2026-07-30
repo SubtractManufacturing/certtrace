@@ -7,6 +7,7 @@ import {
 import type { AttachedFile, MaterialMetadataV1 } from "@certtrace/types";
 import {
   Button,
+  cn,
   Dialog,
   DialogClose,
   DialogContent,
@@ -14,9 +15,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Input,
+  Label,
   Select,
 } from "@certtrace/ui";
-import { FileText, FolderOpen, Pencil, Plus, Printer, Share2, Trash2, X } from "lucide-react";
+import { FileText, FolderOpen, Pencil, Plus, Printer, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   attachFilesToMaterial,
@@ -75,6 +78,9 @@ export function MaterialDetailPanel({
   const [attachments, setAttachments] = useState<AttachedFile[]>([]);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [renamingFile, setRenamingFile] = useState<AttachedFile | null>(null);
+  const [renameFilename, setRenameFilename] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -111,6 +117,8 @@ export function MaterialDetailPanel({
     if (!nextOpen) {
       resetDraft();
       setUploadDialogOpen(false);
+      setRenameDialogOpen(false);
+      setRenamingFile(null);
       setPendingAttachments([]);
     }
     onOpenChange(nextOpen);
@@ -230,16 +238,37 @@ export function MaterialDetailPanel({
     }
   }
 
-  async function handleRenameAttachment(file: AttachedFile) {
-    const nextFilename = window.prompt("Rename attachment", file.name)?.trim();
-    if (!nextFilename || nextFilename === file.name) {
+  function openRenameDialog(file: AttachedFile) {
+    setRenamingFile(file);
+    setRenameFilename(file.name);
+    setRenameDialogOpen(true);
+  }
+
+  function handleRenameDialogOpenChange(nextOpen: boolean) {
+    setRenameDialogOpen(nextOpen);
+    if (!nextOpen) {
+      setRenamingFile(null);
+      setRenameFilename("");
+    }
+  }
+
+  async function handleConfirmRename() {
+    if (!renamingFile) {
       return;
     }
+
+    const nextFilename = renameFilename.trim();
+    if (!nextFilename || nextFilename === renamingFile.name) {
+      handleRenameDialogOpenChange(false);
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
-      await renameAttachment(library, material.id, file.name, nextFilename);
+      await renameAttachment(library, material.id, renamingFile.name, nextFilename);
       setAttachments(await fetchMaterialAttachments(library, material.id));
+      handleRenameDialogOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -311,13 +340,13 @@ export function MaterialDetailPanel({
                   {attachments.map((file) => (
                     <li
                       key={file.name}
-                      className="flex items-center justify-between gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"
+                      className={cn(
+                        "flex cursor-pointer items-center justify-between gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm transition-colors",
+                        "hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/60",
+                      )}
+                      onClick={() => void handleOpenAttachment(file)}
                     >
-                      <button
-                        type="button"
-                        className="inline-flex min-w-0 flex-1 items-center gap-2 text-left"
-                        onClick={() => void handleOpenAttachment(file)}
-                      >
+                      <div className="inline-flex min-w-0 flex-1 items-center gap-2 text-left">
                         <FileText className="h-4 w-4 shrink-0 text-slate-500" />
                         <span className="truncate">{file.name}</span>
                         <span className="text-xs text-slate-500">
@@ -327,13 +356,16 @@ export function MaterialDetailPanel({
                           {" · "}
                           {attachmentFormatLabel(file.format)}
                         </span>
-                      </button>
+                      </div>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         aria-label={`Rename ${file.name}`}
-                        onClick={() => void handleRenameAttachment(file)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openRenameDialog(file);
+                        }}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -341,17 +373,23 @@ export function MaterialDetailPanel({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        aria-label={`Share ${file.name}`}
-                        onClick={() => void handleRevealAttachment(file)}
+                        aria-label={`Show ${file.name} in folder`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleRevealAttachment(file);
+                        }}
                       >
-                        <Share2 className="h-4 w-4" />
+                        <FolderOpen className="h-4 w-4" />
                       </Button>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         aria-label={`Delete ${file.name}`}
-                        onClick={() => void handleRemoveAttachment(file.name)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleRemoveAttachment(file.name);
+                        }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -414,6 +452,46 @@ export function MaterialDetailPanel({
           <DialogClose aria-label="Cancel">
             <X className="h-4 w-4" />
           </DialogClose>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={renameDialogOpen} onOpenChange={handleRenameDialogOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename attachment</DialogTitle>
+            <DialogDescription>Choose a new filename for this attachment.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <Label htmlFor="rename-attachment-filename">Filename</Label>
+            <Input
+              id="rename-attachment-filename"
+              value={renameFilename}
+              disabled={busy}
+              autoFocus
+              onChange={(event) => setRenameFilename(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void handleConfirmRename();
+                }
+              }}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => handleRenameDialogOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="button" disabled={busy} onClick={() => void handleConfirmRename()}>
+              Rename
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

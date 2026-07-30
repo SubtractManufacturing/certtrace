@@ -60,9 +60,8 @@ describe("MaterialDetailPanel attachments", () => {
     ]);
   });
 
-  it("assigns a kind per file and supports rename, delete, and share", async () => {
+  it("assigns a kind per file and supports rename, delete, and reveal in folder", async () => {
     vi.mocked(pickAttachmentFiles).mockResolvedValue(["/incoming/coc.pdf"]);
-    vi.spyOn(window, "prompt").mockReturnValue("renamed-cert.pdf");
 
     render(
       <MaterialDetailPanel
@@ -85,6 +84,10 @@ describe("MaterialDetailPanel attachments", () => {
     ]);
 
     await userEvent.click(screen.getByRole("button", { name: "Rename cert.pdf" }));
+    const renameInput = screen.getByLabelText("Filename");
+    await userEvent.clear(renameInput);
+    await userEvent.type(renameInput, "renamed-cert.pdf");
+    await userEvent.click(screen.getByRole("button", { name: "Rename" }));
     expect(renameAttachment).toHaveBeenCalledWith(
       library,
       material.id,
@@ -92,7 +95,7 @@ describe("MaterialDetailPanel attachments", () => {
       "renamed-cert.pdf",
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "Share cert.pdf" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show cert.pdf in folder" }));
     expect(revealAttachmentInFolder).toHaveBeenCalledWith(library, material.id, "cert.pdf");
 
     await userEvent.click(screen.getByRole("button", { name: "Delete cert.pdf" }));
