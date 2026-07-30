@@ -169,6 +169,7 @@ export function LabelPreviewDialog({
               material={material}
               fieldSchema={library.fieldSchema}
               className="mx-auto w-full max-w-sm"
+              showOverflowWarning={false}
             />
           ) : null}
 
