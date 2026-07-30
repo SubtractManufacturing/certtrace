@@ -1,12 +1,13 @@
 import type { OpenLibraryResult } from "@certtrace/library-engine";
 import { cn } from "@certtrace/ui";
 import { ChevronDown, ChevronRight, Wrench } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LabelTemplatesEditor } from "./LabelTemplatesEditor";
 import { MaterialTableColumnsEditor } from "./MaterialTableColumnsEditor";
 
 interface LibrarySettingsViewProps {
   library: OpenLibraryResult;
+  expandLabelTemplates?: boolean;
   onOpenAdvancedSettings: () => void;
   onLibraryUpdated: (library: OpenLibraryResult) => void;
   onRefreshLibrary: () => Promise<void>;
@@ -14,12 +15,19 @@ interface LibrarySettingsViewProps {
 
 export function LibrarySettingsView({
   library,
+  expandLabelTemplates = false,
   onOpenAdvancedSettings,
   onLibraryUpdated,
   onRefreshLibrary,
 }: LibrarySettingsViewProps) {
   const [columnsExpanded, setColumnsExpanded] = useState(false);
-  const [labelsExpanded, setLabelsExpanded] = useState(false);
+  const [labelsExpanded, setLabelsExpanded] = useState(expandLabelTemplates);
+
+  useEffect(() => {
+    if (expandLabelTemplates) {
+      setLabelsExpanded(true);
+    }
+  }, [expandLabelTemplates]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-auto">
@@ -79,9 +87,7 @@ export function LibrarySettingsView({
               <button
                 type="button"
                 aria-expanded={labelsExpanded}
-                aria-label={
-                  labelsExpanded ? "Collapse Label Templates" : "Expand Label Templates"
-                }
+                aria-label={labelsExpanded ? "Collapse Label Templates" : "Expand Label Templates"}
                 className="rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                 onClick={() => setLabelsExpanded((expanded) => !expanded)}
               >

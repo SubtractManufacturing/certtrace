@@ -97,8 +97,26 @@ describe("LibrarySettingsView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /Expand Label Templates/i }).getAttribute("aria-expanded")).toBe(
-      "false",
+    expect(
+      screen.getByRole("button", { name: /Expand Label Templates/i }).getAttribute("aria-expanded"),
+    ).toBe("false");
+  });
+
+  it("expands Label Templates when deep-linked from Label preview", () => {
+    render(
+      <LibrarySettingsView
+        library={sampleLibrary}
+        expandLabelTemplates
+        onOpenAdvancedSettings={() => undefined}
+        onLibraryUpdated={() => undefined}
+        onRefreshLibrary={async () => undefined}
+      />,
     );
+
+    expect(
+      screen
+        .getByRole("button", { name: /Collapse Label Templates/i })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
   });
 });

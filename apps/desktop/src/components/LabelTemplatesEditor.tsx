@@ -1,4 +1,3 @@
-import { resolveLabelLayout } from "@certtrace/core";
 import {
   addLabelTemplate,
   deleteLabelTemplate,
@@ -7,14 +6,13 @@ import {
 } from "@certtrace/library-engine";
 import {
   createStarterLabelTemplates,
-  type FieldSchemaV1,
-  type LabelDisplayUnit,
   LABEL_SIZE_CATALOG,
+  type LabelDisplayUnit,
   type LabelSizeCatalogId,
   type LabelTemplate,
+  type LibraryConfigV1,
   labelTemplateSizeInches,
   libraryConfigV1Schema,
-  type LibraryConfigV1,
   type MaterialMetadataV1,
 } from "@certtrace/types";
 import { Button, Input, Label, Select } from "@certtrace/ui";
@@ -27,6 +25,7 @@ import {
 } from "../lib/label-template-content";
 import { fetchMaterials, updateLibraryConfigPartial } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
+import { LabelLivePreview } from "./LabelLivePreview";
 
 const SAMPLE_PREVIEW_VALUE = "__sample__";
 
@@ -55,68 +54,6 @@ function createBlankTemplate(): LabelTemplate {
 
 function paperSizeSelectValue(template: LabelTemplate): string {
   return template.size.kind === "catalog" ? template.size.catalogId : "custom";
-}
-
-function LabelTemplatePreview({
-  template,
-  material,
-  fieldSchema,
-}: {
-  template: LabelTemplate;
-  material: MaterialMetadataV1;
-  fieldSchema: FieldSchemaV1;
-}) {
-  const { widthIn, heightIn } = labelTemplateSizeInches(template.size);
-  const { slots } = resolveLabelLayout(template, material, fieldSchema);
-  const widthLabel = formatDimensionInput(widthIn, template.displayUnit);
-  const heightLabel = formatDimensionInput(heightIn, template.displayUnit);
-
-  return (
-    <div className="space-y-2">
-      <p className="text-xs text-slate-500 dark:text-slate-400">
-        {widthLabel} × {heightLabel} {template.displayUnit}
-      </p>
-      <div
-        className="mx-auto w-full max-w-xs overflow-hidden rounded-md border border-slate-300 bg-white p-3 text-slate-900 shadow-sm dark:border-slate-600"
-        style={{ aspectRatio: `${widthIn} / ${heightIn}` }}
-      >
-        <div className="flex h-full flex-col gap-1.5 overflow-hidden text-xs">
-          {slots.map((slot, index) => {
-            if (slot.kind === "text") {
-              return (
-                <div key={`${slot.line.key}-${index}`} className="min-w-0">
-                  <div className="text-[10px] uppercase tracking-wide text-slate-500">
-                    {slot.line.label}
-                  </div>
-                  <div className="truncate font-medium">{slot.line.value}</div>
-                </div>
-              );
-            }
-            if (slot.kind === "qr") {
-              return (
-                <div
-                  key={`qr-${index}`}
-                  className="flex h-14 w-14 shrink-0 items-center justify-center border border-dashed border-slate-400 text-[10px] text-slate-500"
-                  aria-label={`QR code for ${slot.payload}`}
-                >
-                  QR
-                </div>
-              );
-            }
-            return (
-              <div
-                key={`barcode-${index}`}
-                className="flex h-8 w-full shrink-0 items-center justify-center border border-dashed border-slate-400 text-[10px] text-slate-500"
-                aria-label={`Barcode for ${slot.payload}`}
-              >
-                Barcode
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export function LabelTemplatesEditor({
@@ -515,7 +452,9 @@ export function LabelTemplatesEditor({
                           variant="outline"
                           size="sm"
                           aria-label={`Move ${option.label} down`}
-                          disabled={includedIndex < 0 || includedIndex >= selected.contentKeys.length - 1}
+                          disabled={
+                            includedIndex < 0 || includedIndex >= selected.contentKeys.length - 1
+                          }
                           onClick={() => {
                             const next = moveContentKey(selected.contentKeys, option.key, 1);
                             if (next) {
@@ -557,7 +496,7 @@ export function LabelTemplatesEditor({
               </div>
             </div>
             <section aria-label="Label preview">
-              <LabelTemplatePreview
+              <LabelLivePreview
                 template={selected}
                 material={previewMaterial}
                 fieldSchema={library.fieldSchema}

@@ -17,24 +17,34 @@ export function getDefaultLabelTemplate(library: OpenLibraryResult): LabelTempla
   return template;
 }
 
+export async function generateLibraryLabelPdf(
+  library: OpenLibraryResult,
+  materials: MaterialMetadataV1[],
+  template: LabelTemplate = getDefaultLabelTemplate(library),
+): Promise<{ pdf: Uint8Array; warnings: string[] }> {
+  const { pdf, warnings } = await generateLabelPdf({
+    template,
+    materials,
+    fieldSchema: library.fieldSchema,
+  });
+  return { pdf, warnings };
+}
+
 export async function generateLibraryLabelPdfBytes(
   library: OpenLibraryResult,
   materials: MaterialMetadataV1[],
   template: LabelTemplate = getDefaultLabelTemplate(library),
 ): Promise<Uint8Array> {
-  const { pdf } = await generateLabelPdf({
-    template,
-    materials,
-    fieldSchema: library.fieldSchema,
-  });
+  const { pdf } = await generateLibraryLabelPdf(library, materials, template);
   return pdf;
 }
 
 export async function saveLabelPdfViaDialog(
   library: OpenLibraryResult,
   material: MaterialMetadataV1,
+  template: LabelTemplate = getDefaultLabelTemplate(library),
 ): Promise<string | null> {
-  const bytes = await generateLibraryLabelPdfBytes(library, [material]);
+  const bytes = await generateLibraryLabelPdfBytes(library, [material], template);
   const path = await save({
     title: "Save label PDF",
     defaultPath: `${material.id}-label.pdf`,

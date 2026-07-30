@@ -28,18 +28,14 @@ import {
   renameAttachment,
   revealAttachmentInFolder,
 } from "../lib/attachment-client";
-import {
-  generateLibraryLabelPdfBytes,
-  openPathWithOpener,
-  printLabelPdf,
-  saveLabelPdfViaDialog,
-} from "../lib/label-client";
+import { openPathWithOpener } from "../lib/label-client";
 import {
   addLibraryFieldOption,
   fetchMaterialAttachments,
   updateMaterialMetadata,
 } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
+import { LabelPreviewDialog } from "./LabelPreviewDialog";
 import {
   type MaterialFormValues,
   MaterialSchemaForm,
@@ -57,6 +53,7 @@ interface MaterialDetailPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onMaterialUpdated: (material: MaterialMetadataV1) => void;
+  onEditLabelTemplates: () => void;
 }
 
 function attachmentFilename(path: string): string {
@@ -69,6 +66,7 @@ export function MaterialDetailPanel({
   open,
   onOpenChange,
   onMaterialUpdated,
+  onEditLabelTemplates,
 }: MaterialDetailPanelProps) {
   const defaultAttachmentKind = library.fieldSchema.attachmentKinds[0]?.key ?? "";
   const [draft, setDraft] = useState<MaterialFormValues>({
@@ -81,6 +79,7 @@ export function MaterialDetailPanel({
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renamingFile, setRenamingFile] = useState<AttachedFile | null>(null);
   const [renameFilename, setRenameFilename] = useState("");
+  const [labelPreviewOpen, setLabelPreviewOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -120,6 +119,7 @@ export function MaterialDetailPanel({
       setRenameDialogOpen(false);
       setRenamingFile(null);
       setPendingAttachments([]);
+      setLabelPreviewOpen(false);
     }
     onOpenChange(nextOpen);
   }
@@ -203,19 +203,6 @@ export function MaterialDetailPanel({
       setAttachments(await fetchMaterialAttachments(library, material.id));
       setUploadDialogOpen(false);
       setPendingAttachments([]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handlePrintLabel() {
-    setBusy(true);
-    setError(null);
-    try {
-      const bytes = await generateLibraryLabelPdfBytes(library, [material]);
-      await printLabelPdf(bytes, material.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -400,14 +387,14 @@ export function MaterialDetailPanel({
             <section>
               <h3 className="text-sm font-semibold">Label</h3>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                Export or print the QR label for this material.
+                Preview, export, or print a Label for this material.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   disabled={busy}
-                  onClick={() => void saveLabelPdfViaDialog(library, material)}
+                  onClick={() => setLabelPreviewOpen(true)}
                 >
                   Export label PDF
                 </Button>
@@ -415,7 +402,7 @@ export function MaterialDetailPanel({
                   type="button"
                   variant="outline"
                   disabled={busy}
-                  onClick={() => void handlePrintLabel()}
+                  onClick={() => setLabelPreviewOpen(true)}
                 >
                   <Printer className="mr-2 h-4 w-4" />
                   Print label
@@ -549,6 +536,17 @@ export function MaterialDetailPanel({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <LabelPreviewDialog
+        library={library}
+        material={material}
+        open={labelPreviewOpen}
+        onOpenChange={setLabelPreviewOpen}
+        onEditTemplates={() => {
+          setLabelPreviewOpen(false);
+          onEditLabelTemplates();
+        }}
+      />
     </>
   );
 }

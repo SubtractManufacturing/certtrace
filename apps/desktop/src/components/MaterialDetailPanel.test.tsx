@@ -10,6 +10,7 @@ import {
   renameAttachment,
   revealAttachmentInFolder,
 } from "../lib/attachment-client";
+import { printLabelPdf, saveLabelPdfViaDialog } from "../lib/label-client";
 import { fetchMaterialAttachments } from "../lib/library-client";
 import { chooseSelectOption } from "../test/select-helpers";
 import { MaterialDetailPanel } from "./MaterialDetailPanel";
@@ -29,7 +30,11 @@ vi.mock("../lib/library-client", () => ({
 }));
 
 vi.mock("../lib/label-client", () => ({
+  generateLibraryLabelPdf: vi.fn(async () => ({ pdf: new Uint8Array([1]), warnings: [] })),
   generateLibraryLabelPdfBytes: vi.fn(async () => new Uint8Array()),
+  getDefaultLabelTemplate: vi.fn((lib: OpenLibraryResult) =>
+    lib.config.labelTemplates.find((t) => t.id === lib.config.defaultLabelTemplateId),
+  ),
   openPathWithOpener: vi.fn(),
   printLabelPdf: vi.fn(),
   saveLabelPdfViaDialog: vi.fn(),
@@ -86,6 +91,7 @@ describe("MaterialDetailPanel attachments", () => {
         open
         onOpenChange={() => undefined}
         onMaterialUpdated={() => undefined}
+        onEditLabelTemplates={() => undefined}
       />,
     );
 
@@ -118,5 +124,48 @@ describe("MaterialDetailPanel attachments", () => {
     await waitFor(() =>
       expect(deleteAttachment).toHaveBeenCalledWith(library, material.id, "cert.pdf"),
     );
+  });
+});
+
+describe("MaterialDetailPanel label preview hub", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(fetchMaterialAttachments).mockResolvedValue([]);
+  });
+
+  it("opens the Label preview from Print without printing from detail", async () => {
+    render(
+      <MaterialDetailPanel
+        library={library}
+        material={material}
+        open
+        onOpenChange={() => undefined}
+        onMaterialUpdated={() => undefined}
+        onEditLabelTemplates={() => undefined}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Print label/i }));
+
+    expect(await screen.findByRole("heading", { name: /Label preview/i })).toBeTruthy();
+    expect(printLabelPdf).not.toHaveBeenCalled();
+  });
+
+  it("opens the Label preview from Export without saving from detail", async () => {
+    render(
+      <MaterialDetailPanel
+        library={library}
+        material={material}
+        open
+        onOpenChange={() => undefined}
+        onMaterialUpdated={() => undefined}
+        onEditLabelTemplates={() => undefined}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Export label PDF/i }));
+
+    expect(await screen.findByRole("heading", { name: /Label preview/i })).toBeTruthy();
+    expect(saveLabelPdfViaDialog).not.toHaveBeenCalled();
   });
 });

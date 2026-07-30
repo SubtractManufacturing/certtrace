@@ -44,6 +44,7 @@ interface MaterialsWorkspaceProps {
   onRefreshLibrary: (path: string) => Promise<void>;
   filterMaterials: (query: string) => IndexedMaterial[];
   onEnsureLibrary?: (path: string) => Promise<OpenLibraryResult | undefined>;
+  onEditLabelTemplates?: (libraryPath: string) => void;
 }
 
 const emptyFormValues: MaterialFormValues = { fields: {}, identifiers: {} };
@@ -57,6 +58,7 @@ export function MaterialsWorkspace({
   onRefreshLibrary,
   filterMaterials,
   onEnsureLibrary,
+  onEditLabelTemplates,
 }: MaterialsWorkspaceProps) {
   const [query, setQuery] = useState("");
   const [selectedMaterial, setSelectedMaterial] = useState<IndexedMaterial | null>(null);
@@ -314,6 +316,10 @@ export function MaterialsWorkspace({
           }}
           onMaterialUpdated={async () => {
             await onRefreshLibrary(selectedMaterial.libraryPath);
+          }}
+          onEditLabelTemplates={() => {
+            setSelectedMaterial(null);
+            onEditLabelTemplates?.(selectedMaterial.libraryPath);
           }}
         />
       ) : null}
