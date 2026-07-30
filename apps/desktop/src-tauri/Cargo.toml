@@ -1,6 +1,6 @@
 [package]
 name = "certtrace-desktop"
-version = "1.0.7" # x-release-please-version
+version = "0.0.0" # x-release-please-version
 description = "CertTrace desktop application"
 authors = ["Subtract LLC <contact@subtractmanufacturing.com>"]
 edition = "2021"

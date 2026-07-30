@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -43,7 +43,7 @@ describe("Dialog", () => {
     expect(screen.getByText("Heat lot ABC-123")).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Dismiss" }));
-    expect(screen.queryByRole("dialog")).toBeNull();
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("closes when Escape is pressed", async () => {
@@ -52,7 +52,7 @@ describe("Dialog", () => {
 
     expect(screen.getByRole("dialog")).toBeTruthy();
     await user.keyboard("{Escape}");
-    expect(screen.queryByRole("dialog")).toBeNull();
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("reports open changes when controlled", async () => {

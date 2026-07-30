@@ -1,6 +1,7 @@
 import type { DefaultLibraryOnLaunch } from "@certtrace/types";
 import { ThemeProvider } from "@certtrace/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AdvancedLibrarySettingsView } from "./components/AdvancedLibrarySettingsView";
 import { AppShell, type AppView } from "./components/AppShell";
 import { CreateLibraryWizard } from "./components/CreateLibraryWizard";
 import { ErrorBanner } from "./components/ErrorBanner";
@@ -54,6 +55,7 @@ function App() {
     error: settingsError,
     setTheme,
     updateSettings,
+    applySettings,
     refresh: refreshSettings,
   } = useAppSettings();
   const session = useLibrarySession();
@@ -232,12 +234,14 @@ function App() {
       if (deleteFolder) {
         await deleteLibraryFolder(path);
       }
-      await forgetRecentLibrary(path);
-      session.removeLibraryFromSession(path);
-      if (settings?.defaultLibraryOnLaunch === path) {
-        await updateSettings({ defaultLibraryOnLaunch: null });
+      const nextSettings = await forgetRecentLibrary(path);
+      applySettings(nextSettings);
+      const sessionPathsToRemove = [...session.sessionLibraries.entries()]
+        .filter(([sessionPath, library]) => sessionPath === path || library.paths.root === path)
+        .map(([sessionPath]) => sessionPath);
+      for (const sessionPath of sessionPathsToRemove) {
+        session.removeLibraryFromSession(sessionPath);
       }
-      await refreshSettings();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       throw err;
@@ -261,6 +265,19 @@ function App() {
       throw err;
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleOpenLibrarySettings(path: string) {
+    setError(null);
+    try {
+      if (!session.sessionLibraries.has(path)) {
+        await session.openLibrary(path);
+      }
+      session.setActiveLibraryPath(path);
+      setActiveView("library-settings");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -319,7 +336,15 @@ function App() {
         libraries={libraryPickerOptions}
         activeLibraryPath={session.activeLibraryPath}
         onLibraryChange={(path) => void handleLibraryChange(path)}
-        onOpenLibrarySettings={() => setActiveView("library-settings")}
+        onOpenLibrarySettings={() => {
+          const path =
+            session.activeLibraryPath && session.activeLibraryPath !== "all"
+              ? session.activeLibraryPath
+              : libraryPickerOptions[0]?.path;
+          if (path) {
+            void handleOpenLibrarySettings(path);
+          }
+        }}
       >
         {activeView === "materials" ? (
           <MaterialsWorkspace
@@ -337,6 +362,7 @@ function App() {
         {activeView === "settings" && settings ? (
           <SettingsView
             theme={settings.theme}
+            resolvedTheme={resolvedTheme}
             checkForUpdates={settings.checkForUpdates}
             defaultLibraryOnLaunch={settings.defaultLibraryOnLaunch}
             recentLibraries={librariesForSettings}
@@ -355,6 +381,7 @@ function App() {
             onAddLibrary={() => void handleAddLibraryFromSettings()}
             onCreateLibrary={() => setShowCreateWizard(true)}
             onRemoveLibrary={(path, deleteFolder) => handleRemoveLibrary(path, deleteFolder)}
+            onOpenLibrarySettings={(path) => void handleOpenLibrarySettings(path)}
             onCheckForUpdatesNow={() => void updateCheck.checkNow()}
             onInstallUpdate={() => void updateCheck.installNow()}
           />
@@ -362,6 +389,15 @@ function App() {
 
         {activeView === "library-settings" && settingsLibraryForMenu ? (
           <LibrarySettingsView
+            library={settingsLibraryForMenu}
+            onOpenAdvancedSettings={() => setActiveView("library-advanced-settings")}
+            onLibraryUpdated={(library) => session.updateLibraryInSession(library)}
+            onRefreshLibrary={() => refreshLibraryMaterials(settingsLibraryForMenu.paths.root)}
+          />
+        ) : null}
+
+        {activeView === "library-advanced-settings" && settingsLibraryForMenu ? (
+          <AdvancedLibrarySettingsView
             library={settingsLibraryForMenu}
             onLibraryUpdated={(library) => session.updateLibraryInSession(library)}
           />

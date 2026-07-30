@@ -2,6 +2,7 @@ export {
   APP_SETTINGS_FILENAME,
   AppSettingsError,
   readAppSettings,
+  removeLibraryFromAppSettings,
   removeRecentLibrary,
   touchRecentLibrary,
   writeAppSettings,
@@ -12,7 +13,6 @@ export {
   materialSearchText,
   rankSearchResults,
   type SearchIndex,
-  type SearchIndexOptions,
   type SearchResult,
   searchMaterials,
 } from "./search/index.js";

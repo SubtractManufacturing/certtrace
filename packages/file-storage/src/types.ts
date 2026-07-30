@@ -12,5 +12,6 @@ export interface FileSystem {
   writeBinary(path: string, data: Uint8Array): Promise<void>;
   remove(path: string): Promise<void>;
   copyFile(from: string, to: string): Promise<void>;
+  rename(from: string, to: string): Promise<void>;
   readdir(path: string): Promise<DirectoryEntry[]>;
 }

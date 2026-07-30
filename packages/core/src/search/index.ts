@@ -1,12 +1,7 @@
 import type { MaterialMetadataV1 } from "@certtrace/types";
 
-export interface SearchIndexOptions {
-  searchAllFields?: boolean;
-}
-
 export interface SearchIndex {
   materials: MaterialMetadataV1[];
-  searchAllFields: boolean;
 }
 
 export interface SearchResult {
@@ -17,29 +12,18 @@ export interface SearchResult {
 const normalizeQuery = (query: string): string[] =>
   query.trim().toLowerCase().split(/\s+/).filter(Boolean);
 
-export function materialSearchText(material: MaterialMetadataV1, searchAllFields: boolean): string {
-  const parts = [material.id, material.material, material.barcode];
-
-  if (searchAllFields) {
-    parts.push(
-      material.supplier,
-      material.heat,
-      material.location,
-      material.notes,
-      ...material.tags,
-    );
-  }
-
-  return parts.join(" ").toLowerCase();
+function identifierValues(material: MaterialMetadataV1): string[] {
+  return Object.values(material.identifiers).filter(Boolean);
 }
 
-export function buildSearchIndex(
-  materials: MaterialMetadataV1[],
-  options: SearchIndexOptions = {},
-): SearchIndex {
+/** Search haystack: material ID plus every identifier value (ADR-0004). */
+export function materialSearchText(material: MaterialMetadataV1): string {
+  return [material.id, ...identifierValues(material)].join(" ").toLowerCase();
+}
+
+export function buildSearchIndex(materials: MaterialMetadataV1[]): SearchIndex {
   return {
     materials: [...materials],
-    searchAllFields: options.searchAllFields ?? true,
   };
 }
 
@@ -50,7 +34,7 @@ export function searchMaterials(index: SearchIndex, query: string): MaterialMeta
   }
 
   return index.materials.filter((material) => {
-    const haystack = materialSearchText(material, index.searchAllFields);
+    const haystack = materialSearchText(material);
     return terms.every((term) => haystack.includes(term));
   });
 }
@@ -64,11 +48,11 @@ export function rankSearchResults(index: SearchIndex, query: string): SearchResu
   const results: SearchResult[] = [];
 
   for (const material of index.materials) {
-    const haystack = materialSearchText(material, index.searchAllFields);
+    const haystack = materialSearchText(material);
     let score = 0;
 
     for (const term of terms) {
-      if (material.id.toLowerCase() === term || material.barcode.toLowerCase() === term) {
+      if (material.id.toLowerCase() === term) {
         score += 100;
       } else if (material.id.toLowerCase().startsWith(term)) {
         score += 50;

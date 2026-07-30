@@ -1,4 +1,6 @@
 import {
+  type FieldSchemaV1,
+  fieldSchemaV1Schema,
   type LibraryConfigV1,
   libraryConfigV1Schema,
   type MaterialMetadataV1,
@@ -20,6 +22,10 @@ export function migrateNamingRules(doc: unknown): NamingRulesV1 {
 
 export function migrateWordLists(doc: unknown): WordListsV1 {
   return migrateToCurrent(doc, "word-lists.json", {}, wordListsV1Schema.parse);
+}
+
+export function migrateFieldSchema(doc: unknown): FieldSchemaV1 {
+  return migrateToCurrent(doc, "field-schema.json", {}, fieldSchemaV1Schema.parse);
 }
 
 export function migrateMaterialMetadata(doc: unknown): MaterialMetadataV1 {

@@ -6,6 +6,14 @@ This runbook covers updater signing, CI secrets, version bumps, and the beta upd
 
 release-please tracks a single shippable package: `apps/desktop` (component `desktop`, tags `desktop-vX.Y.Z`) with `"separate-pull-requests": true`. Release PRs are titled `chore: release desktop-vX.Y.Z`. The private workspace root `package.json` is not versioned.
 
+The desktop app is currently at **0.0.0** (reset from the 1.0.x test-release cycle). Pre-1.0 bump rules in `.github/release-please-config.json` apply:
+
+- `fix:` → patch (`0.0.1`, `0.0.2`, …)
+- `feat:` → minor (`0.1.0`, `0.2.0`, …)
+- `feat!` / `BREAKING CHANGE` → minor under 1.0 (not accidental `1.0.0`)
+
+When ready for stable **1.0.0**, add a one-time `"release-as": "1.0.0"` under the `apps/desktop` package in `.github/release-please-config.json`, merge that release PR, then remove `release-as`.
+
 release-please bumps:
 
 - `apps/desktop/package.json`
@@ -134,8 +142,21 @@ spctl -a -vv "$APP"
 To rebuild installers for an existing release:
 
 ```bash
-gh workflow run release.yml -f tag=desktop-v1.0.0
+gh workflow run release.yml -f tag=desktop-v0.0.1
 ```
+
+### Version reset (0.0.0 baseline)
+
+The project was reset from 1.0.x to **0.0.0** with no beta/prerelease channel. All installs use the same `releases/latest` updater endpoint; `0.x` builds update to `1.0.0` via semver when that release ships.
+
+**Re-anchoring release-please after a reset:** Deleting tags alone is not enough — release-please still finds the last merged release PR. After merging the reset to `main`:
+
+1. Delete all GitHub releases and tags (before or around merge).
+2. Tag the reset commit: `desktop-v0.0.0` (lightweight tag only; no GitHub Release or build).
+3. Add `"last-release-sha": "<reset-commit-sha>"` to `.github/release-please-config.json` (top-level). Remove it after the first good post-reset release PR merges.
+4. Close any wrong release PR opened on the merge push (e.g. still bumping from 1.0.7).
+
+Machines on old **1.0.x** builds will not downgrade via the updater; reinstall manually.
 
 ### Future install targets
 

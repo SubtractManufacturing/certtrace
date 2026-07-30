@@ -1,59 +1,91 @@
 import {
-  attachmentKindLabel,
+  attachmentFormatLabel,
   getMaterialAttachmentPath,
   getMaterialFolderPath,
   type OpenLibraryResult,
-  removeMaterialAttachment,
 } from "@certtrace/library-engine";
 import type { AttachedFile, MaterialMetadataV1 } from "@certtrace/types";
 import {
   Button,
   cn,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Input,
   Label,
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  Textarea,
+  Select,
 } from "@certtrace/ui";
-import { FileText, FolderOpen, Printer, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { attachFilesToMaterial, pickAttachmentFiles } from "../lib/attachment-client";
+import { FileText, FolderOpen, Pencil, Plus, Printer, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
+  attachFilesToMaterial,
+  deleteAttachment,
+  pickAttachmentFiles,
+  renameAttachment,
+  revealAttachmentInFolder,
+} from "../lib/attachment-client";
+import {
+  generateStandardQrLabelPdfBytes,
   openPathWithOpener,
-  printLabelPdfFromObjectUrl,
+  printLabelPdf,
   saveLabelPdfViaDialog,
 } from "../lib/label-client";
-import { fetchMaterialAttachments, updateMaterialMetadata } from "../lib/library-client";
+import {
+  addLibraryFieldOption,
+  fetchMaterialAttachments,
+  updateMaterialMetadata,
+} from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
+import {
+  type MaterialFormValues,
+  MaterialSchemaForm,
+  validateMaterialValues,
+} from "./MaterialSchemaForm";
+
+interface PendingAttachment {
+  sourcePath: string;
+  kindKey: string;
+}
 
 interface MaterialDetailPanelProps {
   library: OpenLibraryResult;
   material: MaterialMetadataV1;
   open: boolean;
-  wideLayout?: boolean;
   onOpenChange: (open: boolean) => void;
   onMaterialUpdated: (material: MaterialMetadataV1) => void;
+}
+
+function attachmentFilename(path: string): string {
+  return path.split(/[/\\]/).pop() ?? path;
 }
 
 export function MaterialDetailPanel({
   library,
   material,
   open,
-  wideLayout = false,
   onOpenChange,
   onMaterialUpdated,
 }: MaterialDetailPanelProps) {
-  const [draft, setDraft] = useState(material);
+  const defaultAttachmentKind = library.fieldSchema.attachmentKinds[0]?.key ?? "";
+  const [draft, setDraft] = useState<MaterialFormValues>({
+    fields: material.fields,
+    identifiers: material.identifiers,
+  });
   const [attachments, setAttachments] = useState<AttachedFile[]>([]);
-  const [labelPdfUrl, setLabelPdfUrl] = useState<string | null>(null);
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [renamingFile, setRenamingFile] = useState<AttachedFile | null>(null);
+  const [renameFilename, setRenameFilename] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    setDraft(material);
+    setDraft({ fields: material.fields, identifiers: material.identifiers });
   }, [material]);
 
   useEffect(() => {
@@ -76,54 +108,47 @@ export function MaterialDetailPanel({
     };
   }, [library, material.id]);
 
-  useEffect(() => {
-    let cancelled = false;
-    let objectUrl: string | null = null;
+  function resetDraft() {
+    setDraft({ fields: material.fields, identifiers: material.identifiers });
+    setError(null);
+  }
 
-    async function loadLabelPreview() {
-      const { generateStandardQrLabelPdfBytes } = await import("../lib/label-client");
-      const bytes = await generateStandardQrLabelPdfBytes(material);
-      objectUrl = URL.createObjectURL(
-        new Blob([Uint8Array.from(bytes)], { type: "application/pdf" }),
-      );
-      if (!cancelled) {
-        setLabelPdfUrl(objectUrl);
-      }
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      resetDraft();
+      setUploadDialogOpen(false);
+      setRenameDialogOpen(false);
+      setRenamingFile(null);
+      setPendingAttachments([]);
     }
+    onOpenChange(nextOpen);
+  }
 
-    void loadLabelPreview();
-    return () => {
-      cancelled = true;
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
-  }, [material]);
-
-  useEffect(() => {
-    return () => {
-      if (labelPdfUrl) {
-        URL.revokeObjectURL(labelPdfUrl);
-      }
-    };
-  }, [labelPdfUrl]);
-
-  const tagsValue = useMemo(() => draft.tags.join(", "), [draft.tags]);
+  function handleCancel() {
+    resetDraft();
+    onOpenChange(false);
+  }
 
   async function handleSave() {
+    const validationErrors = validateMaterialValues(
+      library.fieldSchema,
+      draft.fields,
+      draft.identifiers,
+    );
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join(". "));
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
       const updated = await updateMaterialMetadata(library, material.id, {
-        material: draft.material,
-        supplier: draft.supplier,
-        heat: draft.heat,
-        location: draft.location,
-        notes: draft.notes,
-        tags: draft.tags,
-        barcode: draft.barcode,
+        fields: draft.fields,
+        identifiers: draft.identifiers,
       });
       onMaterialUpdated(updated);
+      onOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -131,15 +156,53 @@ export function MaterialDetailPanel({
     }
   }
 
-  async function handleAddFiles() {
+  async function handleChooseAttachments() {
     const paths = await pickAttachmentFiles();
     if (paths.length === 0) {
       return;
     }
+
+    setPendingAttachments(
+      paths.map((sourcePath) => ({
+        sourcePath,
+        kindKey: defaultAttachmentKind,
+      })),
+    );
+    setUploadDialogOpen(true);
+  }
+
+  function handleUploadDialogOpenChange(nextOpen: boolean) {
+    setUploadDialogOpen(nextOpen);
+    if (!nextOpen) {
+      setPendingAttachments([]);
+    }
+  }
+
+  function updatePendingAttachmentKind(sourcePath: string, kindKey: string) {
+    setPendingAttachments((current) =>
+      current.map((entry) => (entry.sourcePath === sourcePath ? { ...entry, kindKey } : entry)),
+    );
+  }
+
+  async function handleConfirmAttachments() {
+    if (pendingAttachments.length === 0) {
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
-      setAttachments(await attachFilesToMaterial(library, material.id, paths));
+      await attachFilesToMaterial(
+        library,
+        material.id,
+        pendingAttachments.map((entry) => ({
+          sourcePath: entry.sourcePath,
+          kindKey: entry.kindKey || undefined,
+        })),
+      );
+      setAttachments(await fetchMaterialAttachments(library, material.id));
+      setUploadDialogOpen(false);
+      setPendingAttachments([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -148,13 +211,11 @@ export function MaterialDetailPanel({
   }
 
   async function handlePrintLabel() {
-    if (!labelPdfUrl) {
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
-      await printLabelPdfFromObjectUrl(labelPdfUrl, material.id);
+      const bytes = await generateStandardQrLabelPdfBytes(material);
+      await printLabelPdf(bytes, material.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -166,8 +227,58 @@ export function MaterialDetailPanel({
     setBusy(true);
     setError(null);
     try {
-      await removeMaterialAttachment(library, material.id, filename);
+      await deleteAttachment(library, material.id, filename);
       setAttachments(await fetchMaterialAttachments(library, material.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function openRenameDialog(file: AttachedFile) {
+    setRenamingFile(file);
+    setRenameFilename(file.name);
+    setRenameDialogOpen(true);
+  }
+
+  function handleRenameDialogOpenChange(nextOpen: boolean) {
+    setRenameDialogOpen(nextOpen);
+    if (!nextOpen) {
+      setRenamingFile(null);
+      setRenameFilename("");
+    }
+  }
+
+  async function handleConfirmRename() {
+    if (!renamingFile) {
+      return;
+    }
+
+    const nextFilename = renameFilename.trim();
+    if (!nextFilename || nextFilename === renamingFile.name) {
+      handleRenameDialogOpenChange(false);
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      await renameAttachment(library, material.id, renamingFile.name, nextFilename);
+      setAttachments(await fetchMaterialAttachments(library, material.id));
+      handleRenameDialogOpenChange(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRevealAttachment(file: AttachedFile) {
+    setBusy(true);
+    setError(null);
+    try {
+      await revealAttachmentInFolder(library, material.id, file.name);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -187,186 +298,257 @@ export function MaterialDetailPanel({
     }
   }
 
-  const header = <h2 className="text-lg font-semibold leading-none">{material.id}</h2>;
+  const hasAttachmentKinds = library.fieldSchema.attachmentKinds.length > 0;
 
-  const panel = (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto">
-      {wideLayout ? (
-        header
-      ) : (
-        <SheetHeader>
-          <SheetTitle>{material.id}</SheetTitle>
-        </SheetHeader>
-      )}
+  return (
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="flex max-h-[min(90vh,100dvh-2rem)] w-full max-w-3xl flex-col gap-0 overflow-hidden lg:max-w-4xl">
+          <DialogHeader className="shrink-0 px-6 pt-6">
+            <DialogTitle>{material.id}</DialogTitle>
+          </DialogHeader>
 
-      <div className="grid gap-3">
-        <Field
-          label="Material"
-          value={draft.material}
-          onChange={(value) => setDraft({ ...draft, material: value })}
-        />
-        <Field
-          label="Supplier"
-          value={draft.supplier}
-          onChange={(value) => setDraft({ ...draft, supplier: value })}
-        />
-        <Field
-          label="Heat"
-          value={draft.heat}
-          onChange={(value) => setDraft({ ...draft, heat: value })}
-        />
-        <Field
-          label="Location"
-          value={draft.location}
-          onChange={(value) => setDraft({ ...draft, location: value })}
-        />
-        <Field
-          label="Barcode"
-          value={draft.barcode}
-          onChange={(value) => setDraft({ ...draft, barcode: value })}
-        />
-        <label className="space-y-1 text-sm">
-          <Label>Tags</Label>
-          <Input
-            value={tagsValue}
-            onChange={(event) =>
-              setDraft({
-                ...draft,
-                tags: event.target.value
-                  .split(",")
-                  .map((tag) => tag.trim())
-                  .filter(Boolean),
-              })
-            }
-          />
-        </label>
-        <label className="space-y-1 text-sm">
-          <Label>Notes</Label>
-          <Textarea
-            rows={4}
-            value={draft.notes}
-            onChange={(event) => setDraft({ ...draft, notes: event.target.value })}
-          />
-        </label>
-      </div>
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-4">
+            <MaterialSchemaForm
+              schema={library.fieldSchema}
+              values={draft}
+              onChange={setDraft}
+              onAddOption={(input) => addLibraryFieldOption(library, input)}
+              idPrefix="detail-material"
+            />
 
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" disabled={busy} onClick={() => void handleSave()}>
-          Save changes
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={busy}
-          onClick={() => void handleAddFiles()}
-        >
-          Add files
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={busy}
-          onClick={() => void saveLabelPdfViaDialog(material)}
-        >
-          Export label PDF
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={busy || !labelPdfUrl}
-          onClick={() => void handlePrintLabel()}
-        >
-          <Printer className="mr-2 h-4 w-4" />
-          Print label
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void openPathWithOpener(getMaterialFolderPath(library, material.id))}
-        >
-          <FolderOpen className="mr-2 h-4 w-4" />
-          Open folder
-        </Button>
-      </div>
-
-      <section>
-        <h3 className="text-sm font-semibold">Attachments</h3>
-        {attachments.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">No attachments yet.</p>
-        ) : (
-          <ul className="mt-2 space-y-2">
-            {attachments.map((file) => (
-              <li
-                key={file.name}
-                className="flex items-center justify-between gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"
-              >
-                <button
-                  type="button"
-                  className="inline-flex min-w-0 flex-1 items-center gap-2 text-left"
-                  onClick={() => void handleOpenAttachment(file)}
-                >
-                  <FileText className="h-4 w-4 shrink-0 text-slate-500" />
-                  <span className="truncate">{file.name}</span>
-                  <span className="text-xs text-slate-500">{attachmentKindLabel(file.kind)}</span>
-                </button>
+            <section>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold">Attachments</h3>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={() => void handleRemoveAttachment(file.name)}
+                  disabled={busy}
+                  onClick={() => void handleChooseAttachments()}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add attachments
                 </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+              </div>
+              {attachments.length === 0 ? (
+                <p className="mt-2 text-sm text-slate-500">No attachments yet.</p>
+              ) : (
+                <ul className="mt-2 space-y-2">
+                  {attachments.map((file) => (
+                    <li
+                      key={file.name}
+                      className={cn(
+                        "flex cursor-pointer items-center justify-between gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm transition-colors",
+                        "hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/60",
+                      )}
+                      onClick={() => void handleOpenAttachment(file)}
+                    >
+                      <div className="inline-flex min-w-0 flex-1 items-center gap-2 text-left">
+                        <FileText className="h-4 w-4 shrink-0 text-slate-500" />
+                        <span className="truncate">{file.name}</span>
+                        <span className="text-xs text-slate-500">
+                          {library.fieldSchema.attachmentKinds.find(
+                            (kind) => kind.key === file.kindKey,
+                          )?.label ?? "Uncategorized"}
+                          {" · "}
+                          {attachmentFormatLabel(file.format)}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Rename ${file.name}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openRenameDialog(file);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Show ${file.name} in folder`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleRevealAttachment(file);
+                        }}
+                      >
+                        <FolderOpen className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Delete ${file.name}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleRemoveAttachment(file.name);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
 
-      <section>
-        <h3 className="text-sm font-semibold">Label preview</h3>
-        {labelPdfUrl ? (
-          <div className="mt-2 overflow-hidden rounded-md border border-slate-200 dark:border-slate-700">
-            <iframe src={labelPdfUrl} title="Label preview" className="h-40 w-full bg-white" />
+            <section>
+              <h3 className="text-sm font-semibold">Label</h3>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                Export or print the QR label for this material.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => void saveLabelPdfViaDialog(material)}
+                >
+                  Export label PDF
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => void handlePrintLabel()}
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print label
+                </Button>
+              </div>
+            </section>
+
+            {error ? <ErrorBanner message={error} /> : null}
           </div>
-        ) : null}
-      </section>
 
-      {error ? <ErrorBanner message={error} /> : null}
-    </div>
-  );
+          <DialogFooter className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 px-6 py-4 dark:border-slate-800">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              aria-label="Open material folder"
+              onClick={() => void openPathWithOpener(getMaterialFolderPath(library, material.id))}
+            >
+              <FolderOpen className="h-4 w-4" />
+            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" disabled={busy} onClick={handleCancel}>
+                Cancel
+              </Button>
+              <Button type="button" disabled={busy} onClick={() => void handleSave()}>
+                Save changes
+              </Button>
+            </div>
+          </DialogFooter>
 
-  if (wideLayout) {
-    return open ? (
-      <aside className="flex h-full w-[28rem] shrink-0 flex-col border-l border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-        {panel}
-      </aside>
-    ) : null;
-  }
+          <DialogClose aria-label="Cancel">
+            <X className="h-4 w-4" />
+          </DialogClose>
+        </DialogContent>
+      </Dialog>
 
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className={cn("overflow-y-auto")}>
-        <SheetClose />
-        {panel}
-      </SheetContent>
-    </Sheet>
-  );
-}
+      <Dialog open={renameDialogOpen} onOpenChange={handleRenameDialogOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename attachment</DialogTitle>
+            <DialogDescription>Choose a new filename for this attachment.</DialogDescription>
+          </DialogHeader>
 
-function Field({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="space-y-1 text-sm">
-      <Label>{label}</Label>
-      <Input value={value} onChange={(event) => onChange(event.target.value)} />
-    </label>
+          <div className="space-y-2">
+            <Label htmlFor="rename-attachment-filename">Filename</Label>
+            <Input
+              id="rename-attachment-filename"
+              value={renameFilename}
+              disabled={busy}
+              autoFocus
+              onChange={(event) => setRenameFilename(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void handleConfirmRename();
+                }
+              }}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => handleRenameDialogOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="button" disabled={busy} onClick={() => void handleConfirmRename()}>
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={uploadDialogOpen} onOpenChange={handleUploadDialogOpenChange}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Attach files</DialogTitle>
+            <DialogDescription>
+              Choose a type for each file before adding them to this material.
+            </DialogDescription>
+          </DialogHeader>
+
+          <ul className="space-y-3">
+            {pendingAttachments.map((entry) => {
+              const filename = attachmentFilename(entry.sourcePath);
+              return (
+                <li
+                  key={entry.sourcePath}
+                  className="flex items-center gap-3 rounded-md border border-slate-200 px-3 py-2 dark:border-slate-700"
+                >
+                  <FileText className="h-4 w-4 shrink-0 text-slate-500" />
+                  <span className="min-w-0 flex-1 truncate text-sm">{filename}</span>
+                  {hasAttachmentKinds ? (
+                    <Select
+                      aria-label={`Type for ${filename}`}
+                      value={entry.kindKey}
+                      disabled={busy}
+                      className="w-36"
+                      onChange={(event) =>
+                        updatePendingAttachmentKind(entry.sourcePath, event.target.value)
+                      }
+                    >
+                      {library.fieldSchema.attachmentKinds.map((kind) => (
+                        <option key={kind.key} value={kind.key}>
+                          {kind.label}
+                        </option>
+                      ))}
+                    </Select>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => handleUploadDialogOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="button" disabled={busy} onClick={() => void handleConfirmAttachments()}>
+              Attach files
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -20,15 +20,26 @@ describe("generateMaterialId", () => {
     expect(id).toBe("10001");
   });
 
-  it("generates material-animal-number ids", () => {
+  it("uses the selected Family option short code for the material token", () => {
     const id = generateMaterialId({
       strategy: strategy("material-animal-number"),
       wordLists: defaultWordListsV1,
       existingIds: new Set(),
-      materialCode: "AL",
+      materialOption: { id: "aluminum", label: "Aluminum", shortCode: "AL" },
       random: () => 0,
     });
     expect(id).toBe("al-falcon-001");
+  });
+
+  it("uses the selected Family option label when its short code is empty", () => {
+    const id = generateMaterialId({
+      strategy: strategy("material-animal-number"),
+      wordLists: defaultWordListsV1,
+      existingIds: new Set(),
+      materialOption: { id: "stainless", label: "Stainless Steel" },
+      random: () => 0,
+    });
+    expect(id).toBe("stainless-steel-falcon-001");
   });
 
   it("increments number on collision", () => {
@@ -61,7 +72,7 @@ describe("generateMaterialId", () => {
     expect(id).toBe("falcon-001");
   });
 
-  it("throws when materialCode is missing", () => {
+  it("throws when the selected Family option is missing", () => {
     expect(() =>
       generateMaterialId({
         strategy: strategy("prefix-numeric"),
@@ -99,7 +110,7 @@ describe("shipped presets", () => {
       strategy: strategy(presetId),
       wordLists: defaultWordListsV1,
       existingIds: new Set(),
-      materialCode: "AL",
+      materialOption: { id: "aluminum", label: "Aluminum", shortCode: "AL" },
       now: new Date("2026-05-28T12:00:00.000Z"),
       random: () => 0,
     });

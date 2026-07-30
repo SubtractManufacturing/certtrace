@@ -3,6 +3,19 @@ use std::process::Command;
 
 use tauri_plugin_fs::FsExt;
 
+#[cfg(target_os = "linux")]
+fn file_uri(path: &Path) -> String {
+    let mut uri = String::from("file://");
+    for byte in path.to_string_lossy().bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'/' | b'-' | b'_' | b'.' | b'~') {
+            uri.push(char::from(byte));
+        } else {
+            uri.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    uri
+}
+
 fn open_with_default_app(path: &Path) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
@@ -94,10 +107,60 @@ fn open_with_default_app(path: &Path) -> Result<(), String> {
     }
 }
 
-#[tauri::command]
-pub fn open_local_path(app: tauri::AppHandle, path: String) -> Result<(), String> {
-    let path = Path::new(&path);
+fn reveal_in_file_browser(path: &Path) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    let status = Command::new("open")
+        .arg("-R")
+        .arg(path)
+        .status()
+        .map_err(|err| format!("Failed to reveal file in Finder: {err}"))?;
 
+    #[cfg(target_os = "windows")]
+    let status = Command::new("explorer")
+        .arg(format!("/select,{}", path.display()))
+        .status()
+        .map_err(|err| format!("Failed to reveal file in Explorer: {err}"))?;
+
+    #[cfg(target_os = "linux")]
+    let status = {
+        let reveal = Command::new("dbus-send")
+            .args([
+                "--session",
+                "--dest=org.freedesktop.FileManager1",
+                "--type=method_call",
+                "/org/freedesktop/FileManager1",
+                "org.freedesktop.FileManager1.ShowItems",
+            ])
+            .arg(format!("array:string:{}", file_uri(path)))
+            .arg("string:")
+            .status();
+
+        match reveal {
+            Ok(status) if status.success() => status,
+            _ => Command::new("xdg-open")
+                .arg(path.parent().unwrap_or(path))
+                .status()
+                .map_err(|err| format!("Failed to reveal file or open containing folder: {err}"))?,
+        }
+    };
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+    return Err("Revealing files is not supported on this platform.".to_string());
+
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!(
+            "Could not reveal file (exit code {:?})",
+            status.code()
+        ))
+    }
+}
+
+fn allowed_canonical_path(
+    app: &tauri::AppHandle,
+    path: &Path,
+) -> Result<std::path::PathBuf, String> {
     if !path.exists() {
         return Err(format!("Path not found: {}", path.display()));
     }
@@ -110,5 +173,17 @@ pub fn open_local_path(app: tauri::AppHandle, path: String) -> Result<(), String
         return Err("Access to this path is not allowed.".to_string());
     }
 
+    Ok(canonical)
+}
+
+#[tauri::command]
+pub fn open_local_path(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    let canonical = allowed_canonical_path(&app, Path::new(&path))?;
     open_with_default_app(&canonical)
+}
+
+#[tauri::command]
+pub fn reveal_local_path(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    let canonical = allowed_canonical_path(&app, Path::new(&path))?;
+    reveal_in_file_browser(&canonical)
 }

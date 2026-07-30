@@ -4,7 +4,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ActiveLibraryPath } from "../hooks/useLibrarySession";
 import { AppLogo } from "./AppLogo";
 
-export type AppView = "materials" | "settings" | "library-settings";
+export type AppView = "materials" | "settings" | "library-settings" | "library-advanced-settings";
 
 interface LibraryOption {
   path: string;

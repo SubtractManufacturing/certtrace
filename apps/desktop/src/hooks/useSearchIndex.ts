@@ -122,21 +122,16 @@ export function useSearchIndex({
   }, [activeLibraryPath, materialsByLibrary, recentLibraries, sessionLibraries]);
 
   const searchIndex = useMemo((): SearchIndex => {
-    const searchAllFields =
-      activeLibraryPath === "all"
-        ? true
-        : (sessionLibraries.get(activeLibraryPath ?? "")?.config.searchAllFields ?? true);
-
-    return buildSearchIndex(indexedMaterials, { searchAllFields });
-  }, [activeLibraryPath, indexedMaterials, sessionLibraries]);
+    return buildSearchIndex(indexedMaterials);
+  }, [indexedMaterials]);
 
   const filterMaterials = useCallback(
     (query: string) => {
       if (!query.trim()) {
         return indexedMaterials;
       }
-      const ids = new Set(searchMaterials(searchIndex, query).map((material) => material.id));
-      return indexedMaterials.filter((material) => ids.has(material.id));
+      const matches = new Set(searchMaterials(searchIndex, query));
+      return indexedMaterials.filter((material) => matches.has(material));
     },
     [indexedMaterials, searchIndex],
   );

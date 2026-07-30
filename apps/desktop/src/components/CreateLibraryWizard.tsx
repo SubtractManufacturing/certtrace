@@ -1,5 +1,4 @@
 import type { CreateLibraryOptions } from "@certtrace/library-engine";
-import type { NamingStrategyV1 } from "@certtrace/types";
 import { defaultNamingRulesV1, defaultWordListsV1 } from "@certtrace/types";
 import {
   Button,
@@ -11,13 +10,11 @@ import {
   DialogTitle,
   Input,
   Label,
-  Select,
 } from "@certtrace/ui";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { pickParentFolder } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
-import { IdTemplateBuilder } from "./IdTemplateBuilder";
 
 interface CreateLibraryWizardProps {
   open: boolean;
@@ -26,8 +23,8 @@ interface CreateLibraryWizardProps {
   onCreate: (parentDir: string, options: CreateLibraryOptions) => Promise<void>;
 }
 
-const LABEL_TEMPLATES = [{ id: "standard-qr", label: "Standard QR label" }] as const;
-const STEP_NAMES = ["Name", "Folder", "ID strategy", "Label template", "Create"] as const;
+const STEP_NAMES = ["Name", "Folder", "Create"] as const;
+const FINAL_STEP = STEP_NAMES.length - 1;
 
 export function CreateLibraryWizard({
   open,
@@ -36,24 +33,10 @@ export function CreateLibraryWizard({
   onCreate,
 }: CreateLibraryWizardProps) {
   const [step, setStep] = useState(0);
-  const [name, setName] = useState("Main Shop Materials");
+  const [name, setName] = useState("Shop Materials");
   const [parentDir, setParentDir] = useState<string | null>(null);
-  const [selectedStrategyId, setSelectedStrategyId] = useState(
-    defaultNamingRulesV1.activeStrategyId,
-  );
-  const [customStrategy, setCustomStrategy] = useState<NamingStrategyV1 | null>(null);
-  const [labelTemplate, setLabelTemplate] = useState("standard-qr");
   const [error, setError] = useState<string | null>(null);
   const [pickingFolder, setPickingFolder] = useState(false);
-
-  const strategies = useMemo(() => {
-    if (customStrategy) {
-      return [...defaultNamingRulesV1.strategies, customStrategy];
-    }
-    return defaultNamingRulesV1.strategies;
-  }, [customStrategy]);
-
-  const activeStrategy = strategies.find((entry) => entry.id === selectedStrategyId);
 
   async function handlePickFolder() {
     setPickingFolder(true);
@@ -81,52 +64,21 @@ export function CreateLibraryWizard({
       setError("Choose a folder for the library.");
       return;
     }
-    if (!activeStrategy) {
-      setError("Choose an ID strategy.");
-      return;
-    }
-
-    const namingRules = customStrategy
-      ? {
-          ...defaultNamingRulesV1,
-          strategies: [
-            ...defaultNamingRulesV1.strategies.filter((entry) => entry.id !== customStrategy.id),
-            customStrategy,
-          ],
-          activeStrategyId: customStrategy.id,
-        }
-      : {
-          ...defaultNamingRulesV1,
-          activeStrategyId: selectedStrategyId,
-        };
 
     try {
       await onCreate(parentDir, {
         name: trimmed,
-        idStrategy: namingRules.activeStrategyId,
-        labelTemplate,
-        namingRules,
+        idStrategy: defaultNamingRulesV1.activeStrategyId,
+        labelTemplate: "standard-qr",
+        namingRules: defaultNamingRulesV1,
         wordLists: defaultWordListsV1,
       });
       setStep(0);
       setParentDir(null);
-      setCustomStrategy(null);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
-  }
-
-  function startCustomStrategy() {
-    const strategy: NamingStrategyV1 = {
-      id: "custom",
-      label: "Custom strategy",
-      template: "{material}-{word:animals}-{number}",
-      numberPad: 3,
-      case: "lower",
-    };
-    setCustomStrategy(strategy);
-    setSelectedStrategyId(strategy.id);
   }
 
   function handleOpenChange(nextOpen: boolean) {
@@ -139,14 +91,14 @@ export function CreateLibraryWizard({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="flex max-h-[90vh] min-h-96 max-w-lg flex-col overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create library</DialogTitle>
           <DialogDescription>
-            Step {step + 1} of 5 — {STEP_NAMES[step]}
+            Step {step + 1} of {STEP_NAMES.length} — {STEP_NAMES[step]}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="flex min-h-0 flex-1 flex-col space-y-4">
           {step === 0 ? (
             <label className="block space-y-1 text-sm">
               <Label>Library name</Label>
@@ -185,52 +137,6 @@ export function CreateLibraryWizard({
           ) : null}
 
           {step === 2 ? (
-            <div className="space-y-4">
-              <label className="block space-y-1 text-sm">
-                <Label>Preset strategy</Label>
-                <Select
-                  value={selectedStrategyId}
-                  onChange={(event) => setSelectedStrategyId(event.target.value)}
-                >
-                  {strategies.map((strategy) => (
-                    <option key={strategy.id} value={strategy.id}>
-                      {strategy.label}
-                    </option>
-                  ))}
-                </Select>
-              </label>
-              <Button type="button" variant="outline" onClick={startCustomStrategy}>
-                Build custom strategy
-              </Button>
-              {customStrategy && selectedStrategyId === customStrategy.id ? (
-                <IdTemplateBuilder
-                  strategy={customStrategy}
-                  onChange={(strategy) => {
-                    setCustomStrategy(strategy);
-                    setSelectedStrategyId(strategy.id);
-                  }}
-                />
-              ) : null}
-            </div>
-          ) : null}
-
-          {step === 3 ? (
-            <label className="block space-y-1 text-sm">
-              <Label>Label template</Label>
-              <Select
-                value={labelTemplate}
-                onChange={(event) => setLabelTemplate(event.target.value)}
-              >
-                {LABEL_TEMPLATES.map((template) => (
-                  <option key={template.id} value={template.id}>
-                    {template.label}
-                  </option>
-                ))}
-              </Select>
-            </label>
-          ) : null}
-
-          {step === 4 ? (
             <div className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
               <p>
                 <span className="font-medium text-slate-900 dark:text-slate-100">Name:</span>{" "}
@@ -240,22 +146,12 @@ export function CreateLibraryWizard({
                 <span className="font-medium text-slate-900 dark:text-slate-100">Folder:</span>{" "}
                 {parentDir ?? "Not selected"}
               </p>
-              <p>
-                <span className="font-medium text-slate-900 dark:text-slate-100">ID strategy:</span>{" "}
-                {activeStrategy?.label}
-              </p>
-              <p>
-                <span className="font-medium text-slate-900 dark:text-slate-100">
-                  Label template:
-                </span>{" "}
-                {LABEL_TEMPLATES.find((entry) => entry.id === labelTemplate)?.label}
-              </p>
             </div>
           ) : null}
 
           {error ? <ErrorBanner message={error} /> : null}
 
-          <DialogFooter className="flex-row justify-between pt-2 sm:justify-between">
+          <DialogFooter className="mt-auto flex-row justify-between pt-2 sm:justify-between">
             <Button
               type="button"
               variant="ghost"
@@ -265,7 +161,7 @@ export function CreateLibraryWizard({
               <ChevronLeft className="mr-1 h-4 w-4" />
               {step === 0 ? "Cancel" : "Back"}
             </Button>
-            {step < 4 ? (
+            {step < FINAL_STEP ? (
               <Button
                 type="button"
                 disabled={busy || (step === 1 && pickingFolder)}

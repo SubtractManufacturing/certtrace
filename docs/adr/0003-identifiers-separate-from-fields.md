@@ -1,0 +1,3 @@
+# Identifiers are separate from fields
+
+Lookup keys (Heat Number, Lot Number, Purchase Order, and user-defined kinds) are not ordinary fields. Each library defines identifier kinds; each material stores kind → value pairs. The search box matches material ID plus every identifier value. Classification and receiving attributes (Family, Alloy, Temper, Supplier, etc.) stay as fields and are discovered via filters. Rejected: making PO/lot/heat number normal text fields with a “include in search” flag — that blurs lookup keys with descriptive attributes and makes the search set fragile under renames.

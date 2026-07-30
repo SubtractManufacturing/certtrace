@@ -11,6 +11,12 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import {
+  overlayBackdropClassName,
+  overlayMotionState,
+  sheetPanelClassName,
+  useOverlayPresence,
+} from "../lib/overlay-motion.js";
 import { cn } from "../lib/utils.js";
 
 interface SheetContextValue {
@@ -84,11 +90,14 @@ export function SheetTrigger({
 
 export function SheetOverlay({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   const { open, setOpen } = useSheetContext("SheetOverlay");
-  if (!open) return null;
+  const { present, visible } = useOverlayPresence(open);
+
+  if (!present) return null;
 
   return (
     <div
-      className={cn("certtrace-sheet-overlay", className)}
+      className={cn("fixed inset-0 z-50 bg-black/50", overlayBackdropClassName, className)}
+      data-state={overlayMotionState(visible)}
       onClick={() => setOpen(false)}
       {...props}
     />
@@ -97,6 +106,7 @@ export function SheetOverlay({ className, ...props }: HTMLAttributes<HTMLDivElem
 
 export function SheetContent({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   const { open, setOpen, titleId, descriptionId } = useSheetContext("SheetContent");
+  const { present, visible } = useOverlayPresence(open);
 
   useEffect(() => {
     if (!open) return;
@@ -107,17 +117,27 @@ export function SheetContent({ className, children, ...props }: HTMLAttributes<H
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, setOpen]);
 
-  if (!open) return null;
+  if (!present) return null;
 
   return createPortal(
-    <div className="certtrace-sheet-root">
-      <div className="certtrace-sheet-overlay" aria-hidden onClick={() => setOpen(false)} />
+    <div className="fixed inset-0 z-50 overflow-hidden">
+      <div
+        className={cn("absolute inset-0 bg-black/50", overlayBackdropClassName)}
+        data-state={overlayMotionState(visible)}
+        aria-hidden
+        onClick={() => setOpen(false)}
+      />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className={cn("certtrace-sheet-panel", className)}
+        data-state={overlayMotionState(visible)}
+        className={cn(
+          "absolute top-0 right-0 bottom-0 z-10 flex w-full max-w-md flex-col overflow-y-auto border-l border-slate-200 bg-white p-6 text-slate-900 shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
+          sheetPanelClassName,
+          className,
+        )}
         onClick={(event) => event.stopPropagation()}
         {...props}
       >
@@ -145,7 +165,13 @@ export function SheetTitle({ className, ...props }: HTMLAttributes<HTMLHeadingEl
 
 export function SheetDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
   const { descriptionId } = useSheetContext("SheetDescription");
-  return <p id={descriptionId} className={cn("text-sm text-slate-500", className)} {...props} />;
+  return (
+    <p
+      id={descriptionId}
+      className={cn("text-sm text-slate-500 dark:text-slate-400", className)}
+      {...props}
+    />
+  );
 }
 
 export function SheetClose({

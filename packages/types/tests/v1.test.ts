@@ -2,8 +2,15 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { LIBRARY_JSON, MATERIALS_DIR, NAMING_RULES_JSON, WORD_LISTS_JSON } from "../src/paths.js";
 import {
+  FIELD_SCHEMA_JSON,
+  LIBRARY_JSON,
+  MATERIALS_DIR,
+  NAMING_RULES_JSON,
+  WORD_LISTS_JSON,
+} from "../src/paths.js";
+import {
+  fieldSchemaV1Schema,
   libraryConfigV1Schema,
   materialMetadataV1Schema,
   namingRulesV1Schema,
@@ -11,6 +18,7 @@ import {
 } from "../src/schemas/v1.js";
 import {
   createDefaultLibraryConfigV1,
+  defaultFieldSchemaV1,
   defaultNamingRulesV1,
   defaultWordListsV1,
 } from "../src/seeds/v1.js";
@@ -56,6 +64,84 @@ describe("wordListsV1Schema", () => {
   });
 });
 
+describe("fieldSchemaV1Schema", () => {
+  it("validates default field schema seed with Family labeled Material", () => {
+    const parsed = fieldSchemaV1Schema.parse(defaultFieldSchemaV1);
+    const family = parsed.fields.find((field) => field.key === "family");
+    expect(family?.label).toBe("Material");
+    expect(family?.type).toBe("single_select");
+    expect(parsed.fields.filter((field) => field.filterable).map((field) => field.key)).toEqual([
+      "family",
+      "alloy",
+      "temper",
+      "shape",
+      "supplier",
+      "traceability_type",
+      "date_received",
+      "storage_location",
+    ]);
+    expect(parsed.fields.find((field) => field.key === "notes")?.filterable).toBe(false);
+    expect(parsed.identifierKinds.map((kind) => kind.key)).toEqual([
+      "heat_number",
+      "lot_number",
+      "purchase_order",
+    ]);
+    expect(parsed.identifierKinds.every((kind) => kind.filterable)).toBe(true);
+    expect(parsed.attachmentKinds.map((kind) => kind.key)).toEqual([
+      "mtr",
+      "heat_cert",
+      "coc",
+      "other",
+    ]);
+    expect(parsed.tableColumns).toEqual([
+      { kind: "id" },
+      { kind: "field", key: "family" },
+      { kind: "field", key: "alloy" },
+      { kind: "field", key: "temper" },
+      { kind: "field", key: "supplier" },
+      { kind: "field", key: "storage_location" },
+      { kind: "attachments" },
+      { kind: "identifiers" },
+    ]);
+  });
+
+  it("rejects select fields without options", () => {
+    const result = fieldSchemaV1Schema.safeParse({
+      version: 1,
+      fields: [
+        {
+          key: "family",
+          label: "Material",
+          type: "single_select",
+          required: false,
+          filterable: true,
+        },
+      ],
+      identifierKinds: [],
+      attachmentKinds: [],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects reserved system keys as field definitions", () => {
+    const result = fieldSchemaV1Schema.safeParse({
+      version: 1,
+      fields: [
+        {
+          key: "id",
+          label: "ID",
+          type: "text",
+          required: true,
+          filterable: true,
+        },
+      ],
+      identifierKinds: [],
+      attachmentKinds: [],
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("materialMetadataV1Schema", () => {
   it("validates a material fixture", () => {
     const parsed = materialMetadataV1Schema.parse(
@@ -68,13 +154,8 @@ describe("materialMetadataV1Schema", () => {
     const result = materialMetadataV1Schema.safeParse({
       version: 1,
       id: "bad id with spaces",
-      material: "",
-      supplier: "",
-      heat: "",
-      location: "",
-      tags: [],
-      notes: "",
-      barcode: "bad id with spaces",
+      fields: {},
+      identifiers: {},
       createdAt: "2026-05-28T12:00:00.000Z",
       updatedAt: "2026-05-28T12:00:00.000Z",
     });
@@ -87,6 +168,7 @@ describe("library folder contract", () => {
     expect(LIBRARY_JSON).toBe(".certtrace/library.json");
     expect(NAMING_RULES_JSON).toBe(".certtrace/naming-rules.json");
     expect(WORD_LISTS_JSON).toBe(".certtrace/word-lists.json");
+    expect(FIELD_SCHEMA_JSON).toBe(".certtrace/field-schema.json");
     expect(MATERIALS_DIR).toBe("materials");
   });
 });

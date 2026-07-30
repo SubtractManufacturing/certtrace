@@ -1,7 +1,20 @@
-import { createLibrary } from "@certtrace/library-engine";
+import {
+  addFieldOption,
+  createLibrary,
+  openLibrary,
+  removeSchemaDefinition,
+  updateFieldSchema,
+} from "@certtrace/library-engine";
 import { open } from "@tauri-apps/plugin-dialog";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createLibraryWithOptions, pickParentFolder } from "./library-client";
+import {
+  addLibraryFieldOption,
+  createLibraryWithOptions,
+  deleteLibraryFolder,
+  pickParentFolder,
+  removeLibrarySchemaDefinition,
+  updateLibraryFieldSchema,
+} from "./library-client";
 import { allowLibraryDirectory } from "./library-scope";
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -9,11 +22,14 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 }));
 
 vi.mock("@certtrace/library-engine", () => ({
+  addFieldOption: vi.fn(),
   createLibrary: vi.fn(),
   createMaterial: vi.fn(),
   listMaterialAttachments: vi.fn(),
   listMaterials: vi.fn(),
   openLibrary: vi.fn(),
+  removeSchemaDefinition: vi.fn(),
+  updateFieldSchema: vi.fn(),
   updateLibraryConfig: vi.fn(),
   updateMaterial: vi.fn(),
   updateNamingRules: vi.fn(),
@@ -78,5 +94,89 @@ describe("library-client", () => {
       "C:\\Users\\jkkic\\Documents\\Main Shop",
       { recursive: true },
     );
+  });
+
+  it("delegates confirmed options to the library engine", async () => {
+    const library = { fieldSchema: { fields: [] } } as never;
+    const input = {
+      fieldKey: "alloy",
+      label: "5052 H32",
+      currentValues: { family: "aluminum" },
+    };
+    const result = {
+      option: { id: "5052_h32", label: "5052 H32" },
+      fieldSchema: { version: 1, fields: [], identifierKinds: [], attachmentKinds: [] },
+    } as never;
+    vi.mocked(addFieldOption).mockResolvedValue(result);
+
+    await expect(addLibraryFieldOption(library, input)).resolves.toBe(result);
+    expect(addFieldOption).toHaveBeenCalledWith(library, input);
+  });
+
+  it("persists a field schema through the library engine and reloads the library", async () => {
+    const library = {
+      fs: {},
+      paths: { root: "/libraries/main" },
+      fieldSchema: { version: 1, fields: [], identifierKinds: [], attachmentKinds: [] },
+    } as never;
+    const schema = {
+      version: 1,
+      fields: [],
+      identifierKinds: [
+        { key: "mill_cert", label: "Mill cert", required: false, filterable: true },
+      ],
+      attachmentKinds: [],
+    } as never;
+    const reopened = {
+      fs: {},
+      paths: { root: "/libraries/main" },
+      fieldSchema: schema,
+    } as never;
+    vi.mocked(openLibrary).mockResolvedValue(reopened);
+
+    await expect(updateLibraryFieldSchema(library, schema)).resolves.toBe(reopened);
+    expect(updateFieldSchema).toHaveBeenCalledWith(library, schema);
+    expect(openLibrary).toHaveBeenCalledWith(expect.any(Object), "/libraries/main");
+  });
+
+  it("applies a schema removal through the engine and reloads the library", async () => {
+    const library = {
+      fs: {},
+      paths: { root: "/libraries/main" },
+    } as never;
+    const input = {
+      definitionType: "field",
+      key: "supplier",
+      strategy: { type: "disable" },
+    } as const;
+    const reopened = {
+      fs: {},
+      paths: { root: "/libraries/main" },
+    } as never;
+    vi.mocked(removeSchemaDefinition).mockResolvedValue({} as never);
+    vi.mocked(openLibrary).mockResolvedValue(reopened);
+
+    await expect(removeLibrarySchemaDefinition(library, input)).resolves.toBe(reopened);
+    expect(removeSchemaDefinition).toHaveBeenCalledWith(library, input);
+  });
+
+  it("deletes an existing library folder from disk", async () => {
+    const { remove } = await import("@tauri-apps/plugin-fs");
+
+    await deleteLibraryFolder("/libraries/main");
+
+    expect(allowLibraryDirectory).toHaveBeenCalledWith("/libraries/main", { recursive: true });
+    expect(remove).toHaveBeenCalledWith("/libraries/main", { recursive: true });
+  });
+
+  it("treats a missing library folder as already deleted", async () => {
+    const { remove } = await import("@tauri-apps/plugin-fs");
+    const missingPathError =
+      "failed to get metadata of path: /Users/jacobm/Documents/Sandbox with error: No such file or directory (os error 2)";
+    vi.mocked(allowLibraryDirectory).mockRejectedValueOnce(missingPathError);
+
+    await expect(deleteLibraryFolder("/Users/jacobm/Documents/Sandbox")).resolves.toBeUndefined();
+
+    expect(remove).not.toHaveBeenCalled();
   });
 });

@@ -80,3 +80,13 @@ export function removeRecentLibrary(settings: AppSettingsV1, path: string): AppS
     recentLibraries: settings.recentLibraries.filter((item) => item.path !== path),
   };
 }
+
+export function removeLibraryFromAppSettings(settings: AppSettingsV1, path: string): AppSettingsV1 {
+  const next = removeRecentLibrary(settings, path);
+
+  return {
+    ...next,
+    defaultLibraryOnLaunch:
+      next.defaultLibraryOnLaunch === path ? null : next.defaultLibraryOnLaunch,
+  };
+}

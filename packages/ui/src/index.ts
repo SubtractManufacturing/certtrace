@@ -56,4 +56,13 @@ export {
   type ThemeProviderProps,
   useTheme,
 } from "./components/theme-provider.js";
+export {
+  dialogPanelClassName,
+  OVERLAY_TRANSITION_MS,
+  type OverlayMotionState,
+  overlayBackdropClassName,
+  overlayMotionState,
+  sheetPanelClassName,
+  useOverlayPresence,
+} from "./lib/overlay-motion.js";
 export { cn } from "./lib/utils.js";

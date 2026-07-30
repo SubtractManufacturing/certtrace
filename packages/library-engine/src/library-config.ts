@@ -1,9 +1,22 @@
 import {
+  type AttachmentKindV1,
   createDefaultLibraryConfigV1,
+  defaultFieldSchemaV1,
   defaultNamingRulesV1,
   defaultWordListsV1,
+  FIELD_SCHEMA_JSON,
+  type FieldDefinitionV1,
+  type FieldOptionV1,
+  type FieldSchemaV1,
+  type FieldType,
+  type FieldValueV1,
+  fieldDefinitionV1Schema,
+  fieldSchemaV1Schema,
+  type IdentifierKindV1,
+  identifierKindV1Schema,
   type LibraryConfigV1,
   libraryConfigV1Schema,
+  materialTableColumnIdentity,
   NAMING_RULES_JSON,
   type NamingRulesV1,
   type NamingStrategyV1,
@@ -12,6 +25,7 @@ import {
   type WordListsV1,
   wordListsV1Schema,
 } from "@certtrace/types";
+import { clearAttachmentKindAssignments } from "./attachments.js";
 import { backupConfigFile } from "./config-backup.js";
 import { LibraryError } from "./errors.js";
 import type { OpenLibraryResult } from "./types.js";
@@ -20,13 +34,176 @@ async function writeJson(fs: OpenLibraryResult["fs"], path: string, value: unkno
   await fs.writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+function createStableKey(label: string, fallback: string, existingKeys: Set<string>): string {
+  const baseKey =
+    label
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "") || fallback;
+  let key = baseKey;
+  let suffix = 2;
+  while (existingKeys.has(key)) {
+    key = `${baseKey}_${suffix}`;
+    suffix += 1;
+  }
+  return key;
+}
+
+function validateFieldDependencies(schema: FieldSchemaV1): void {
+  const fieldsByKey = new Map(schema.fields.map((field) => [field.key, field]));
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+
+  function visit(fieldKey: string): void {
+    if (visiting.has(fieldKey)) {
+      throw new LibraryError("Field dependencies cannot contain a cycle.");
+    }
+    if (visited.has(fieldKey)) {
+      return;
+    }
+
+    visiting.add(fieldKey);
+    const parentKey = fieldsByKey.get(fieldKey)?.dependsOn?.fieldKey;
+    if (parentKey) {
+      if (!fieldsByKey.has(parentKey)) {
+        throw new LibraryError(`Field "${fieldKey}" depends on unknown field "${parentKey}".`);
+      }
+      visit(parentKey);
+    }
+    visiting.delete(fieldKey);
+    visited.add(fieldKey);
+  }
+
+  for (const field of schema.fields) {
+    visit(field.key);
+  }
+}
+
+export function createFieldDefinition(
+  schema: FieldSchemaV1,
+  labelInput: string,
+  type: FieldType,
+): FieldDefinitionV1 {
+  const label = labelInput.trim();
+  if (!label) {
+    throw new LibraryError("Field name cannot be empty.");
+  }
+  const existingKeys = new Set([
+    ...schema.fields.map((field) => field.key),
+    "id",
+    "createdAt",
+    "updatedAt",
+  ]);
+  const key = createStableKey(label, "field", existingKeys);
+  const options =
+    type === "single_select" || type === "multi_select"
+      ? [{ id: "option", label: "New option" }]
+      : undefined;
+  return fieldDefinitionV1Schema.parse({
+    key,
+    label,
+    type,
+    required: false,
+    filterable: false,
+    ...(options ? { options } : {}),
+  });
+}
+
+export function createIdentifierKind(schema: FieldSchemaV1, labelInput: string): IdentifierKindV1 {
+  const label = labelInput.trim();
+  if (!label) {
+    throw new LibraryError("Identifier kind name cannot be empty.");
+  }
+  return identifierKindV1Schema.parse({
+    key: createStableKey(
+      label,
+      "identifier",
+      new Set(schema.identifierKinds.map((kind) => kind.key)),
+    ),
+    label,
+    required: false,
+    filterable: false,
+  });
+}
+
+export function createAttachmentKind(schema: FieldSchemaV1, labelInput: string): AttachmentKindV1 {
+  const label = labelInput.trim();
+  if (!label) {
+    throw new LibraryError("Attachment kind name cannot be empty.");
+  }
+  return {
+    key: createStableKey(
+      label,
+      "attachment",
+      new Set(schema.attachmentKinds.map((kind) => kind.key)),
+    ),
+    label,
+  };
+}
+
+export function createFieldOption(field: FieldDefinitionV1, labelInput: string): FieldOptionV1 {
+  if (field.type !== "single_select" && field.type !== "multi_select") {
+    throw new LibraryError(`Field "${field.label}" is not a select field.`);
+  }
+  const label = labelInput.trim();
+  if (!label) {
+    throw new LibraryError("Option name cannot be empty.");
+  }
+  const duplicate = field.options?.find(
+    (option) => option.label.toLocaleLowerCase() === label.toLocaleLowerCase(),
+  );
+  if (duplicate) {
+    throw new LibraryError(`${field.label} already has an option named "${duplicate.label}".`);
+  }
+  return {
+    id: createStableKey(label, "option", new Set(field.options?.map((option) => option.id))),
+    label,
+  };
+}
+
+export function changeFieldType(field: FieldDefinitionV1, type: FieldType): FieldDefinitionV1 {
+  if (field.type === type) {
+    return fieldDefinitionV1Schema.parse(field);
+  }
+  const { options: _options, dependsOn, ...base } = field;
+  const nextDependsOn = dependsOn
+    ? type === "single_select" || type === "multi_select"
+      ? { fieldKey: dependsOn.fieldKey, filterOptionsBy: {} }
+      : { fieldKey: dependsOn.fieldKey, visibleWhen: [] }
+    : undefined;
+  return fieldDefinitionV1Schema.parse({
+    ...base,
+    type,
+    ...(type === "single_select" || type === "multi_select"
+      ? { options: [{ id: "option", label: "New option" }] }
+      : {}),
+    ...(nextDependsOn ? { dependsOn: nextDependsOn } : {}),
+  });
+}
+
+export function canReplaceFieldDefinition(
+  source: FieldDefinitionV1,
+  target: FieldDefinitionV1,
+): boolean {
+  if (source.type !== target.type) {
+    return false;
+  }
+  if (source.type !== "single_select" && source.type !== "multi_select") {
+    return true;
+  }
+  const targetOptionIds = new Set(target.options?.map((option) => option.id));
+  return source.options?.every((option) => targetOptionIds.has(option.id)) ?? true;
+}
+
 export interface CreateLibraryOptions {
   name: string;
   idStrategy?: string;
   labelTemplate?: string;
-  searchAllFields?: boolean;
   namingRules?: NamingRulesV1;
   wordLists?: WordListsV1;
+  fieldSchema?: FieldSchemaV1;
 }
 
 export async function updateLibraryConfig(
@@ -63,6 +240,122 @@ export async function updateWordLists(
   await writeJson(library.fs, library.paths.wordListsJson, validated);
   library.wordLists = validated;
   return validated;
+}
+
+function dropMissingTableColumns(schema: FieldSchemaV1): FieldSchemaV1 {
+  if (!schema.tableColumns) {
+    return schema;
+  }
+
+  const fieldKeys = new Set(schema.fields.map((field) => field.key));
+  const identifierKeys = new Set(schema.identifierKinds.map((kind) => kind.key));
+  const seen = new Set<string>();
+  const tableColumns = schema.tableColumns.filter((column) => {
+    const exists =
+      column.kind === "field"
+        ? fieldKeys.has(column.key)
+        : column.kind === "identifier"
+          ? identifierKeys.has(column.key)
+          : column.kind !== "identifiers" || identifierKeys.size > 0;
+    const identity = materialTableColumnIdentity(column);
+    if (!exists || seen.has(identity)) {
+      return false;
+    }
+    seen.add(identity);
+    return true;
+  });
+
+  return { ...schema, tableColumns };
+}
+
+export async function updateFieldSchema(
+  library: OpenLibraryResult,
+  schema: FieldSchemaV1,
+): Promise<FieldSchemaV1> {
+  const validated = fieldSchemaV1Schema.parse(dropMissingTableColumns(schema));
+  validateFieldDependencies(validated);
+  const nextKindKeys = new Set(validated.attachmentKinds.map((kind) => kind.key));
+  const removedKindKeys = new Set(
+    library.fieldSchema.attachmentKinds
+      .map((kind) => kind.key)
+      .filter((kindKey) => !nextKindKeys.has(kindKey)),
+  );
+  const restoreAssignments = await clearAttachmentKindAssignments(library, removedKindKeys);
+  try {
+    await backupConfigFile(library.fs, library.paths.root, FIELD_SCHEMA_JSON);
+    await writeJson(library.fs, library.paths.fieldSchemaJson, validated);
+  } catch (error) {
+    await restoreAssignments().catch(() => undefined);
+    throw error;
+  }
+  library.fieldSchema = validated;
+  return validated;
+}
+
+export interface AddFieldOptionInput {
+  fieldKey: string;
+  label: string;
+  currentValues: Record<string, FieldValueV1>;
+}
+
+export interface AddFieldOptionResult {
+  option: FieldOptionV1;
+  fieldSchema: FieldSchemaV1;
+}
+
+export async function addFieldOption(
+  library: OpenLibraryResult,
+  input: AddFieldOptionInput,
+): Promise<AddFieldOptionResult> {
+  const field = library.fieldSchema.fields.find((candidate) => candidate.key === input.fieldKey);
+  if (!field || (field.type !== "single_select" && field.type !== "multi_select")) {
+    throw new LibraryError(`Select field "${input.fieldKey}" was not found.`);
+  }
+
+  const option = createFieldOption(field, input.label);
+  const nextSchema: FieldSchemaV1 = {
+    ...library.fieldSchema,
+    fields: library.fieldSchema.fields.map((candidate) => {
+      if (candidate.key !== input.fieldKey) {
+        return candidate;
+      }
+
+      let dependsOn = candidate.dependsOn;
+      if (dependsOn?.filterOptionsBy) {
+        const parentValue = input.currentValues[dependsOn.fieldKey];
+        const parentIds =
+          typeof parentValue === "string"
+            ? [parentValue]
+            : Array.isArray(parentValue)
+              ? parentValue
+              : [];
+        if (parentIds.length === 0) {
+          throw new LibraryError(
+            `Select ${schemaFieldLabel(library.fieldSchema, dependsOn.fieldKey)} before adding a ${candidate.label} option.`,
+          );
+        }
+
+        const filterOptionsBy = { ...dependsOn.filterOptionsBy };
+        for (const parentId of parentIds) {
+          filterOptionsBy[parentId] = [...(filterOptionsBy[parentId] ?? []), option.id];
+        }
+        dependsOn = { ...dependsOn, filterOptionsBy };
+      }
+
+      return {
+        ...candidate,
+        options: [...(candidate.options ?? []), option],
+        dependsOn,
+      };
+    }),
+  };
+
+  const fieldSchema = await updateFieldSchema(library, nextSchema);
+  return { option, fieldSchema };
+}
+
+function schemaFieldLabel(schema: FieldSchemaV1, fieldKey: string): string {
+  return schema.fields.find((field) => field.key === fieldKey)?.label ?? fieldKey;
 }
 
 export function validateStrategyEntropy(
@@ -156,9 +449,12 @@ export function buildCreateLibraryConfig(options: CreateLibraryOptions): {
   config: LibraryConfigV1;
   namingRules: NamingRulesV1;
   wordLists: WordListsV1;
+  fieldSchema: FieldSchemaV1;
 } {
   const namingRules = options.namingRules ?? defaultNamingRulesV1;
   const wordLists = options.wordLists ?? defaultWordListsV1;
+  const fieldSchema = fieldSchemaV1Schema.parse(options.fieldSchema ?? defaultFieldSchemaV1);
+  validateFieldDependencies(fieldSchema);
   const idStrategy = options.idStrategy ?? namingRules.activeStrategyId;
 
   if (!namingRules.strategies.some((entry) => entry.id === idStrategy)) {
@@ -169,10 +465,9 @@ export function buildCreateLibraryConfig(options: CreateLibraryOptions): {
     ...createDefaultLibraryConfigV1(options.name.trim()),
     idStrategy,
     labelTemplate: options.labelTemplate ?? "standard-qr",
-    searchAllFields: options.searchAllFields ?? true,
   });
 
-  return { config, namingRules, wordLists };
+  return { config, namingRules, wordLists, fieldSchema };
 }
 
-export { defaultNamingRulesV1, defaultWordListsV1 };
+export { defaultFieldSchemaV1, defaultNamingRulesV1, defaultWordListsV1 };

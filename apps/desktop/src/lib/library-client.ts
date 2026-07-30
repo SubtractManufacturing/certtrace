@@ -1,4 +1,8 @@
+import { isNotFoundError } from "@certtrace/file-storage";
 import {
+  type AddFieldOptionInput,
+  type AddFieldOptionResult,
+  addFieldOption,
   type CreateLibraryOptions,
   type CreateMaterialInput,
   createLibrary,
@@ -7,7 +11,10 @@ import {
   listMaterials,
   type OpenLibraryResult,
   openLibrary,
+  type RemoveSchemaDefinitionInput,
+  removeSchemaDefinition,
   type UpdateMaterialInput,
+  updateFieldSchema,
   updateLibraryConfig,
   updateMaterial,
   updateNamingRules,
@@ -15,6 +22,7 @@ import {
 } from "@certtrace/library-engine";
 import type {
   AttachedFile,
+  FieldSchemaV1,
   LibraryConfigV1,
   MaterialMetadataV1,
   NamingRulesV1,
@@ -103,11 +111,34 @@ export async function updateMaterialMetadata(
   return updateMaterial(library, materialId, input);
 }
 
+export async function addLibraryFieldOption(
+  library: OpenLibraryResult,
+  input: AddFieldOptionInput,
+): Promise<AddFieldOptionResult> {
+  return addFieldOption(library, input);
+}
+
 export async function updateLibraryConfigPartial(
   library: OpenLibraryResult,
   partial: Partial<Omit<LibraryConfigV1, "version">>,
 ): Promise<OpenLibraryResult> {
   await updateLibraryConfig(library, partial);
+  return reloadLibraryAtPath(library.paths.root);
+}
+
+export async function updateLibraryFieldSchema(
+  library: OpenLibraryResult,
+  schema: FieldSchemaV1,
+): Promise<OpenLibraryResult> {
+  await updateFieldSchema(library, schema);
+  return reloadLibraryAtPath(library.paths.root);
+}
+
+export async function removeLibrarySchemaDefinition(
+  library: OpenLibraryResult,
+  input: RemoveSchemaDefinitionInput,
+): Promise<OpenLibraryResult> {
+  await removeSchemaDefinition(library, input);
   return reloadLibraryAtPath(library.paths.root);
 }
 
@@ -136,6 +167,21 @@ export async function fetchMaterialAttachments(
 
 export async function deleteLibraryFolder(path: string): Promise<void> {
   const { remove } = await import("@tauri-apps/plugin-fs");
-  await grantLibraryAccess(path);
-  await remove(path, { recursive: true });
+
+  try {
+    await grantLibraryAccess(path);
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      return;
+    }
+    throw error;
+  }
+
+  try {
+    await remove(path, { recursive: true });
+  } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw error;
+    }
+  }
 }

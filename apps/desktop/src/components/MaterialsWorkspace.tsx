@@ -1,4 +1,10 @@
-import type { CreateMaterialInput, OpenLibraryResult } from "@certtrace/library-engine";
+import {
+  type CreateMaterialInput,
+  filterMaterialsBySchema,
+  type MaterialFilterValues,
+  type OpenLibraryResult,
+} from "@certtrace/library-engine";
+import { defaultFieldSchemaV1 } from "@certtrace/types";
 import {
   Button,
   Dialog,
@@ -6,18 +12,27 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  Input,
-  Label,
   SearchInput,
-  Textarea,
 } from "@certtrace/ui";
-import { Plus } from "lucide-react";
+import { ListFilter, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ActiveLibraryPath } from "../hooks/useLibrarySession";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
-import { addMaterial, fetchMaterialAttachments, openLibraryAtPath } from "../lib/library-client";
+import {
+  addLibraryFieldOption,
+  addMaterial,
+  fetchMaterialAttachments,
+  openLibraryAtPath,
+} from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { MaterialDetailPanel } from "./MaterialDetailPanel";
+import { MaterialFiltersFlyout } from "./MaterialFiltersFlyout";
+import { emptyMaterialFilters } from "./MaterialFiltersPanel";
+import {
+  type MaterialFormValues,
+  MaterialSchemaForm,
+  validateMaterialValues,
+} from "./MaterialSchemaForm";
 import { MaterialTable } from "./MaterialTable";
 
 interface MaterialsWorkspaceProps {
@@ -30,6 +45,8 @@ interface MaterialsWorkspaceProps {
   filterMaterials: (query: string) => IndexedMaterial[];
   onEnsureLibrary?: (path: string) => Promise<OpenLibraryResult | undefined>;
 }
+
+const emptyFormValues: MaterialFormValues = { fields: {}, identifiers: {} };
 
 export function MaterialsWorkspace({
   sessionLibraries,
@@ -48,18 +65,29 @@ export function MaterialsWorkspace({
   const [addOpen, setAddOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [materialCode, setMaterialCode] = useState("AL");
-  const [material, setMaterial] = useState("");
-  const [supplier, setSupplier] = useState("");
-  const [heat, setHeat] = useState("");
-  const [location, setLocation] = useState("");
-  const [tags, setTags] = useState("");
-  const [notes, setNotes] = useState("");
+  const [formValues, setFormValues] = useState<MaterialFormValues>(emptyFormValues);
+  const [schemaFilters, setSchemaFilters] = useState<MaterialFilterValues>(emptyMaterialFilters);
+  const [draftFilters, setDraftFilters] = useState<MaterialFilterValues>(emptyMaterialFilters);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const searchInputId = "materials-search-input";
 
-  const filteredMaterials = useMemo(() => filterMaterials(query), [filterMaterials, query]);
   const showLibraryColumn = activeLibraryPath === "all";
-  const wideLayout = typeof window !== "undefined" ? window.innerWidth >= 1100 : false;
+
+  const activeSingleLibrary =
+    activeLibraryPath && activeLibraryPath !== "all"
+      ? (sessionLibraries.get(activeLibraryPath) ?? null)
+      : null;
+
+  const searchedMaterials = useMemo(() => filterMaterials(query), [filterMaterials, query]);
+  const filteredMaterials = useMemo(
+    () =>
+      activeSingleLibrary
+        ? filterMaterialsBySchema(searchedMaterials, activeSingleLibrary.fieldSchema, schemaFilters)
+        : searchedMaterials,
+    [activeSingleLibrary, schemaFilters, searchedMaterials],
+  );
+
+  const listSchema = activeSingleLibrary?.fieldSchema ?? defaultFieldSchemaV1;
 
   const searchPlaceholder =
     activeLibraryPath === "all"
@@ -102,6 +130,19 @@ export function MaterialsWorkspace({
     };
   }, [onEnsureLibrary, selectedMaterial, sessionLibraries]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: changing library scope must clear its filters
+  useEffect(() => {
+    setSchemaFilters(emptyMaterialFilters);
+  }, [activeLibraryPath]);
+
+  const libraryMaterials = useMemo(
+    () =>
+      activeLibraryPath && activeLibraryPath !== "all"
+        ? materials.filter((entry) => entry.libraryPath === activeLibraryPath)
+        : [],
+    [activeLibraryPath, materials],
+  );
+
   const loadAttachmentCounts = useCallback(async () => {
     const counts = new Map<string, number>();
     await Promise.all(
@@ -140,6 +181,10 @@ export function MaterialsWorkspace({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  function resetAddForm() {
+    setFormValues(emptyFormValues);
+  }
+
   async function handleAddMaterial() {
     if (!activeLibraryPath || activeLibraryPath === "all") {
       setLocalError("Select a single library before adding materials.");
@@ -150,35 +195,42 @@ export function MaterialsWorkspace({
       return;
     }
 
+    const validationErrors = validateMaterialValues(
+      library.fieldSchema,
+      formValues.fields,
+      formValues.identifiers,
+    );
+    if (validationErrors.length > 0) {
+      setLocalError(validationErrors.join(". "));
+      return;
+    }
+
     setSubmitting(true);
     setLocalError(null);
     try {
       const input: CreateMaterialInput = {
-        materialCode,
-        material,
-        supplier,
-        heat,
-        location,
-        notes,
-        tags: tags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean),
+        fields: formValues.fields,
+        identifiers: formValues.identifiers,
       };
       await addMaterial(library, input);
       await onRefreshLibrary(activeLibraryPath);
       setAddOpen(false);
-      setMaterial("");
-      setSupplier("");
-      setHeat("");
-      setLocation("");
-      setTags("");
-      setNotes("");
+      resetAddForm();
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : String(err));
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function openFilters() {
+    setDraftFilters(schemaFilters);
+    setFiltersOpen(true);
+  }
+
+  function applyFilters() {
+    setSchemaFilters(draftFilters);
+    setFiltersOpen(false);
   }
 
   return (
@@ -193,6 +245,18 @@ export function MaterialsWorkspace({
               placeholder={searchPlaceholder}
               className="min-w-[16rem]"
             />
+            {activeSingleLibrary ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="shrink-0"
+                aria-label="Open filters"
+                onClick={() => openFilters()}
+              >
+                <ListFilter className="mr-2 h-4 w-4" />
+                Filters
+              </Button>
+            ) : null}
             <Button
               type="button"
               className="shrink-0"
@@ -213,12 +277,16 @@ export function MaterialsWorkspace({
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 {materials.length === 0
                   ? "No materials yet. Add your first material or open another library."
-                  : "No materials match your search."}
+                  : "No materials match your search or filters."}
               </p>
             </div>
           ) : (
             <MaterialTable
               materials={filteredMaterials}
+              schema={listSchema}
+              resolveSchema={(libraryPath) =>
+                sessionLibraries.get(libraryPath)?.fieldSchema ?? defaultFieldSchemaV1
+              }
               showLibraryColumn={showLibraryColumn}
               attachmentCounts={attachmentCounts}
               selectedMaterialId={selectedMaterial?.id ?? null}
@@ -239,7 +307,6 @@ export function MaterialsWorkspace({
           library={activeLibrary}
           material={selectedMaterial}
           open={Boolean(selectedMaterial)}
-          wideLayout={wideLayout}
           onOpenChange={(open) => {
             if (!open) {
               setSelectedMaterial(null);
@@ -251,47 +318,42 @@ export function MaterialsWorkspace({
         />
       ) : null}
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent>
+      {activeSingleLibrary ? (
+        <MaterialFiltersFlyout
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
+          schema={activeSingleLibrary.fieldSchema}
+          materials={libraryMaterials}
+          values={draftFilters}
+          onChange={setDraftFilters}
+          onApply={applyFilters}
+        />
+      ) : null}
+
+      <Dialog
+        open={addOpen}
+        onOpenChange={(open) => {
+          setAddOpen(open);
+          if (!open) {
+            resetAddForm();
+            setLocalError(null);
+          }
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add material</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="space-y-1 text-sm">
-              <Label>Material code</Label>
-              <Input
-                value={materialCode}
-                onChange={(event) => setMaterialCode(event.target.value)}
+          <div className="space-y-3">
+            {activeSingleLibrary ? (
+              <MaterialSchemaForm
+                schema={activeSingleLibrary.fieldSchema}
+                values={formValues}
+                onChange={setFormValues}
+                onAddOption={(input) => addLibraryFieldOption(activeSingleLibrary, input)}
+                idPrefix="add-material"
               />
-            </label>
-            <label className="space-y-1 text-sm">
-              <Label>Material</Label>
-              <Input value={material} onChange={(event) => setMaterial(event.target.value)} />
-            </label>
-            <label className="space-y-1 text-sm">
-              <Label>Supplier</Label>
-              <Input value={supplier} onChange={(event) => setSupplier(event.target.value)} />
-            </label>
-            <label className="space-y-1 text-sm">
-              <Label>Heat</Label>
-              <Input value={heat} onChange={(event) => setHeat(event.target.value)} />
-            </label>
-            <label className="space-y-1 text-sm sm:col-span-2">
-              <Label>Location</Label>
-              <Input value={location} onChange={(event) => setLocation(event.target.value)} />
-            </label>
-            <label className="space-y-1 text-sm sm:col-span-2">
-              <Label>Tags</Label>
-              <Input
-                value={tags}
-                onChange={(event) => setTags(event.target.value)}
-                placeholder="certified, urgent"
-              />
-            </label>
-            <label className="space-y-1 text-sm sm:col-span-2">
-              <Label>Notes</Label>
-              <Textarea rows={3} value={notes} onChange={(event) => setNotes(event.target.value)} />
-            </label>
+            ) : null}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>

@@ -1,4 +1,4 @@
-import type { NamingCase, NamingStrategyV1, WordListsV1 } from "@certtrace/types";
+import type { FieldOptionV1, NamingCase, NamingStrategyV1, WordListsV1 } from "@certtrace/types";
 import { MATERIAL_ID_PATTERN } from "@certtrace/types";
 
 export class IdGeneratorError extends Error {
@@ -12,8 +12,8 @@ export interface GenerateMaterialIdInput {
   strategy: NamingStrategyV1;
   wordLists: WordListsV1;
   existingIds: ReadonlySet<string>;
-  /** Value for `{material}` token (e.g. alloy prefix `AL`). */
-  materialCode?: string;
+  /** Selected Family option used to resolve the `{material}` token. */
+  materialOption?: FieldOptionV1;
   now?: Date;
   /** Injectable RNG for tests — returns [0, 1). */
   random?: () => number;
@@ -44,6 +44,17 @@ function applyCase(value: string, casing: NamingCase | undefined): string {
   }
 }
 
+function filesystemSafeLabel(label: string): string {
+  const safeLabel = label
+    .trim()
+    .replace(/[^A-Za-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (!safeLabel) {
+    throw new IdGeneratorError(`Material option label cannot be used in an id: ${label}`);
+  }
+  return safeLabel;
+}
+
 function pickWord(listId: string, wordLists: WordListsV1, random: () => number): string {
   const entry = wordLists.lists[listId];
   if (!entry || entry.words.length === 0) {
@@ -60,10 +71,10 @@ function resolveToken(token: string, input: GenerateMaterialIdInput, numberValue
   }
 
   if (token === "material") {
-    if (!input.materialCode) {
-      throw new IdGeneratorError("materialCode is required for templates with {material}");
+    if (!input.materialOption) {
+      throw new IdGeneratorError("A Material option is required for templates with {material}");
     }
-    return input.materialCode;
+    return input.materialOption.shortCode || filesystemSafeLabel(input.materialOption.label);
   }
 
   const now = input.now ?? new Date();

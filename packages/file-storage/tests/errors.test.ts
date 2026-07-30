@@ -10,6 +10,9 @@ const WINDOWS_SETTINGS_FILE_MISSING_ERROR =
 const WINDOWS_READDIR_ERROR =
   "failed to read directory at path: C:\\Users\\test\\Documents\\Main Shop Materials with error: The system cannot find the path specified. (os error 3)";
 
+const MACOS_METADATA_ERROR =
+  "failed to get metadata of path: /Users/jacobm/Documents/Sandbox with error: No such file or directory (os error 2)";
+
 describe("isNotFoundError", () => {
   it("recognizes Node and Tauri not-found error codes", () => {
     expect(isNotFoundError({ code: "ENOENT" })).toBe(true);
@@ -20,6 +23,7 @@ describe("isNotFoundError", () => {
     expect(isNotFoundError(WINDOWS_SETTINGS_READ_ERROR)).toBe(true);
     expect(isNotFoundError(WINDOWS_SETTINGS_FILE_MISSING_ERROR)).toBe(true);
     expect(isNotFoundError(WINDOWS_READDIR_ERROR)).toBe(true);
+    expect(isNotFoundError(MACOS_METADATA_ERROR)).toBe(true);
   });
 
   it("does not treat unrelated failures as missing paths", () => {

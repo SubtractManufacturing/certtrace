@@ -1,10 +1,12 @@
 import type { RecentLibraryEntryV1 } from "@certtrace/types";
 import { Button } from "@certtrace/ui";
+import { CircleHelp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { forgetRecentLibrary, loadAppSettings } from "../lib/app-settings-client";
 import { pickParentFolder } from "../lib/library-client";
 import { AppLogo } from "./AppLogo";
 import { ErrorBanner } from "./ErrorBanner";
+import { LibraryHelpDialog } from "./LibraryHelpDialog";
 import { SkyThemeToggle } from "./SkyThemeToggle";
 
 interface WelcomeViewProps {
@@ -21,6 +23,7 @@ export function WelcomeView({
   const [recentLibraries, setRecentLibraries] = useState<RecentLibraryEntryV1[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loadingRecent, setLoadingRecent] = useState(true);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   useEffect(() => {
     void loadAppSettings()
@@ -69,13 +72,20 @@ export function WelcomeView({
         <SkyThemeToggle />
       </div>
 
-      <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-8 shadow-sm transition-[background-color,border-color] duration-500 ease-in-out dark:border-slate-800 dark:bg-slate-900">
+      <div className="relative w-full max-w-lg rounded-xl border border-slate-200 bg-white p-8 shadow-sm transition-[background-color,border-color] duration-500 ease-in-out dark:border-slate-800 dark:bg-slate-900">
+        <button
+          type="button"
+          aria-label="What is a library?"
+          className="absolute top-4 right-4 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 dark:focus-visible:ring-slate-500"
+          onClick={() => setHelpOpen(true)}
+        >
+          <CircleHelp className="h-5 w-5" aria-hidden />
+        </button>
         <h1>
           <AppLogo variant="welcome" />
         </h1>
         <p className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-          Open an existing library folder, or create a new one in the location you choose. CertTrace
-          creates a folder named after your library and writes a README inside.
+          Open an existing library folder, or create a new one in the location you choose.
         </p>
 
         {!loadingRecent && recentLibraries.length > 0 ? (
@@ -138,6 +148,8 @@ export function WelcomeView({
           </div>
         ) : null}
       </div>
+
+      <LibraryHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
     </main>
   );
 }

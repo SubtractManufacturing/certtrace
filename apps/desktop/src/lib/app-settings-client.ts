@@ -1,6 +1,6 @@
 import {
   readAppSettings,
-  removeRecentLibrary,
+  removeLibraryFromAppSettings,
   touchRecentLibrary,
   writeAppSettings,
 } from "@certtrace/core";
@@ -29,7 +29,7 @@ export async function recordRecentLibrary(path: string, name: string): Promise<A
 }
 
 export async function forgetRecentLibrary(path: string): Promise<AppSettingsV1> {
-  const settings = removeRecentLibrary(await loadAppSettings(), path);
+  const settings = removeLibraryFromAppSettings(await loadAppSettings(), path);
   await saveAppSettings(settings);
   return settings;
 }
