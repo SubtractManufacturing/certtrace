@@ -4,10 +4,10 @@ import {
   LABEL_CONTENT_BARCODE,
   LABEL_CONTENT_MATERIAL_ID,
   LABEL_CONTENT_QR,
-  STARTER_LABEL_TEMPLATE_3X1_ID,
   type LabelTemplate,
   type MaterialMetadataV1,
   SCHEMA_VERSION,
+  STARTER_LABEL_TEMPLATE_3X1_ID,
 } from "@certtrace/types";
 import { describe, expect, it } from "vitest";
 import type { LabelLayoutSlot } from "../src/labels/layout.js";

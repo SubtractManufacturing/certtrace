@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  renderBarcodePreviewDataUrl,
   renderBarcodePngBytes,
+  renderBarcodePreviewDataUrl,
   renderQrDataUrl,
 } from "../src/labels/code-images.js";
 

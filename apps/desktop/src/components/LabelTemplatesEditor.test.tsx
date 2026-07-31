@@ -1,6 +1,5 @@
 import type { OpenLibraryResult } from "@certtrace/library-engine";
 import {
-  createLabelContentItem,
   createDefaultLibraryConfigV1,
   createStarterLabelTemplates,
   defaultFieldSchemaV1,
@@ -34,9 +33,7 @@ const realMaterial: MaterialMetadataV1 = {
   updatedAt: "2026-06-01T12:00:00.000Z",
 };
 
-function sampleLibrary(
-  overrides: Partial<OpenLibraryResult["config"]> = {},
-): OpenLibraryResult {
+function sampleLibrary(overrides: Partial<OpenLibraryResult["config"]> = {}): OpenLibraryResult {
   const config = { ...createDefaultLibraryConfigV1("Main Shop"), ...overrides };
   return {
     paths: { root: "/tmp/shop", materials: "/tmp/shop/materials" },
@@ -143,8 +140,8 @@ describe("LabelTemplatesEditor", () => {
     expect(updateLibraryConfigPartial).not.toHaveBeenCalled();
   });
 
-  it("blocks deleting the last Label Template and reassigns default when deleting it", async () => {
-    const library = sampleLibrary();
+  it("blocks deleting the last Label Template", async () => {
+    let library = sampleLibrary();
     mockPersist(library);
 
     const view = render(
@@ -155,30 +152,33 @@ describe("LabelTemplatesEditor", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: /Delete 8\.5×11 in/i }));
-    await waitFor(() => expect(updateLibraryConfigPartial).toHaveBeenCalled());
-
-    const afterDelete = {
-      ...library,
-      config: {
-        ...library.config,
-        ...vi.mocked(updateLibraryConfigPartial).mock.calls.at(-1)?.[1],
-      },
-    };
-    mockPersist(afterDelete);
-    view.rerender(
-      <LabelTemplatesEditor
-        library={afterDelete}
-        onLibraryUpdated={() => undefined}
-        onRefreshLibrary={async () => undefined}
-      />,
-    );
+    for (const name of [/Delete 8\.5×11 in/i, /Delete 3×1 in/i]) {
+      await userEvent.click(screen.getByRole("button", { name }));
+      await waitFor(() => expect(updateLibraryConfigPartial).toHaveBeenCalled());
+      library = {
+        ...library,
+        config: {
+          ...library.config,
+          ...vi.mocked(updateLibraryConfigPartial).mock.calls.at(-1)?.[1],
+        },
+      };
+      mockPersist(library);
+      view.rerender(
+        <LabelTemplatesEditor
+          library={library}
+          onLibraryUpdated={() => undefined}
+          onRefreshLibrary={async () => undefined}
+        />,
+      );
+      vi.mocked(updateLibraryConfigPartial).mockClear();
+    }
 
     expect(screen.queryByRole("button", { name: /Delete 8\.5×11 in/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Delete 3×1 in/i })).toBeNull();
     expect(
       (screen.getByRole("button", { name: /Delete 4×6 in/i }) as HTMLButtonElement).disabled,
     ).toBe(true);
-    expect(afterDelete.config.defaultLabelTemplateId).toBe(STARTER_LABEL_TEMPLATE_4X6_ID);
+    expect(library.config.defaultLabelTemplateId).toBe(STARTER_LABEL_TEMPLATE_4X6_ID);
   });
 
   it("reassigns default when the default Label Template is deleted", async () => {
@@ -236,8 +236,7 @@ describe("LabelTemplatesEditor", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /^Save$/i }));
     await waitFor(() => expect(updateLibraryConfigPartial).toHaveBeenCalled());
-    const saved = vi.mocked(updateLibraryConfigPartial).mock.calls.at(-1)?.[1]
-      ?.labelTemplates?.[0];
+    const saved = vi.mocked(updateLibraryConfigPartial).mock.calls.at(-1)?.[1]?.labelTemplates?.[0];
     expect(saved?.displayUnit).toBe("mm");
     expect(saved?.size.kind).toBe("custom");
     if (saved?.size.kind === "custom") {
@@ -266,8 +265,7 @@ describe("LabelTemplatesEditor", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /^Save$/i }));
     await waitFor(() => expect(updateLibraryConfigPartial).toHaveBeenCalled());
-    const saved = vi.mocked(updateLibraryConfigPartial).mock.calls.at(-1)?.[1]
-      ?.labelTemplates?.[0];
+    const saved = vi.mocked(updateLibraryConfigPartial).mock.calls.at(-1)?.[1]?.labelTemplates?.[0];
     expect(saved?.content.map((item) => item.key)).toEqual([
       "family",
       "alloy",

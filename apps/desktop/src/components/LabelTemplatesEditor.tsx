@@ -107,6 +107,8 @@ export function LabelTemplatesEditor({
     };
   }, [library]);
 
+  // Sync dimension inputs only when opening/switching a template; size/unit edits update text elsewhere.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: avoid resetting inputs while typing dimensions
   useEffect(() => {
     if (!editor) {
       setWidthText("");

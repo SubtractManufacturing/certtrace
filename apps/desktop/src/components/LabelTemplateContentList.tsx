@@ -1,17 +1,17 @@
-import {
-  type FieldSchemaV1,
-  type LabelContentAlign,
-  type LabelContentItem,
-  type LabelContentSize,
+import type {
+  FieldSchemaV1,
+  LabelContentAlign,
+  LabelContentItem,
+  LabelContentSize,
 } from "@certtrace/types";
 import { cn, Switch } from "@certtrace/ui";
 import { AlignCenter, AlignLeft, AlignRight, GripVertical } from "lucide-react";
 import {
+  type PointerEvent as ReactPointerEvent,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
-  type PointerEvent as ReactPointerEvent,
 } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -158,6 +158,8 @@ export function LabelTemplateContentList({
     ? rows.find((row) => row.kind === "enabled" && row.option.key === drag.key)
     : null;
 
+  // Re-run when content order changes so FLIP can animate sibling rows during drag.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: content triggers FLIP; effect reads DOM refs
   useLayoutEffect(() => {
     if (!drag) {
       prevRectsRef.current.clear();
@@ -364,8 +366,7 @@ export function LabelTemplateContentList({
                   showControls={enabled}
                   onAlign={
                     enabled
-                      ? (align) =>
-                          onContentChange(patchContentItem(content, option.key, { align }))
+                      ? (align) => onContentChange(patchContentItem(content, option.key, { align }))
                       : undefined
                   }
                   onSize={

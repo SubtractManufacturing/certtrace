@@ -24,12 +24,7 @@ const STARTER_LABEL_CONTENT_KEYS = [
 ] as const;
 
 /** Compact field set for short/wide labels (no QR — packing prefers text density). */
-const STARTER_3X1_CONTENT_KEYS = [
-  LABEL_CONTENT_MATERIAL_ID,
-  "family",
-  "alloy",
-  "temper",
-] as const;
+const STARTER_3X1_CONTENT_KEYS = [LABEL_CONTENT_MATERIAL_ID, "family", "alloy", "temper"] as const;
 
 export function createStarterLabelTemplates(): LabelTemplate[] {
   const content = STARTER_LABEL_CONTENT_KEYS.map((key) => createLabelContentItem(key));

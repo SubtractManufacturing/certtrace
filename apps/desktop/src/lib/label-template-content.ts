@@ -1,9 +1,9 @@
 import {
   createLabelContentItem,
+  type FieldSchemaV1,
   LABEL_CONTENT_BARCODE,
   LABEL_CONTENT_MATERIAL_ID,
   LABEL_CONTENT_QR,
-  type FieldSchemaV1,
   type LabelContentItem,
   type MaterialMetadataV1,
   SCHEMA_VERSION,
@@ -100,10 +100,7 @@ export function reorderContentItems(
   return next;
 }
 
-export function enableContentItem(
-  content: LabelContentItem[],
-  key: string,
-): LabelContentItem[] {
+export function enableContentItem(content: LabelContentItem[], key: string): LabelContentItem[] {
   if (content.some((item) => item.key === key)) {
     return content;
   }

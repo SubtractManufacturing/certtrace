@@ -8,17 +8,8 @@ export {
   writeAppSettings,
 } from "./app-settings.js";
 export {
-  alignedLeftPt,
-  computeLabelPageLayout,
-  createApproxTextMeasurer,
-  LABEL_VALUE_LINE_GAP_PT,
-  type LabelLayoutElement,
-  type LabelPageLayout,
-  type LabelTextMeasurer,
-} from "./labels/layout.js";
-export {
-  renderBarcodePreviewDataUrl,
   renderBarcodePngBytes,
+  renderBarcodePreviewDataUrl,
   renderQrDataUrl,
 } from "./labels/code-images.js";
 export {
@@ -31,6 +22,15 @@ export {
   resolveLabelLayout,
   resolveLabelLines,
 } from "./labels/generate.js";
+export {
+  alignedLeftPt,
+  computeLabelPageLayout,
+  createApproxTextMeasurer,
+  LABEL_VALUE_LINE_GAP_PT,
+  type LabelLayoutElement,
+  type LabelPageLayout,
+  type LabelTextMeasurer,
+} from "./labels/layout.js";
 export {
   buildSearchIndex,
   materialSearchText,

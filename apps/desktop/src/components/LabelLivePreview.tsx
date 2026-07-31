@@ -139,11 +139,11 @@ export function LabelLivePreview({
             fontFamily: "Helvetica, Arial, sans-serif",
           }}
         >
-          {layout.elements.map((element, index) => {
+          {layout.elements.map((element) => {
             if (element.kind === "field") {
               return (
                 <div
-                  key={`${element.line.key}-${index}`}
+                  key={`field-${element.line.key}`}
                   className="absolute"
                   style={{
                     left: element.leftPt,
@@ -164,6 +164,8 @@ export function LabelLivePreview({
                   <div style={{ marginTop: LABEL_VALUE_LINE_GAP_PT }}>
                     {element.valueLines.map((line, lineIndex) => (
                       <div
+                        // Wrapped text fragments are ordered; index is identity within the field.
+                        // biome-ignore lint/suspicious/noArrayIndexKey: positional wrap lines
                         key={`${element.line.key}-line-${lineIndex}`}
                         className={cn(element.valueBold ? "font-bold" : "font-normal")}
                         style={{
@@ -182,7 +184,7 @@ export function LabelLivePreview({
             if (element.kind === "qr") {
               return (
                 <div
-                  key={`qr-${index}`}
+                  key="qr"
                   className="absolute"
                   style={{
                     left: element.leftPt,
@@ -198,7 +200,7 @@ export function LabelLivePreview({
 
             return (
               <div
-                key={`barcode-${index}`}
+                key="barcode"
                 className="absolute"
                 style={{
                   left: element.leftPt,

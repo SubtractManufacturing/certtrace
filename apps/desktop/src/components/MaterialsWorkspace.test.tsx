@@ -33,7 +33,9 @@ const sampleLibrary = {
         name: "4×6 in",
         size: { kind: "catalog", catalogId: "4x6" },
         displayUnit: "in",
-        content: ["family", "alloy", "temper", "material_id", "qr"].map((key) => createLabelContentItem(key)),
+        content: ["family", "alloy", "temper", "material_id", "qr"].map((key) =>
+          createLabelContentItem(key),
+        ),
       },
     ],
     defaultLabelTemplateId: "starter-4x6",

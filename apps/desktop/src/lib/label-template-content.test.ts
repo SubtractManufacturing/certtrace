@@ -44,10 +44,7 @@ describe("labelContentOptions", () => {
 describe("labelContentListRows", () => {
   it("lists enabled content first in template order, then disabled catalog options", () => {
     const options = labelContentOptions(defaultFieldSchemaV1);
-    const content = [
-      createLabelContentItem("alloy"),
-      createLabelContentItem(LABEL_CONTENT_QR),
-    ];
+    const content = [createLabelContentItem("alloy"), createLabelContentItem(LABEL_CONTENT_QR)];
     const rows = labelContentListRows(options, content);
 
     expect(rows.filter((row) => row.kind === "enabled").map((row) => row.option.key)).toEqual([
@@ -58,12 +55,14 @@ describe("labelContentListRows", () => {
     expect(
       rows.findIndex((row) => row.kind === "disabled" && row.option.key === "family"),
     ).toBeGreaterThan(1);
-    expect(rows.every((row, index, list) => {
-      if (row.kind === "enabled") {
-        return list.slice(0, index).every((prior) => prior.kind === "enabled");
-      }
-      return list.slice(index).every((later) => later.kind === "disabled");
-    })).toBe(true);
+    expect(
+      rows.every((row, index, list) => {
+        if (row.kind === "enabled") {
+          return list.slice(0, index).every((prior) => prior.kind === "enabled");
+        }
+        return list.slice(index).every((later) => later.kind === "disabled");
+      }),
+    ).toBe(true);
   });
 });
 

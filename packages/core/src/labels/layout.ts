@@ -258,7 +258,12 @@ interface PackGeometry {
   columnWidthPt: number;
 }
 
-function createPackGeometry(widthPt: number, heightPt: number, marginPt: number, columns: number): PackGeometry {
+function createPackGeometry(
+  widthPt: number,
+  heightPt: number,
+  marginPt: number,
+  columns: number,
+): PackGeometry {
   const contentWidthPt = widthPt - marginPt * 2;
   return {
     widthPt,

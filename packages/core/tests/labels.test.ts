@@ -79,7 +79,9 @@ describe("generateLabelPdf", () => {
       name: "Placeholders",
       size: { kind: "catalog", catalogId: "4x6" },
       displayUnit: "in",
-      content: ["family", "alloy", LABEL_CONTENT_MATERIAL_ID].map((key) => createLabelContentItem(key)),
+      content: ["family", "alloy", LABEL_CONTENT_MATERIAL_ID].map((key) =>
+        createLabelContentItem(key),
+      ),
     };
 
     const { lines } = await generateLabelPdf({
@@ -101,7 +103,9 @@ describe("generateLabelPdf", () => {
       name: "Codes",
       size: { kind: "catalog", catalogId: "letter" },
       displayUnit: "in",
-      content: ["family", LABEL_CONTENT_MATERIAL_ID, LABEL_CONTENT_QR, LABEL_CONTENT_BARCODE].map((key) => createLabelContentItem(key)),
+      content: ["family", LABEL_CONTENT_MATERIAL_ID, LABEL_CONTENT_QR, LABEL_CONTENT_BARCODE].map(
+        (key) => createLabelContentItem(key),
+      ),
     };
 
     const result = await generateLabelPdf({
@@ -128,7 +132,9 @@ describe("generateLabelPdf", () => {
       name: "QR first",
       size: { kind: "catalog", catalogId: "4x6" },
       displayUnit: "in",
-      content: [LABEL_CONTENT_QR, "family", LABEL_CONTENT_MATERIAL_ID].map((key) => createLabelContentItem(key)),
+      content: [LABEL_CONTENT_QR, "family", LABEL_CONTENT_MATERIAL_ID].map((key) =>
+        createLabelContentItem(key),
+      ),
     };
 
     const { slots } = await generateLabelPdf({

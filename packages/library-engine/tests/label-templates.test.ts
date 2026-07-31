@@ -46,9 +46,9 @@ describe("label template seeding and migration", () => {
       expect(library.config.labelTemplates[0]?.content.every((item) => item.align === "left")).toBe(
         true,
       );
-      expect(library.config.labelTemplates[0]?.content.every((item) => item.size === "medium")).toBe(
-        true,
-      );
+      expect(
+        library.config.labelTemplates[0]?.content.every((item) => item.size === "medium"),
+      ).toBe(true);
       const starter3x1 = library.config.labelTemplates.find(
         (template) => template.id === STARTER_LABEL_TEMPLATE_3X1_ID,
       );
