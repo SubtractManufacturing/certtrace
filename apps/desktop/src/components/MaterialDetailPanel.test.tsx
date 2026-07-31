@@ -25,6 +25,7 @@ vi.mock("../lib/attachment-client", () => ({
 
 vi.mock("../lib/library-client", () => ({
   addLibraryFieldOption: vi.fn(),
+  deleteMaterial: vi.fn(),
   fetchMaterialAttachments: vi.fn(),
   updateMaterialMetadata: vi.fn(),
 }));
@@ -92,6 +93,7 @@ describe("MaterialDetailPanel attachments", () => {
         onOpenChange={() => undefined}
         onMaterialUpdated={() => undefined}
         onEditLabelTemplates={() => undefined}
+        onMaterialDeleted={() => undefined}
       />,
     );
 
@@ -142,6 +144,7 @@ describe("MaterialDetailPanel label preview hub", () => {
         onOpenChange={() => undefined}
         onMaterialUpdated={() => undefined}
         onEditLabelTemplates={() => undefined}
+        onMaterialDeleted={() => undefined}
       />,
     );
 
@@ -160,6 +163,7 @@ describe("MaterialDetailPanel label preview hub", () => {
         onOpenChange={() => undefined}
         onMaterialUpdated={() => undefined}
         onEditLabelTemplates={() => undefined}
+        onMaterialDeleted={() => undefined}
       />,
     );
 

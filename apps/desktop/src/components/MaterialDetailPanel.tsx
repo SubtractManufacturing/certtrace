@@ -31,9 +31,11 @@ import {
 import { openPathWithOpener } from "../lib/label-client";
 import {
   addLibraryFieldOption,
+  deleteMaterial,
   fetchMaterialAttachments,
   updateMaterialMetadata,
 } from "../lib/library-client";
+import { DeleteMaterialDialog } from "./DeleteMaterialDialog";
 import { ErrorBanner } from "./ErrorBanner";
 import { LabelPreviewDialog } from "./LabelPreviewDialog";
 import {
@@ -54,6 +56,7 @@ interface MaterialDetailPanelProps {
   onOpenChange: (open: boolean) => void;
   onMaterialUpdated: (material: MaterialMetadataV1) => void;
   onEditLabelTemplates: () => void;
+  onMaterialDeleted: (materialId: string) => void | Promise<void>;
 }
 
 function attachmentFilename(path: string): string {
@@ -67,6 +70,7 @@ export function MaterialDetailPanel({
   onOpenChange,
   onMaterialUpdated,
   onEditLabelTemplates,
+  onMaterialDeleted,
 }: MaterialDetailPanelProps) {
   const defaultAttachmentKind = library.fieldSchema.attachmentKinds[0]?.key ?? "";
   const [draft, setDraft] = useState<MaterialFormValues>({
@@ -80,6 +84,7 @@ export function MaterialDetailPanel({
   const [renamingFile, setRenamingFile] = useState<AttachedFile | null>(null);
   const [renameFilename, setRenameFilename] = useState("");
   const [labelPreviewOpen, setLabelPreviewOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -216,6 +221,20 @@ export function MaterialDetailPanel({
     try {
       await deleteAttachment(library, material.id, filename);
       setAttachments(await fetchMaterialAttachments(library, material.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDeleteMaterial() {
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteMaterial(library, material.id);
+      await onMaterialDeleted(material.id);
+      setDeleteDialogOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -413,17 +432,30 @@ export function MaterialDetailPanel({
             {error ? <ErrorBanner message={error} /> : null}
           </div>
 
-          <DialogFooter className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 px-6 py-4 dark:border-slate-800">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={busy}
-              aria-label="Open material folder"
-              onClick={() => void openPathWithOpener(getMaterialFolderPath(library, material.id))}
-            >
-              <FolderOpen className="h-4 w-4" />
-            </Button>
+          <DialogFooter className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 px-6 py-4 dark:border-slate-800 sm:justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={busy}
+                aria-label="Delete material"
+                className="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={busy}
+                aria-label="Open material folder"
+                onClick={() => void openPathWithOpener(getMaterialFolderPath(library, material.id))}
+              >
+                <FolderOpen className="h-4 w-4" />
+              </Button>
+            </div>
             <div className="flex gap-2">
               <Button type="button" variant="outline" disabled={busy} onClick={handleCancel}>
                 Cancel
@@ -546,6 +578,15 @@ export function MaterialDetailPanel({
           setLabelPreviewOpen(false);
           onEditLabelTemplates();
         }}
+      />
+
+      <DeleteMaterialDialog
+        open={deleteDialogOpen}
+        materialId={material.id}
+        attachmentCount={attachments.length}
+        busy={busy}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={() => void handleDeleteMaterial()}
       />
     </>
   );

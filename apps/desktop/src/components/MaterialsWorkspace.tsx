@@ -326,6 +326,11 @@ export function MaterialsWorkspace({
             setSelectedMaterial(null);
             onEditLabelTemplates?.(selectedMaterial.libraryPath);
           }}
+          onMaterialDeleted={async () => {
+            const libraryPath = selectedMaterial.libraryPath;
+            await onRefreshLibrary(libraryPath);
+            setSelectedMaterial(null);
+          }}
         />
       ) : null}
 
