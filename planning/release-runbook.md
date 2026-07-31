@@ -139,7 +139,7 @@ spctl -a -vv "$APP"
 4. `.github/workflows/release-please.yml` reads the exact `apps/desktop--tag_name` output from that run (not a newest-release lookup), renames that release, and dispatches `.github/workflows/release.yml` with `tag` set to that same tag. GitHub releases created by `GITHUB_TOKEN` do not trigger other workflows directly, so the build is chained via `workflow_dispatch`.
 5. `release.yml` resolves that tag with `getReleaseByTag` and uploads assets / `latest.json` only for that release via `tauri-apps/tauri-action`.
 6. Verify the `CertTrace Desktop: vX.Y.Z` release page contains platform installers, `.sig` files, and `latest.json`.
-7. After **all** platform builds succeed, `release.yml` waits until `latest.json` `pub_date` + 30 minutes (same gate as the in-app update modal in `isReleaseReady`), then posts a Discord embed (`Version X.Y.Z is now available` + release changelog). Manual rebuilds use the same message. A failed Discord notify job fails the Release run but does not remove published assets.
+7. After **all** platform builds succeed, `release.yml` polls `latest.json` every minute until `pub_date` + 30 minutes has elapsed (same gate as the in-app update modal in `isReleaseReady`), then posts a Discord embed (`Version X.Y.Z is now available` + release changelog). Re-running the workflow after that window posts immediately. Manual rebuilds use the same message. A failed Discord notify job fails the Release run but does not remove published assets.
 
 Set `DISCORD_WEBHOOK_URL` before the first release that should announce. Create the webhook in Discord channel settings; never commit the URL.
 
