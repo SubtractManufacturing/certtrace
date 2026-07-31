@@ -20,7 +20,7 @@ export function createNodeFileSystem(): FileSystem {
       await writeFile(path, data);
     },
     async remove(path) {
-      await rm(path, { force: true });
+      await rm(path, { force: true, recursive: true });
     },
     async copyFile(from, to) {
       await copyFile(from, to);
