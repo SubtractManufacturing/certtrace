@@ -317,8 +317,8 @@ export function MaterialsWorkspace({
           }}
           onMaterialDeleted={async () => {
             const libraryPath = selectedMaterial.libraryPath;
-            setSelectedMaterial(null);
             await onRefreshLibrary(libraryPath);
+            setSelectedMaterial(null);
           }}
         />
       ) : null}

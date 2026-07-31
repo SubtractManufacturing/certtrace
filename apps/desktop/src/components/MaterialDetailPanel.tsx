@@ -59,7 +59,7 @@ interface MaterialDetailPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onMaterialUpdated: (material: MaterialMetadataV1) => void;
-  onMaterialDeleted: (materialId: string) => void;
+  onMaterialDeleted: (materialId: string) => void | Promise<void>;
 }
 
 function attachmentFilename(path: string): string {
@@ -246,8 +246,8 @@ export function MaterialDetailPanel({
     setError(null);
     try {
       await deleteMaterial(library, material.id);
+      await onMaterialDeleted(material.id);
       setDeleteDialogOpen(false);
-      onMaterialDeleted(material.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
