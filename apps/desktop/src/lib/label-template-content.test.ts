@@ -39,6 +39,35 @@ describe("labelContentOptions", () => {
       "Material id",
     );
   });
+
+  it("skips schema fields and identifiers that collide with core Label keys", () => {
+    const options = labelContentOptions({
+      ...defaultFieldSchemaV1,
+      fields: [
+        ...defaultFieldSchemaV1.fields,
+        {
+          key: LABEL_CONTENT_QR,
+          label: "QR Field",
+          type: "text",
+          required: false,
+          filterable: false,
+        },
+      ],
+      identifierKinds: [
+        ...defaultFieldSchemaV1.identifierKinds,
+        {
+          key: LABEL_CONTENT_BARCODE,
+          label: "Barcode Id",
+          required: false,
+          filterable: false,
+        },
+      ],
+    });
+    const keys = options.map((option) => option.key);
+    expect(keys.filter((key) => key === LABEL_CONTENT_QR)).toHaveLength(1);
+    expect(keys.filter((key) => key === LABEL_CONTENT_BARCODE)).toHaveLength(1);
+    expect(options.find((option) => option.key === LABEL_CONTENT_QR)?.label).toBe("QR");
+  });
 });
 
 describe("labelContentListRows", () => {

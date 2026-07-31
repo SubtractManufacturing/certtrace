@@ -10,7 +10,10 @@ import {
   WORD_LISTS_JSON,
 } from "../src/paths.js";
 import {
+  createLabelContentItem,
   fieldSchemaV1Schema,
+  LABEL_CONTENT_QR,
+  labelTemplateSchema,
   libraryConfigV1Schema,
   materialMetadataV1Schema,
   namingRulesV1Schema,
@@ -147,6 +150,47 @@ describe("fieldSchemaV1Schema", () => {
       ],
       identifierKinds: [],
       attachmentKinds: [],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects Label content core keys as field or identifier definitions", () => {
+    const asField = fieldSchemaV1Schema.safeParse({
+      version: SCHEMA_VERSION,
+      fields: [
+        {
+          key: LABEL_CONTENT_QR,
+          label: "QR Field",
+          type: "text",
+          required: false,
+          filterable: false,
+        },
+      ],
+      identifierKinds: [],
+      attachmentKinds: [],
+    });
+    expect(asField.success).toBe(false);
+
+    const asIdentifier = fieldSchemaV1Schema.safeParse({
+      version: SCHEMA_VERSION,
+      fields: [],
+      identifierKinds: [
+        { key: LABEL_CONTENT_QR, label: "QR Id", required: false, filterable: false },
+      ],
+      attachmentKinds: [],
+    });
+    expect(asIdentifier.success).toBe(false);
+  });
+});
+
+describe("labelTemplateSchema", () => {
+  it("rejects duplicate content keys", () => {
+    const result = labelTemplateSchema.safeParse({
+      id: "tmpl",
+      name: "Template",
+      size: { kind: "catalog", catalogId: "4x6" },
+      displayUnit: "in",
+      content: [createLabelContentItem(LABEL_CONTENT_QR), createLabelContentItem(LABEL_CONTENT_QR)],
     });
     expect(result.success).toBe(false);
   });

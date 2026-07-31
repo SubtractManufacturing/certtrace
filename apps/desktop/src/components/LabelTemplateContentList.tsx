@@ -194,6 +194,7 @@ export function LabelTemplateContentList({
     if (!drag) {
       return;
     }
+    const session = drag;
 
     function captureRects() {
       const rects = new Map<string, DOMRect>();
@@ -246,11 +247,11 @@ export function LabelTemplateContentList({
     function handlePointerMove(event: PointerEvent) {
       const ghost = ghostRef.current;
       if (ghost) {
-        ghost.style.left = `${event.clientX - drag.offsetX}px`;
-        ghost.style.top = `${event.clientY - drag.offsetY}px`;
+        ghost.style.left = `${event.clientX - session.offsetX}px`;
+        ghost.style.top = `${event.clientY - session.offsetY}px`;
       }
 
-      maybeReorderAdjacent(event.clientY, drag.key);
+      maybeReorderAdjacent(event.clientY, session.key);
     }
 
     function endDrag() {
@@ -351,8 +352,19 @@ export function LabelTemplateContentList({
                   <button
                     type="button"
                     className="shrink-0 cursor-grab touch-none rounded p-0.5 text-slate-400 hover:text-slate-600 active:cursor-grabbing dark:hover:text-slate-200"
-                    aria-label={`Drag to reorder ${option.label}`}
+                    aria-label={`Reorder ${option.label}. Use arrow up and arrow down keys.`}
                     onPointerDown={(event) => startDrag(option.key, event)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "ArrowUp" && event.key !== "ArrowDown") {
+                        return;
+                      }
+                      event.preventDefault();
+                      const index = content.findIndex((entry) => entry.key === option.key);
+                      const target = content[index + (event.key === "ArrowUp" ? -1 : 1)];
+                      if (target) {
+                        onContentChange(reorderContentItems(content, option.key, target.key));
+                      }
+                    }}
                   >
                     <GripVertical className="h-4 w-4" aria-hidden />
                   </button>

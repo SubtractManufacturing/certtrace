@@ -24,8 +24,11 @@ type BwipBarcodeRenderer = {
   toSVG: (opts: BarcodeRenderOptions) => string;
 };
 
-function barcodeOptions(payload: string): BarcodeRenderOptions {
-  return { ...BARCODE_RENDER_OPTIONS, text: payload };
+function barcodeOptions(
+  payload: string,
+  scale = BARCODE_RENDER_OPTIONS.scale,
+): BarcodeRenderOptions {
+  return { ...BARCODE_RENDER_OPTIONS, scale, text: payload };
 }
 
 export async function renderQrDataUrl(
@@ -46,8 +49,8 @@ export function renderBarcodePreviewDataUrl(payload: string): string {
 }
 
 /** PNG bytes for PDF embedding (Node buffer or browser canvas). */
-export async function renderBarcodePngBytes(payload: string): Promise<Uint8Array> {
-  const options = barcodeOptions(payload);
+export async function renderBarcodePngBytes(payload: string, scale = 6): Promise<Uint8Array> {
+  const options = barcodeOptions(payload, scale);
   const renderer = bwipjs as unknown as BwipBarcodeRenderer;
 
   if (typeof renderer.toBuffer === "function") {

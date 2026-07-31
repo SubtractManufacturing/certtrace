@@ -139,6 +139,34 @@ function sizeWeight(size: LabelContentSize): number {
   return LABEL_CONTENT_SIZE_WEIGHT[size];
 }
 
+function breakLongToken(
+  token: string,
+  maxWidthPt: number,
+  fontSizePt: number,
+  bold: boolean,
+  measurer: LabelTextMeasurer,
+): string[] {
+  if (measurer.widthOfText(token, fontSizePt, bold) <= maxWidthPt) {
+    return [token];
+  }
+
+  const parts: string[] = [];
+  let chunk = "";
+  for (const char of token) {
+    const candidate = `${chunk}${char}`;
+    if (chunk.length > 0 && measurer.widthOfText(candidate, fontSizePt, bold) > maxWidthPt) {
+      parts.push(chunk);
+      chunk = char;
+      continue;
+    }
+    chunk = candidate;
+  }
+  if (chunk.length > 0) {
+    parts.push(chunk);
+  }
+  return parts.length > 0 ? parts : [token];
+}
+
 function wrapText(
   text: string,
   maxWidthPt: number,
@@ -155,15 +183,18 @@ function wrapText(
   let line = "";
 
   for (const word of words) {
-    const candidate = line.length === 0 ? word : `${line} ${word}`;
-    if (measurer.widthOfText(candidate, fontSizePt, bold) <= maxWidthPt) {
-      line = candidate;
-      continue;
+    const pieces = breakLongToken(word, maxWidthPt, fontSizePt, bold, measurer);
+    for (const piece of pieces) {
+      const candidate = line.length === 0 ? piece : `${line} ${piece}`;
+      if (measurer.widthOfText(candidate, fontSizePt, bold) <= maxWidthPt) {
+        line = candidate;
+        continue;
+      }
+      if (line.length > 0) {
+        lines.push(line);
+      }
+      line = piece;
     }
-    if (line.length > 0) {
-      lines.push(line);
-    }
-    line = word;
   }
 
   if (line.length > 0) {
@@ -203,11 +234,12 @@ function qrSizePt(
   size: LabelContentSize,
 ): number {
   // Portrait: modest QR relative to the page. Wide multi-column: fill most of the code column.
-  const base =
+  // Weight scales the preferred size, then geometry/max caps prevent column overflow.
+  const geometryBudget =
     columns === 1
-      ? Math.min(LABEL_QR_MAX_SIZE_PT, pageContentWidthPt * 0.35, contentHeightPt * 0.35)
-      : Math.min(LABEL_QR_MAX_SIZE_PT, columnWidth * 0.9, contentHeightPt * 0.9);
-  return base * sizeWeight(size);
+      ? Math.min(pageContentWidthPt * 0.35, contentHeightPt * 0.35)
+      : Math.min(columnWidth * 0.9, contentHeightPt * 0.9);
+  return Math.min(LABEL_QR_MAX_SIZE_PT, geometryBudget, geometryBudget * sizeWeight(size));
 }
 
 function barcodeHeightPt(size: LabelContentSize, contentHeightPt: number): number {
@@ -367,6 +399,7 @@ function resolveValueFontSizePt(
 
 type MeasuredSlot =
   | {
+      kind: "text";
       slot: Extract<LabelLayoutSlot, { kind: "text" }>;
       heightPt: number;
       valueLines: string[];
@@ -374,11 +407,13 @@ type MeasuredSlot =
       labelFontSizePt: number;
     }
   | {
+      kind: "qr";
       slot: Extract<LabelLayoutSlot, { kind: "qr" }>;
       heightPt: number;
       sizePt: number;
     }
   | {
+      kind: "barcode";
       slot: Extract<LabelLayoutSlot, { kind: "barcode" }>;
       heightPt: number;
       widthPt: number;
@@ -399,7 +434,7 @@ function measureSlot(
       geometry.heightPt,
       measurer,
     );
-    return { slot, ...measured };
+    return { kind: "text", slot, ...measured };
   }
   if (slot.kind === "qr") {
     const sizePt = qrSizePt(
@@ -409,11 +444,12 @@ function measureSlot(
       geometry.columns,
       slot.size,
     );
-    return { slot, heightPt: sizePt + codeGapPt(geometry.heightPt), sizePt };
+    return { kind: "qr", slot, heightPt: sizePt + codeGapPt(geometry.heightPt), sizePt };
   }
   const barcodeHeight = barcodeHeightPt(slot.size, geometry.contentHeightPt);
   const widthPt = barcodeWidthPt(geometry.columnWidthPt, barcodeHeight, slot.size);
   return {
+    kind: "barcode",
     slot,
     heightPt: barcodeHeight + codeGapPt(geometry.heightPt),
     widthPt,
@@ -457,7 +493,7 @@ function packSlots(
       geometry.marginPt + columnIndex * (geometry.columnWidthPt + LABEL_COLUMN_GAP_PT);
     const topPt = geometry.marginPt + columnUsedPt[columnIndex]!;
 
-    if (measured.slot.kind === "text") {
+    if (measured.kind === "text") {
       elements.push({
         kind: "field",
         line: measured.slot.line,
@@ -470,7 +506,7 @@ function packSlots(
         valueBold: measured.slot.line.key === LABEL_CONTENT_MATERIAL_ID,
         align: measured.slot.align,
       });
-    } else if (measured.slot.kind === "qr") {
+    } else if (measured.kind === "qr") {
       elements.push({
         kind: "qr",
         payload: measured.slot.payload,

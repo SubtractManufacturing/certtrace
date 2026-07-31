@@ -11,7 +11,11 @@ import {
 } from "@certtrace/types";
 import { describe, expect, it } from "vitest";
 import type { LabelLayoutSlot } from "../src/labels/layout.js";
-import { alignedLeftPt, computeLabelPageLayout } from "../src/labels/layout.js";
+import {
+  alignedLeftPt,
+  computeLabelPageLayout,
+  LABEL_QR_MAX_SIZE_PT,
+} from "../src/labels/layout.js";
 
 const material: MaterialMetadataV1 = {
   version: SCHEMA_VERSION,
@@ -76,19 +80,29 @@ describe("computeLabelPageLayout", () => {
     }
   });
 
-  it("scales QR size by content size weight", () => {
+  it("scales QR size by content size weight without exceeding geometry caps", () => {
     const medium = computeLabelPageLayout(template4x6, [
       { kind: "qr", payload: material.id, align: "left", size: "medium" },
     ]);
     const large = computeLabelPageLayout(template4x6, [
       { kind: "qr", payload: material.id, align: "left", size: "large" },
     ]);
+    const small = computeLabelPageLayout(template4x6, [
+      { kind: "qr", payload: material.id, align: "left", size: "small" },
+    ]);
     const mediumQr = medium.elements.find((element) => element.kind === "qr");
     const largeQr = large.elements.find((element) => element.kind === "qr");
+    const smallQr = small.elements.find((element) => element.kind === "qr");
     expect(mediumQr?.kind).toBe("qr");
     expect(largeQr?.kind).toBe("qr");
-    if (mediumQr?.kind === "qr" && largeQr?.kind === "qr") {
-      expect(largeQr.sizePt).toBeCloseTo(mediumQr.sizePt * 1.25, 1);
+    expect(smallQr?.kind).toBe("qr");
+    if (mediumQr?.kind === "qr" && largeQr?.kind === "qr" && smallQr?.kind === "qr") {
+      // On 4×6, medium already hits the geometry budget, so large is capped equal to medium.
+      expect(largeQr.sizePt).toBeCloseTo(mediumQr.sizePt, 1);
+      expect(smallQr.sizePt).toBeLessThan(mediumQr.sizePt);
+      expect(largeQr.sizePt).toBeLessThanOrEqual(LABEL_QR_MAX_SIZE_PT);
+      const contentWidth = large.widthPt - large.marginPt * 2;
+      expect(largeQr.sizePt).toBeLessThanOrEqual(contentWidth * 0.35 + 0.01);
     }
   });
 

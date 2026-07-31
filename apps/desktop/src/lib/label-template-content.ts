@@ -50,15 +50,21 @@ export function labelContentOptions(fieldSchema: FieldSchemaV1): LabelContentOpt
     { key: LABEL_CONTENT_BARCODE, label: "Barcode" },
   ];
 
-  const fields = fieldSchema.fields.map((field) => ({
-    key: field.key,
-    label: field.label,
-  }));
+  const coreKeys = new Set(core.map((option) => option.key));
 
-  const identifiers = fieldSchema.identifierKinds.map((kind) => ({
-    key: kind.key,
-    label: kind.label,
-  }));
+  const fields = fieldSchema.fields
+    .filter((field) => !coreKeys.has(field.key))
+    .map((field) => ({
+      key: field.key,
+      label: field.label,
+    }));
+
+  const identifiers = fieldSchema.identifierKinds
+    .filter((kind) => !coreKeys.has(kind.key))
+    .map((kind) => ({
+      key: kind.key,
+      label: kind.label,
+    }));
 
   return [...core, ...fields, ...identifiers];
 }

@@ -66,17 +66,28 @@ export const labelSizeSchema = z.discriminatedUnion("kind", [
 ]);
 export type LabelSize = z.infer<typeof labelSizeSchema>;
 
-export const labelTemplateSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  size: labelSizeSchema,
-  displayUnit: labelDisplayUnitSchema,
-  /**
-   * Ordered enabled content slots: core keys (`material_id`, `qr`, `barcode`),
-   * Field keys, or Identifier kind keys, each with align and relative size.
-   */
-  content: z.array(labelContentItemSchema).min(1),
-});
+export const labelTemplateSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    size: labelSizeSchema,
+    displayUnit: labelDisplayUnitSchema,
+    /**
+     * Ordered enabled content slots: core keys (`material_id`, `qr`, `barcode`),
+     * Field keys, or Identifier kind keys, each with align and relative size.
+     */
+    content: z.array(labelContentItemSchema).min(1),
+  })
+  .superRefine((template, ctx) => {
+    const keys = new Set(template.content.map((item) => item.key));
+    if (keys.size !== template.content.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "label template content keys must be unique",
+        path: ["content"],
+      });
+    }
+  });
 export type LabelTemplate = z.infer<typeof labelTemplateSchema>;
 
 export const libraryConfigV1Schema = z
@@ -260,13 +271,29 @@ export const fieldSchemaV1Schema = z
     tableColumns: z.array(materialTableColumnV1Schema).optional(),
   })
   .superRefine((schema, ctx) => {
-    const reserved = new Set(["id", "createdAt", "updatedAt"]);
+    const reserved = new Set([
+      "id",
+      "createdAt",
+      "updatedAt",
+      LABEL_CONTENT_MATERIAL_ID,
+      LABEL_CONTENT_QR,
+      LABEL_CONTENT_BARCODE,
+    ]);
     for (const [index, field] of schema.fields.entries()) {
       if (reserved.has(field.key)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `Field key "${field.key}" is reserved for system material properties`,
           path: ["fields", index, "key"],
+        });
+      }
+    }
+    for (const [index, kind] of schema.identifierKinds.entries()) {
+      if (reserved.has(kind.key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Identifier kind key "${kind.key}" is reserved for Label content slots`,
+          path: ["identifierKinds", index, "key"],
         });
       }
     }
