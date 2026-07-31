@@ -140,7 +140,9 @@ jobs:
           python3 <<'PYTHON'
           import json
           import os
+          import subprocess
           import sys
+          import tempfile
           import time
           import urllib.error
           import urllib.request
@@ -240,24 +242,37 @@ jobs:
           }
 
           data = json.dumps(payload).encode("utf-8")
-          request = urllib.request.Request(
-              webhook_url,
-              data=data,
-              headers={
-                  "Content-Type": "application/json",
-                  "User-Agent": USER_AGENT,
-              },
-              method="POST",
-          )
+          with tempfile.NamedTemporaryFile(mode="wb", suffix=".json", delete=False) as payload_file:
+              payload_file.write(data)
+              payload_path = payload_file.name
 
           try:
-              with urllib.request.urlopen(request) as response:
-                  print(f"Discord responded HTTP {response.status}")
-          except urllib.error.HTTPError as error:
-              body = error.read().decode("utf-8", errors="replace")
+              result = subprocess.run(
+                  [
+                      "curl",
+                      "-fsS",
+                      "-X",
+                      "POST",
+                      "-H",
+                      "Content-Type: application/json",
+                      "-d",
+                      f"@{payload_path}",
+                      webhook_url,
+                  ],
+                  capture_output=True,
+                  text=True,
+              )
+          finally:
+              os.unlink(payload_path)
+
+          if result.returncode != 0:
               print(
-                  f"Discord webhook failed: HTTP {error.code} {body}",
+                  "Discord webhook failed:\n"
+                  f"stdout: {result.stdout}\n"
+                  f"stderr: {result.stderr}",
                   file=sys.stderr,
               )
               sys.exit(1)
+
+          print("Discord webhook accepted")
           PYTHON
