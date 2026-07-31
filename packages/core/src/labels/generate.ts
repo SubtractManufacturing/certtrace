@@ -234,11 +234,13 @@ async function drawMaterialPage(
     }
 
     const barcodeImage = await embedBarcode(pdf, element.payload);
-    const barcodeWidth = Math.min(element.widthPt, barcodeImage.width);
-    const barcodeHeight = Math.min(
-      element.heightPt,
-      (barcodeImage.height / barcodeImage.width) * barcodeWidth,
-    );
+    const imageAspect = barcodeImage.width / Math.max(barcodeImage.height, 1);
+    let barcodeWidth = element.widthPt;
+    let barcodeHeight = barcodeWidth / imageAspect;
+    if (barcodeHeight > element.heightPt) {
+      barcodeHeight = element.heightPt;
+      barcodeWidth = barcodeHeight * imageAspect;
+    }
     page.drawImage(barcodeImage, {
       x: alignedLeftPt(element.leftPt, element.widthPt, barcodeWidth, element.align),
       y: heightPt - element.topPt - barcodeHeight,

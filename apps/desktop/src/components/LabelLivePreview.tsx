@@ -79,7 +79,7 @@ function LabelBarcodePreview({ payload }: { payload: string }) {
     <img
       src={src ?? undefined}
       alt={`Barcode for ${payload}`}
-      className={cn("block h-full w-full object-contain object-left", !src && "bg-slate-50")}
+      className={cn("block h-full w-full object-contain", !src && "bg-slate-50")}
     />
   );
 }
@@ -207,23 +207,10 @@ export function LabelLivePreview({
                   height: element.heightPt,
                 }}
               >
-              <div
-                className="h-full w-full"
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    element.align === "center"
-                      ? "center"
-                      : element.align === "right"
-                        ? "flex-end"
-                        : "flex-start",
-                }}
-              >
                 <LabelBarcodePreview payload={element.payload} />
               </div>
-            </div>
-              );
-            })}
+            );
+          })}
         </div>
       </div>
       {showOverflowWarning && layout.overflow ? (

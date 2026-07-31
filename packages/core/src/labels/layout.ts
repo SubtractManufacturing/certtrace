@@ -39,6 +39,8 @@ export const LABEL_DEFAULT_VALUE_FONT_SIZE_PT = 12;
 export const LABEL_LABEL_FONT_SIZE_PT = 9;
 export const LABEL_QR_MAX_SIZE_PT = 96;
 export const LABEL_BARCODE_MAX_HEIGHT_PT = 36;
+/** Typical Code128 width/height ratio for short Material ids (layout estimate). */
+export const LABEL_BARCODE_ASPECT = 6;
 const LABEL_FIELD_GAP_PT = 6;
 export const LABEL_VALUE_LINE_GAP_PT = 2;
 
@@ -160,6 +162,13 @@ function qrSizePt(
 
 function barcodeHeightPt(size: LabelContentSize): number {
   return LABEL_BARCODE_MAX_HEIGHT_PT * sizeWeight(size);
+}
+
+function barcodeWidthPt(contentWidthPt: number, heightPt: number, size: LabelContentSize): number {
+  const estimated = heightPt * LABEL_BARCODE_ASPECT;
+  // Leave room so left/center/right alignment is visible (large may still span full width).
+  const maxFraction = size === "large" ? 1 : size === "small" ? 0.55 : 0.75;
+  return Math.min(contentWidthPt, contentWidthPt * maxFraction, Math.max(heightPt * 3, estimated));
 }
 
 function codeBlockHeightPt(slots: LabelLayoutSlot[], widthPt: number, heightPt: number, marginPt: number): number {
@@ -303,12 +312,13 @@ export function computeLabelPageLayout(
     }
 
     const barcodeHeight = barcodeHeightPt(slot.size);
+    const barcodeWidth = barcodeWidthPt(contentWidthPt, barcodeHeight, slot.size);
     elements.push({
       kind: "barcode",
       payload: slot.payload,
-      leftPt: marginPt,
+      leftPt: alignedLeftPt(marginPt, contentWidthPt, barcodeWidth, slot.align),
       topPt: cursorTopPt,
-      widthPt: contentWidthPt,
+      widthPt: barcodeWidth,
       heightPt: barcodeHeight,
       align: slot.align,
     });

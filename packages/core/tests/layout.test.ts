@@ -105,6 +105,40 @@ describe("computeLabelPageLayout", () => {
     }
   });
 
+  it("centers barcode when align is center", () => {
+    const layout = computeLabelPageLayout(template4x6, [
+      { kind: "barcode", payload: material.id, align: "center", size: "medium" },
+    ]);
+    const barcode = layout.elements.find((element) => element.kind === "barcode");
+    expect(barcode?.kind).toBe("barcode");
+    if (barcode?.kind === "barcode") {
+      const contentWidth = layout.widthPt - layout.marginPt * 2;
+      expect(barcode.widthPt).toBeLessThan(contentWidth);
+      expect(barcode.leftPt).toBeCloseTo(
+        alignedLeftPt(layout.marginPt, contentWidth, barcode.widthPt, "center"),
+        1,
+      );
+      expect(barcode.leftPt).toBeGreaterThan(layout.marginPt);
+    }
+  });
+
+  it("right-aligns barcode when align is right", () => {
+    const layout = computeLabelPageLayout(template4x6, [
+      { kind: "barcode", payload: material.id, align: "right", size: "medium" },
+    ]);
+    const barcode = layout.elements.find((element) => element.kind === "barcode");
+    expect(barcode?.kind).toBe("barcode");
+    if (barcode?.kind === "barcode") {
+      const contentWidth = layout.widthPt - layout.marginPt * 2;
+      expect(barcode.widthPt).toBeLessThan(contentWidth);
+      expect(barcode.leftPt).toBeCloseTo(
+        alignedLeftPt(layout.marginPt, contentWidth, barcode.widthPt, "right"),
+        1,
+      );
+      expect(barcode.leftPt).toBeGreaterThan(layout.marginPt);
+    }
+  });
+
   it("wraps long values onto multiple lines", () => {
     const slots: LabelLayoutSlot[] = [
       {
