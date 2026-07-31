@@ -188,10 +188,11 @@ async function drawMaterialPage(
   slots: LabelLayoutSlot[],
   font: PDFFont,
   fontBold: PDFFont,
-): Promise<{ warning?: string }> {
+): Promise<{ warnings: string[] }> {
   const layout = computeLabelPageLayout(template, slots, createPdfTextMeasurer(font, fontBold));
   const { widthPt, heightPt } = labelTemplateSizePoints(template.size);
   const page = pdf.addPage([widthPt, heightPt]);
+  const warnings: string[] = [];
 
   for (const element of layout.elements) {
     if (element.kind === "field") {
@@ -223,35 +224,44 @@ async function drawMaterialPage(
     }
 
     if (element.kind === "qr") {
-      const qrImage = await embedQr(pdf, element.payload, Math.round(element.sizePt * 4));
-      page.drawImage(qrImage, {
-        x: element.leftPt,
-        y: heightPt - element.topPt - element.sizePt,
-        width: element.sizePt,
-        height: element.sizePt,
-      });
+      try {
+        const qrImage = await embedQr(pdf, element.payload, Math.round(element.sizePt * 4));
+        page.drawImage(qrImage, {
+          x: element.leftPt,
+          y: heightPt - element.topPt - element.sizePt,
+          width: element.sizePt,
+          height: element.sizePt,
+        });
+      } catch {
+        warnings.push("Could not render the QR code for this Label.");
+      }
       continue;
     }
 
-    const barcodeImage = await embedBarcode(pdf, element.payload);
-    const imageAspect = barcodeImage.width / Math.max(barcodeImage.height, 1);
-    let barcodeWidth = element.widthPt;
-    let barcodeHeight = barcodeWidth / imageAspect;
-    if (barcodeHeight > element.heightPt) {
-      barcodeHeight = element.heightPt;
-      barcodeWidth = barcodeHeight * imageAspect;
+    try {
+      const barcodeImage = await embedBarcode(pdf, element.payload);
+      const imageAspect = barcodeImage.width / Math.max(barcodeImage.height, 1);
+      let barcodeWidth = element.widthPt;
+      let barcodeHeight = barcodeWidth / imageAspect;
+      if (barcodeHeight > element.heightPt) {
+        barcodeHeight = element.heightPt;
+        barcodeWidth = barcodeHeight * imageAspect;
+      }
+      page.drawImage(barcodeImage, {
+        x: alignedLeftPt(element.leftPt, element.widthPt, barcodeWidth, element.align),
+        y: heightPt - element.topPt - barcodeHeight,
+        width: barcodeWidth,
+        height: barcodeHeight,
+      });
+    } catch {
+      warnings.push("Could not render the barcode for this Label.");
     }
-    page.drawImage(barcodeImage, {
-      x: alignedLeftPt(element.leftPt, element.widthPt, barcodeWidth, element.align),
-      y: heightPt - element.topPt - barcodeHeight,
-      width: barcodeWidth,
-      height: barcodeHeight,
-    });
   }
 
-  return layout.overflow
-    ? { warning: `Label content may not fit the ${template.name} label size.` }
-    : {};
+  if (layout.overflow) {
+    warnings.push(`Label content may not fit the ${template.name} label size.`);
+  }
+  return { warnings };
 }
 
 export async function generateLabelPdf(
@@ -276,10 +286,8 @@ export async function generateLabelPdf(
     slots.push(resolved.slots);
     codePayloads.push(resolved.codes);
 
-    const { warning } = await drawMaterialPage(pdf, input.template, resolved.slots, font, fontBold);
-    if (warning) {
-      warnings.push(warning);
-    }
+    const pageResult = await drawMaterialPage(pdf, input.template, resolved.slots, font, fontBold);
+    warnings.push(...pageResult.warnings);
   }
 
   return {
