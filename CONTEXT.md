@@ -82,3 +82,13 @@ _Avoid_: File type (when meaning cert role — that is pdf/png/etc.), Document t
 **Option short code**:
 An optional compact code on a select option (e.g. Aluminum → `AL`) used by material ID templates. When a template asks for that field's token and no short code is set, the option's display name is used instead.
 _Avoid_: Material code (as a separate free-floating concept), Prefix (unless speaking loosely)
+
+### Labels
+
+**Label**:
+A physical sticker or sheet attached to a Material that shows selected identifying information so the piece can be recognized on the rack and looked up in CertTrace.
+_Avoid_: Sticker (unless speaking loosely), Tag (for this concept)
+
+**Label Template**:
+A named, library-owned recipe for Labels: paper size (from a shipped catalog or custom dimensions, with a per-template display unit) plus an ordered list of content items — which Material information (and optional machine-readable code) appears, each with horizontal alignment (left/center/right) and a relative size (small/medium/large). CertTrace auto-lays out the content for that size using those per-item hints, and may pack wide/short sizes into multiple columns from the same linear order when a single stack would not fit. Machine-readable codes (QR and/or barcode), when included, encode the Material id; QR may carry a richer payload in a later revision. Included fields with no value on a Material still appear with a visible placeholder. Each library has one default Label Template used when printing or exporting, and may keep additional templates the user can pick instead. New libraries ship starters for `4×6 in` (default), `8.5×11 in`, and `3×1 in`.
+_Avoid_: Label format, Label type, Label preset (unless speaking loosely about built-in starting sizes)

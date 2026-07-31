@@ -9,15 +9,17 @@ import { migrateLibraryConfig, migrateMaterialMetadata } from "../src/migrations
 const fixturesRoot = join(dirname(fileURLToPath(import.meta.url)), "../../../fixtures/libraries");
 
 describe("schema migrations", () => {
-  it("passes through valid v1 library config unchanged", async () => {
+  it("migrates v1 library config to starter Label Templates", async () => {
     const raw = await readFile(join(fixturesRoot, "small/.certtrace/library.json"), "utf8");
     const parsed = migrateLibraryConfig(JSON.parse(raw));
 
     expect(parsed.name).toBe("Main Shop Materials");
-    expect(parsed.version).toBe(1);
+    expect(parsed.version).toBe(3);
+    expect(parsed.defaultLabelTemplateId).toBe("starter-4x6");
+    expect(parsed.labelTemplates).toHaveLength(3);
   });
 
-  it("passes through valid v1 material metadata unchanged", async () => {
+  it("migrates v1 material metadata to current schema version", async () => {
     const raw = await readFile(
       join(fixturesRoot, "small/materials/AL-falcon-104/metadata.json"),
       "utf8",
@@ -25,7 +27,7 @@ describe("schema migrations", () => {
     const parsed = migrateMaterialMetadata(JSON.parse(raw));
 
     expect(parsed.id).toBe("AL-falcon-104");
-    expect(parsed.version).toBe(1);
+    expect(parsed.version).toBe(3);
   });
 
   it("rejects libraries created with a newer schema version", () => {
@@ -34,7 +36,8 @@ describe("schema migrations", () => {
         version: 99,
         name: "Future Library",
         idStrategy: "numeric",
-        labelTemplate: "standard-qr",
+        labelTemplates: [],
+        defaultLabelTemplateId: "x",
         searchAllFields: true,
       }),
     ).toThrow(/newer CertTrace/);

@@ -1,15 +1,122 @@
 import { z } from "zod";
 
-export const SCHEMA_VERSION = 1 as const;
+export const SCHEMA_VERSION = 3 as const;
 
-export const libraryConfigV1Schema = z.object({
-  version: z.literal(SCHEMA_VERSION),
-  name: z.string().min(1),
-  idStrategy: z.string().min(1),
-  labelTemplate: z.string().min(1),
-  /** Legacy compatibility only. Search is always material ID plus identifier values (ADR-0004). */
-  searchAllFields: z.boolean(),
+/** Well-known Label Template content keys (not Field/Identifier keys). */
+export const LABEL_CONTENT_MATERIAL_ID = "material_id" as const;
+export const LABEL_CONTENT_QR = "qr" as const;
+export const LABEL_CONTENT_BARCODE = "barcode" as const;
+
+export const labelContentAlignSchema = z.enum(["left", "center", "right"]);
+export type LabelContentAlign = z.infer<typeof labelContentAlignSchema>;
+
+export const labelContentSizeSchema = z.enum(["small", "medium", "large"]);
+export type LabelContentSize = z.infer<typeof labelContentSizeSchema>;
+
+/** Relative layout weight for Small / Medium / Large content slots. */
+export const LABEL_CONTENT_SIZE_WEIGHT: Record<LabelContentSize, number> = {
+  small: 0.85,
+  medium: 1,
+  large: 1.25,
+};
+
+export const labelContentItemSchema = z.object({
+  key: z.string().min(1),
+  align: labelContentAlignSchema,
+  size: labelContentSizeSchema,
 });
+export type LabelContentItem = z.infer<typeof labelContentItemSchema>;
+
+export function createLabelContentItem(
+  key: string,
+  overrides?: Partial<Pick<LabelContentItem, "align" | "size">>,
+): LabelContentItem {
+  return {
+    key,
+    align: overrides?.align ?? "left",
+    size: overrides?.size ?? "medium",
+  };
+}
+
+export const labelDisplayUnitSchema = z.enum(["in", "mm"]);
+export type LabelDisplayUnit = z.infer<typeof labelDisplayUnitSchema>;
+
+/** Shipped label-size catalog ids. Starters use `4x6`, `letter`, and `3x1`. */
+export const labelSizeCatalogIdSchema = z.enum(["3x1", "4x6", "letter"]);
+export type LabelSizeCatalogId = z.infer<typeof labelSizeCatalogIdSchema>;
+
+/** Canonical size in inches for each catalog entry (PDF uses 72 pt/in). */
+export const LABEL_SIZE_CATALOG: Record<LabelSizeCatalogId, { widthIn: number; heightIn: number }> =
+  {
+    "3x1": { widthIn: 3, heightIn: 1 },
+    "4x6": { widthIn: 4, heightIn: 6 },
+    letter: { widthIn: 8.5, heightIn: 11 },
+  };
+
+export const labelSizeSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("catalog"),
+    catalogId: labelSizeCatalogIdSchema,
+  }),
+  z.object({
+    kind: z.literal("custom"),
+    widthIn: z.number().positive(),
+    heightIn: z.number().positive(),
+  }),
+]);
+export type LabelSize = z.infer<typeof labelSizeSchema>;
+
+export const labelTemplateSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    size: labelSizeSchema,
+    displayUnit: labelDisplayUnitSchema,
+    /**
+     * Ordered enabled content slots: core keys (`material_id`, `qr`, `barcode`),
+     * Field keys, or Identifier kind keys, each with align and relative size.
+     */
+    content: z.array(labelContentItemSchema).min(1),
+  })
+  .superRefine((template, ctx) => {
+    const keys = new Set(template.content.map((item) => item.key));
+    if (keys.size !== template.content.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "label template content keys must be unique",
+        path: ["content"],
+      });
+    }
+  });
+export type LabelTemplate = z.infer<typeof labelTemplateSchema>;
+
+export const libraryConfigV1Schema = z
+  .object({
+    version: z.literal(SCHEMA_VERSION),
+    name: z.string().min(1),
+    idStrategy: z.string().min(1),
+    labelTemplates: z.array(labelTemplateSchema).min(1),
+    defaultLabelTemplateId: z.string().min(1),
+    /** Legacy compatibility only. Search is always material ID plus identifier values (ADR-0004). */
+    searchAllFields: z.boolean(),
+  })
+  .superRefine((value, ctx) => {
+    const ids = new Set(value.labelTemplates.map((template) => template.id));
+    if (ids.size !== value.labelTemplates.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "labelTemplates ids must be unique",
+        path: ["labelTemplates"],
+      });
+    }
+    if (!ids.has(value.defaultLabelTemplateId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "defaultLabelTemplateId must match a label template id",
+        path: ["defaultLabelTemplateId"],
+      });
+    }
+  });
 
 export type LibraryConfigV1 = z.infer<typeof libraryConfigV1Schema>;
 
@@ -164,13 +271,29 @@ export const fieldSchemaV1Schema = z
     tableColumns: z.array(materialTableColumnV1Schema).optional(),
   })
   .superRefine((schema, ctx) => {
-    const reserved = new Set(["id", "createdAt", "updatedAt"]);
+    const reserved = new Set([
+      "id",
+      "createdAt",
+      "updatedAt",
+      LABEL_CONTENT_MATERIAL_ID,
+      LABEL_CONTENT_QR,
+      LABEL_CONTENT_BARCODE,
+    ]);
     for (const [index, field] of schema.fields.entries()) {
       if (reserved.has(field.key)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `Field key "${field.key}" is reserved for system material properties`,
           path: ["fields", index, "key"],
+        });
+      }
+    }
+    for (const [index, kind] of schema.identifierKinds.entries()) {
+      if (reserved.has(kind.key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Identifier kind key "${kind.key}" is reserved for Label content slots`,
+          path: ["identifierKinds", index, "key"],
         });
       }
     }
@@ -207,9 +330,15 @@ export const attachedFileSchema = z.object({
 
 export type AttachedFile = z.infer<typeof attachedFileSchema>;
 
-export const labelTemplateSchema = z.object({
-  id: z.string().min(1),
-  label: z.string().min(1),
-});
+export function labelTemplateSizeInches(size: LabelSize): { widthIn: number; heightIn: number } {
+  if (size.kind === "catalog") {
+    return LABEL_SIZE_CATALOG[size.catalogId];
+  }
+  return { widthIn: size.widthIn, heightIn: size.heightIn };
+}
 
-export type LabelTemplate = z.infer<typeof labelTemplateSchema>;
+/** Convert Label Template size to PDF points (72 pt = 1 in). */
+export function labelTemplateSizePoints(size: LabelSize): { widthPt: number; heightPt: number } {
+  const { widthIn, heightIn } = labelTemplateSizeInches(size);
+  return { widthPt: widthIn * 72, heightPt: heightIn * 72 };
+}

@@ -23,7 +23,7 @@ function library(path: string, name: string): OpenLibraryResult {
 
 function material(id: string, identifier: string): MaterialMetadataV1 {
   return {
-    version: 1,
+    version: 3,
     id,
     fields: { notes: `Notes for ${identifier}` },
     identifiers: { heat_number: identifier },

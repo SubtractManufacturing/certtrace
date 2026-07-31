@@ -1,23 +1,50 @@
-import { generateStandardQrLabelPdf, type StandardQrLabelOptions } from "@certtrace/core";
-import type { MaterialMetadataV1 } from "@certtrace/types";
+import { generateLabelPdf } from "@certtrace/core";
+import type { OpenLibraryResult } from "@certtrace/library-engine";
+import type { LabelTemplate, MaterialMetadataV1 } from "@certtrace/types";
 import { invoke } from "@tauri-apps/api/core";
 import { appCacheDir, join } from "@tauri-apps/api/path";
 import { save } from "@tauri-apps/plugin-dialog";
 import { mkdir, writeFile } from "@tauri-apps/plugin-fs";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
-export async function generateStandardQrLabelPdfBytes(
-  material: MaterialMetadataV1,
-  options?: StandardQrLabelOptions,
+export function getDefaultLabelTemplate(library: OpenLibraryResult): LabelTemplate {
+  const template = library.config.labelTemplates.find(
+    (entry) => entry.id === library.config.defaultLabelTemplateId,
+  );
+  if (!template) {
+    throw new Error("Library default Label Template is missing.");
+  }
+  return template;
+}
+
+export async function generateLibraryLabelPdf(
+  library: OpenLibraryResult,
+  materials: MaterialMetadataV1[],
+  template: LabelTemplate = getDefaultLabelTemplate(library),
+): Promise<{ pdf: Uint8Array; warnings: string[] }> {
+  const { pdf, warnings } = await generateLabelPdf({
+    template,
+    materials,
+    fieldSchema: library.fieldSchema,
+  });
+  return { pdf, warnings };
+}
+
+export async function generateLibraryLabelPdfBytes(
+  library: OpenLibraryResult,
+  materials: MaterialMetadataV1[],
+  template: LabelTemplate = getDefaultLabelTemplate(library),
 ): Promise<Uint8Array> {
-  return generateStandardQrLabelPdf(material, options);
+  const { pdf } = await generateLibraryLabelPdf(library, materials, template);
+  return pdf;
 }
 
 export async function saveLabelPdfViaDialog(
+  library: OpenLibraryResult,
   material: MaterialMetadataV1,
-  options?: StandardQrLabelOptions,
+  template: LabelTemplate = getDefaultLabelTemplate(library),
 ): Promise<string | null> {
-  const bytes = await generateStandardQrLabelPdf(material, options);
+  const bytes = await generateLibraryLabelPdfBytes(library, [material], template);
   const path = await save({
     title: "Save label PDF",
     defaultPath: `${material.id}-label.pdf`,

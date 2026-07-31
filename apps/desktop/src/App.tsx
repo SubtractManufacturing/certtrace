@@ -65,6 +65,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [bootstrapping, setBootstrapping] = useState(true);
   const [removingLibrary, setRemovingLibrary] = useState(false);
+  const [expandLabelTemplates, setExpandLabelTemplates] = useState(false);
   const bootstrapAttempted = useRef(false);
 
   const updateCheck = useUpdateCheck({
@@ -268,13 +269,17 @@ function App() {
     }
   }
 
-  async function handleOpenLibrarySettings(path: string) {
+  async function handleOpenLibrarySettings(
+    path: string,
+    options?: { expandLabelTemplates?: boolean },
+  ) {
     setError(null);
     try {
       if (!session.sessionLibraries.has(path)) {
         await session.openLibrary(path);
       }
       session.setActiveLibraryPath(path);
+      setExpandLabelTemplates(Boolean(options?.expandLabelTemplates));
       setActiveView("library-settings");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -332,7 +337,12 @@ function App() {
     <ThemeProvider theme={resolvedTheme}>
       <AppShell
         activeView={activeView}
-        onViewChange={setActiveView}
+        onViewChange={(view) => {
+          if (view !== "library-settings") {
+            setExpandLabelTemplates(false);
+          }
+          setActiveView(view);
+        }}
         libraries={libraryPickerOptions}
         activeLibraryPath={session.activeLibraryPath}
         onLibraryChange={(path) => void handleLibraryChange(path)}
@@ -356,6 +366,9 @@ function App() {
             onRefreshLibrary={refreshLibraryMaterials}
             filterMaterials={filterMaterials}
             onEnsureLibrary={(path) => session.openLibrary(path)}
+            onEditLabelTemplates={(path) => {
+              void handleOpenLibrarySettings(path, { expandLabelTemplates: true });
+            }}
           />
         ) : null}
 
@@ -390,6 +403,7 @@ function App() {
         {activeView === "library-settings" && settingsLibraryForMenu ? (
           <LibrarySettingsView
             library={settingsLibraryForMenu}
+            expandLabelTemplates={expandLabelTemplates}
             onOpenAdvancedSettings={() => setActiveView("library-advanced-settings")}
             onLibraryUpdated={(library) => session.updateLibraryInSession(library)}
             onRefreshLibrary={() => refreshLibraryMaterials(settingsLibraryForMenu.paths.root)}

@@ -7,7 +7,30 @@ export {
   touchRecentLibrary,
   writeAppSettings,
 } from "./app-settings.js";
-export { generateStandardQrLabelPdf, type StandardQrLabelOptions } from "./labels/standard-qr.js";
+export {
+  renderBarcodePngBytes,
+  renderBarcodePreviewDataUrl,
+  renderQrDataUrl,
+} from "./labels/code-images.js";
+export {
+  type GenerateLabelPdfInput,
+  type GenerateLabelPdfResult,
+  generateLabelPdf,
+  type LabelCodePayloads,
+  type LabelContentLine,
+  type LabelLayoutSlot,
+  resolveLabelLayout,
+  resolveLabelLines,
+} from "./labels/generate.js";
+export {
+  alignedLeftPt,
+  computeLabelPageLayout,
+  createApproxTextMeasurer,
+  LABEL_VALUE_LINE_GAP_PT,
+  type LabelLayoutElement,
+  type LabelPageLayout,
+  type LabelTextMeasurer,
+} from "./labels/layout.js";
 export {
   buildSearchIndex,
   materialSearchText,
