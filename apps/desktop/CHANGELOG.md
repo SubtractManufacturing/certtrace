@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.2...desktop-v0.0.3) (2026-07-31)
+
+
+### Features
+
+* Rewrite Label Templates and label print/export experience ([#100](https://github.com/SubtractManufacturing/certtrace/issues/100)) ([2c20075](https://github.com/SubtractManufacturing/certtrace/commit/2c20075a478f95720c8bc1fbad5a242717681d4b))
+
 ## [0.0.2](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.1...desktop-v0.0.2) (2026-07-31)
 
 
