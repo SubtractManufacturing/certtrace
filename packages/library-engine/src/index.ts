@@ -375,6 +375,15 @@ export async function updateMaterial(
   return updated;
 }
 
+/** Permanently remove a material folder (metadata + attachments). */
+export async function removeMaterial(
+  library: OpenLibraryResult,
+  materialId: string,
+): Promise<void> {
+  await getMaterial(library, materialId);
+  await library.fs.remove(joinPath(library.paths.materials, materialId));
+}
+
 export async function removeSchemaDefinition(
   library: OpenLibraryResult,
   input: RemoveSchemaDefinitionInput,

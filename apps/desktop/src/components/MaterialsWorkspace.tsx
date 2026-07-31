@@ -315,6 +315,11 @@ export function MaterialsWorkspace({
           onMaterialUpdated={async () => {
             await onRefreshLibrary(selectedMaterial.libraryPath);
           }}
+          onMaterialDeleted={async () => {
+            const libraryPath = selectedMaterial.libraryPath;
+            await onRefreshLibrary(libraryPath);
+            setSelectedMaterial(null);
+          }}
         />
       ) : null}
 

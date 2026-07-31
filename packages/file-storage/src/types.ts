@@ -10,6 +10,7 @@ export interface FileSystem {
   writeFile(path: string, content: string): Promise<void>;
   readBinary(path: string): Promise<Uint8Array>;
   writeBinary(path: string, data: Uint8Array): Promise<void>;
+  /** Remove a file or directory. Directory removal is recursive. */
   remove(path: string): Promise<void>;
   copyFile(from: string, to: string): Promise<void>;
   rename(from: string, to: string): Promise<void>;
