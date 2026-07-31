@@ -24,6 +24,7 @@ vi.mock("../lib/attachment-client", () => ({
 
 vi.mock("../lib/library-client", () => ({
   addLibraryFieldOption: vi.fn(),
+  deleteMaterial: vi.fn(),
   fetchMaterialAttachments: vi.fn(),
   updateMaterialMetadata: vi.fn(),
 }));
@@ -70,6 +71,7 @@ describe("MaterialDetailPanel attachments", () => {
         open
         onOpenChange={() => undefined}
         onMaterialUpdated={() => undefined}
+        onMaterialDeleted={() => undefined}
       />,
     );
 

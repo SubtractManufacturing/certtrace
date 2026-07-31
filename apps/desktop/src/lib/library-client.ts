@@ -7,6 +7,7 @@ import {
   type CreateMaterialInput,
   createLibrary,
   createMaterial,
+  removeMaterial,
   listMaterialAttachments,
   listMaterials,
   type OpenLibraryResult,
@@ -109,6 +110,13 @@ export async function updateMaterialMetadata(
   input: UpdateMaterialInput,
 ): Promise<MaterialMetadataV1> {
   return updateMaterial(library, materialId, input);
+}
+
+export async function deleteMaterial(
+  library: OpenLibraryResult,
+  materialId: string,
+): Promise<void> {
+  return removeMaterial(library, materialId);
 }
 
 export async function addLibraryFieldOption(

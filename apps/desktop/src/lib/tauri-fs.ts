@@ -29,7 +29,7 @@ export function createTauriFileSystem(): FileSystem {
       await writeFile(path, data);
     },
     remove(path) {
-      return remove(path);
+      return remove(path, { recursive: true });
     },
     copyFile(from, to) {
       return copyFile(from, to);

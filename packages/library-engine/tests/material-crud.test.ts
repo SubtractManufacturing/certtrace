@@ -1,15 +1,17 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createNodeFileSystem } from "@certtrace/file-storage/node";
 import { materialMetadataPath } from "@certtrace/types";
 import { describe, expect, it } from "vitest";
 import {
+  attachFiles,
   createLibrary,
   createMaterial,
   getMaterial,
   listMaterials,
   openLibrary,
+  removeMaterial,
   updateMaterial,
 } from "../src/index.js";
 
@@ -110,6 +112,31 @@ describe("material CRUD", () => {
       expect(await listMaterials(await openLibrary(fs, root))).toHaveLength(2);
     } finally {
       await rm(parentDir, { recursive: true, force: true });
+    }
+  });
+
+  it("removes a material folder including attachments", async () => {
+    const fs = createNodeFileSystem();
+    const parentDir = await mkdtemp(join(tmpdir(), "certtrace-material-"));
+    const sourceDir = await mkdtemp(join(tmpdir(), "certtrace-source-"));
+
+    try {
+      await writeFile(join(sourceDir, "cert.pdf"), "pdf-content");
+      const library = await createLibrary(fs, parentDir, "Delete Shop");
+      const created = await createMaterial(library, { fields: { family: "aluminum" } });
+      await attachFiles(library, created.id, [{ sourcePath: join(sourceDir, "cert.pdf") }]);
+      const materialFolder = join(library.paths.materials, created.id);
+      const attachmentPath = join(materialFolder, "cert.pdf");
+
+      await removeMaterial(library, created.id);
+
+      expect(await listMaterials(await openLibrary(fs, library.paths.root))).toHaveLength(0);
+      await expect(getMaterial(library, created.id)).rejects.toThrow();
+      await expect(access(materialFolder)).rejects.toThrow();
+      await expect(access(attachmentPath)).rejects.toThrow();
+    } finally {
+      await rm(parentDir, { recursive: true, force: true });
+      await rm(sourceDir, { recursive: true, force: true });
     }
   });
 });
