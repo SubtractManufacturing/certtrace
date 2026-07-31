@@ -13,6 +13,7 @@ import {
 /** Stable ids for shipped starter Label Templates (ordinary data — editable/deletable). */
 export const STARTER_LABEL_TEMPLATE_4X6_ID = "starter-4x6" as const;
 export const STARTER_LABEL_TEMPLATE_LETTER_ID = "starter-letter" as const;
+export const STARTER_LABEL_TEMPLATE_3X1_ID = "starter-3x1" as const;
 
 const STARTER_LABEL_CONTENT_KEYS = [
   "family",
@@ -20,6 +21,14 @@ const STARTER_LABEL_CONTENT_KEYS = [
   "temper",
   LABEL_CONTENT_MATERIAL_ID,
   LABEL_CONTENT_QR,
+] as const;
+
+/** Compact field set for short/wide labels (no QR — packing prefers text density). */
+const STARTER_3X1_CONTENT_KEYS = [
+  LABEL_CONTENT_MATERIAL_ID,
+  "family",
+  "alloy",
+  "temper",
 ] as const;
 
 export function createStarterLabelTemplates(): LabelTemplate[] {
@@ -38,6 +47,13 @@ export function createStarterLabelTemplates(): LabelTemplate[] {
       size: { kind: "catalog", catalogId: "letter" },
       displayUnit: "in",
       content: content.map((item) => ({ ...item })),
+    },
+    {
+      id: STARTER_LABEL_TEMPLATE_3X1_ID,
+      name: "3×1 in",
+      size: { kind: "catalog", catalogId: "3x1" },
+      displayUnit: "in",
+      content: STARTER_3X1_CONTENT_KEYS.map((key) => createLabelContentItem(key)),
     },
   ];
 }

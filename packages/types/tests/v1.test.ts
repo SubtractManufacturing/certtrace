@@ -38,6 +38,7 @@ describe("libraryConfigV1Schema", () => {
     expect(parsed.labelTemplates.map((template) => template.id)).toEqual([
       "starter-4x6",
       "starter-letter",
+      "starter-3x1",
     ]);
   });
 

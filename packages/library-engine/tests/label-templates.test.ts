@@ -6,6 +6,7 @@ import { createNodeFileSystem } from "@certtrace/file-storage/node";
 import {
   createLabelContentItem,
   createStarterLabelTemplates,
+  STARTER_LABEL_TEMPLATE_3X1_ID,
   STARTER_LABEL_TEMPLATE_4X6_ID,
   STARTER_LABEL_TEMPLATE_LETTER_ID,
 } from "@certtrace/types";
@@ -22,7 +23,7 @@ import { migrateLibraryConfig } from "../src/migrations/index.js";
 const fixturesRoot = join(dirname(fileURLToPath(import.meta.url)), "../../../fixtures/libraries");
 
 describe("label template seeding and migration", () => {
-  it("seeds 4×6 (default) and 8.5×11 starters when creating a library", async () => {
+  it("seeds 4×6 (default), 8.5×11, and 3×1 starters when creating a library", async () => {
     const fs = createNodeFileSystem();
     const parentDir = await mkdtemp(join(tmpdir(), "certtrace-labels-"));
 
@@ -32,6 +33,7 @@ describe("label template seeding and migration", () => {
       expect(library.config.labelTemplates.map((t) => t.id)).toEqual([
         STARTER_LABEL_TEMPLATE_4X6_ID,
         STARTER_LABEL_TEMPLATE_LETTER_ID,
+        STARTER_LABEL_TEMPLATE_3X1_ID,
       ]);
       expect(library.config.defaultLabelTemplateId).toBe(STARTER_LABEL_TEMPLATE_4X6_ID);
       expect(library.config.labelTemplates[0]?.content.map((item) => item.key)).toEqual([
@@ -47,6 +49,16 @@ describe("label template seeding and migration", () => {
       expect(library.config.labelTemplates[0]?.content.every((item) => item.size === "medium")).toBe(
         true,
       );
+      const starter3x1 = library.config.labelTemplates.find(
+        (template) => template.id === STARTER_LABEL_TEMPLATE_3X1_ID,
+      );
+      expect(starter3x1?.size).toEqual({ kind: "catalog", catalogId: "3x1" });
+      expect(starter3x1?.content.map((item) => item.key)).toEqual([
+        "material_id",
+        "family",
+        "alloy",
+        "temper",
+      ]);
     } finally {
       await rm(parentDir, { recursive: true, force: true });
     }
@@ -120,7 +132,10 @@ describe("label template invariants", () => {
   it("reassigns default when deleting the default template", () => {
     const next = deleteLabelTemplate(base, STARTER_LABEL_TEMPLATE_4X6_ID);
 
-    expect(next.labelTemplates.map((t) => t.id)).toEqual([STARTER_LABEL_TEMPLATE_LETTER_ID]);
+    expect(next.labelTemplates.map((t) => t.id)).toEqual([
+      STARTER_LABEL_TEMPLATE_LETTER_ID,
+      STARTER_LABEL_TEMPLATE_3X1_ID,
+    ]);
     expect(next.defaultLabelTemplateId).toBe(STARTER_LABEL_TEMPLATE_LETTER_ID);
   });
 
@@ -138,7 +153,7 @@ describe("label template invariants", () => {
     };
 
     const withAdded = addLabelTemplate(base, custom);
-    expect(withAdded.labelTemplates).toHaveLength(3);
+    expect(withAdded.labelTemplates).toHaveLength(4);
     expect(withAdded.defaultLabelTemplateId).toBe(STARTER_LABEL_TEMPLATE_4X6_ID);
 
     const renamed = updateLabelTemplate(withAdded, { ...custom, name: "Renamed" });

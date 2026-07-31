@@ -16,7 +16,7 @@ describe("schema migrations", () => {
     expect(parsed.name).toBe("Main Shop Materials");
     expect(parsed.version).toBe(3);
     expect(parsed.defaultLabelTemplateId).toBe("starter-4x6");
-    expect(parsed.labelTemplates).toHaveLength(2);
+    expect(parsed.labelTemplates).toHaveLength(3);
   });
 
   it("migrates v1 material metadata to current schema version", async () => {

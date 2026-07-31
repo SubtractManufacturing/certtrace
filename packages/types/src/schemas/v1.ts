@@ -41,7 +41,7 @@ export function createLabelContentItem(
 export const labelDisplayUnitSchema = z.enum(["in", "mm"]);
 export type LabelDisplayUnit = z.infer<typeof labelDisplayUnitSchema>;
 
-/** Shipped label-size catalog ids. Starters use `4x6` and `letter`. */
+/** Shipped label-size catalog ids. Starters use `4x6`, `letter`, and `3x1`. */
 export const labelSizeCatalogIdSchema = z.enum(["3x1", "4x6", "letter"]);
 export type LabelSizeCatalogId = z.infer<typeof labelSizeCatalogIdSchema>;
 
