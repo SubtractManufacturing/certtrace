@@ -77,7 +77,7 @@ pnpm lint          # Biome check (lint + format + import sorting)
 pnpm format        # apply Biome formatting
 pnpm format:check  # verify formatting without writing
 pnpm typecheck     # TypeScript check
-pnpm test          # run tests (when configured)
+pnpm test          # build packages, then run workspace Vitest suites
 
 # Rust checks for the Tauri crate (apps/desktop/src-tauri)
 cd apps/desktop/src-tauri
@@ -90,12 +90,16 @@ cargo test
 ```txt
 certtrace/
   apps/
-    desktop/      # Tauri + React desktop shell
-  packages/       # shared libraries (Phase 1+)
+    desktop/      # Tauri + React desktop app
+  packages/       # shared libraries (types, library-engine, core, …)
   planning/       # design docs and roadmap
 ```
 
 See [planning/spec.md](planning/spec.md) for architecture and [planning/roadmap.md](planning/roadmap.md) for delivery phases.
+
+## Desktop security posture
+
+The Tauri shell currently sets `"csp": null` in `apps/desktop/src-tauri/tauri.conf.json`. That is an **intentional** early-beta choice so the local Vite/React UI and filesystem/plugin capabilities are not blocked while the product is still moving quickly. It is not a claim that CSP is unnecessary — tightening CSP (and FS capability scopes) is a follow-up before calling the desktop shell production-hardened. Core library flows remain offline-first; optional update checks are the only planned network use.
 
 ## Contributing
 

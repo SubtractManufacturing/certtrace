@@ -1,10 +1,10 @@
 # CertTrace — Delivery Roadmap
 
-> **Status:** Active  
-> **Last updated:** 2026-05-28  
-> **Related:** [decisions.md](decisions.md), [phase-0-checklist.md](phase-0-checklist.md), [spec.md](spec.md)
+> **Status:** Active — shipping **0.0.x** beta builds toward a stable **1.0**  
+> **Last updated:** 2026-08-01  
+> **Related:** [decisions.md](decisions.md), [phase-0-checklist.md](phase-0-checklist.md), [spec.md](spec.md), [release-runbook.md](release-runbook.md)
 
-Phased delivery from planning docs to shippable v0.1. Each phase has clear exit criteria before the next begins.
+Phased delivery from planning docs through beta. The product is past scaffolding: installers and in-app updates ship on the `desktop-v0.0.x` line. Early planning called the first public milestone “v0.1”; that name maps to the current beta track, not a separate unreleased line. Stable **1.0.0** is the next named milestone (see release-runbook).
 
 ```mermaid
 flowchart TD
@@ -34,13 +34,13 @@ flowchart TD
 
 **Exit criteria:**
 
-- [ ] `main` on GitHub with all planning docs
-- [ ] CI green on all three OS targets
-- [ ] Local dev: `pnpm dev` opens Tauri window
-- [ ] README documents setup, privacy stance, contributing (Conventional Commits)
-- [ ] release-please workflow merged (no manual tags yet)
+- [x] `main` on GitHub with all planning docs
+- [x] CI green on all three OS targets
+- [x] Local dev: `pnpm dev` opens Tauri window
+- [x] README documents setup, privacy stance, contributing (Conventional Commits)
+- [x] release-please workflow merged
 
-**Runbook:** [phase-0-checklist.md](phase-0-checklist.md)
+**Runbook:** [phase-0-checklist.md](phase-0-checklist.md) (historical)
 
 ---
 
@@ -69,18 +69,18 @@ apps/
 
 **Exit criteria:**
 
-- [ ] Create/open library produces correct folder structure
-- [ ] Material CRUD round-trips to disk JSON
-- [ ] ID generator produces unique IDs for all shipped presets
-- [ ] Search index builds from 1k+ material fixture in acceptable time
-- [ ] Label PDF generates from material metadata
-- [ ] Schema v1 migrator tests pass
+- [x] Create/open library produces correct folder structure
+- [x] Material CRUD round-trips to disk JSON
+- [x] ID generator produces unique IDs for all shipped presets
+- [x] Search index builds from library materials (fixture coverage in package tests)
+- [x] Label PDF generates from material metadata + Label Templates
+- [x] Schema migrator tests pass
 
 ---
 
 ## Phase 2 — Desktop MVP features
 
-**Goal:** Full v0.1 user workflow in the UI per [ui-direction.md](ui-direction.md) and [spec.md](spec.md) MVP (minus scanner).
+**Goal:** Full beta user workflow in the UI per [ui-direction.md](ui-direction.md) and [spec.md](spec.md) MVP (minus scanner).
 
 **Features:**
 
@@ -105,16 +105,16 @@ apps/
 
 **Exit criteria:**
 
-- [ ] Success criteria from spec met on macOS, Windows, and Linux
-- [ ] Manual smoke: create library → add material → attach cert → search → export label PDF
-- [ ] Works offline; no network calls during core flows
-- [ ] Component tests for critical UI paths
+- [x] Core MVP flows available on macOS, Windows, and Linux builds
+- [x] Manual smoke: create library → add material → attach cert → search → export/print label
+- [x] Works offline; no network calls during core flows (optional update check only)
+- [x] Component tests for critical UI paths
 
 ---
 
-## Phase 3 — Beta hardening and v0.1 release
+## Phase 3 — Beta hardening and release path to 1.0
 
-**Goal:** Signed-ish installers, auto-updates from GitHub Releases, production-ready v0.1.
+**Goal:** Signed installers, auto-updates from GitHub Releases, and a proven ship path on **0.0.x** toward stable **1.0**.
 
 **Deliverables:**
 
@@ -135,7 +135,7 @@ apps/
 
 ---
 
-## Post-v0.1 (future phases — not scheduled)
+## Post-1.0 (future phases — not scheduled)
 
 From [spec.md](spec.md) future roadmap:
 
@@ -169,3 +169,4 @@ Adjust based on available dev time. Phases overlap slightly at boundaries (e.g. 
 | Date | Change |
 |------|--------|
 | 2026-05-28 | Initial roadmap Phases 0–3 |
+| 2026-08-01 | Reconcile with shipped 0.0.x beta; mark Phases 0–2 largely complete |

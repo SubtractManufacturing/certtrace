@@ -1,7 +1,7 @@
 # CertTrace — Locked Decisions Register
 
 > **Status:** Active  
-> **Last updated:** 2026-05-28  
+> **Last updated:** 2026-08-01  
 > **Related:** [spec.md](spec.md) (architecture reference), [roadmap.md](roadmap.md) (phases)
 
 This document is the single source of truth for product and engineering decisions. When the spec and this document conflict, **this document wins** for implementation choices.
@@ -52,6 +52,7 @@ Settings include: theme, update preferences, recent libraries, window layout, an
 | **File watching** | No strong preference locked yet. **Default recommendation:** Rust `notify` crate via Tauri, for reliability on network shares. Final choice documented in an ADR at implement time. |
 | **Monorepo tooling** | **pnpm workspaces only** for now. No Turborepo or Nx until build times justify it. |
 | **Future server** | Planned but not v0.1. Node + Fastify + PostgreSQL + S3/MinIO remain speculative. |
+| **Desktop CSP** | Tauri `"csp": null` for early beta so the local UI and FS plugins are not blocked mid-iteration. **Intentional temporary posture** — tighten CSP and FS capability scopes before calling the shell production-hardened (see README). |
 
 ---
 
