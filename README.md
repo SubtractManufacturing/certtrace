@@ -39,7 +39,7 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 1. Download the `.AppImage`, `.deb`, or distribution-specific bundle from the latest release.
 2. For AppImage: make it executable (`chmod +x CertTrace_*.AppImage`) and run it.
-3. For `.deb`: install with your package manager, for example `sudo dpkg -i certtrace_*.deb`.
+3. For `.deb`: install with your package manager, for example `sudo dpkg -i CertTrace_*_amd64.deb`.
 
 ### In-app updates
 

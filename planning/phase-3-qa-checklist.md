@@ -1,6 +1,6 @@
 # CertTrace Phase 3 QA Checklist
 
-Use this checklist before publishing `v0.1.0` and again when validating the updater dry run to `v0.1.1`.
+Use this checklist before beta releases on the **0.0.x** line and when validating in-app updates (`older → newer` on published builds).
 
 ## Core workflow smoke test
 
@@ -39,17 +39,20 @@ Run on macOS, Windows, and Linux:
 
 ## Update UX
 
-- [ ] With automatic updates enabled, confirm the app checks on launch without blocking library work
-- [ ] Manual “Look for updates” in Settings reports current/latest state correctly
-- [ ] Update dialog shows version and release notes snippet
-- [ ] “Later” dismisses the dialog without side effects
+- [x] With automatic updates enabled, confirm the app checks on launch without blocking library work
+- [x] Manual “Look for updates” in Settings reports current/latest state correctly
+- [x] Update dialog shows version and release notes snippet
+- [x] “Later” dismisses the dialog without side effects
 
-## Updater dry run (`v0.1.0` → `v0.1.1`)
+## Updater dry run (`0.0.x` published builds)
 
-- [ ] Install the published `v0.1.0` build on each target platform
-- [ ] Publish `v0.1.1` with signed updater artifacts and `latest.json`
-- [ ] Confirm in-app update downloads, installs, and relaunches successfully
-- [ ] Confirm library data and settings survive the update
+Verified 2026-07-31 on a maintainer test machine (in-app dialog, download, install, relaunch).
+
+- [x] Install a published older build on a test machine
+- [x] Publish a newer release with signed updater artifacts and `latest.json` (`desktop-v0.0.1` → `desktop-v0.0.3`)
+- [x] Confirm in-app update downloads, installs, and relaunches successfully
+- [ ] Confirm library data and settings survive the update (not explicitly re-checked after last dry run)
+- [ ] Repeat on each target platform (macOS, Windows, Linux)
 
 ## Privacy verification
 
@@ -59,6 +62,6 @@ Run on macOS, Windows, and Linux:
 
 ## Release artifacts
 
-- [ ] GitHub Release contains macOS, Windows, and Linux installers
-- [ ] GitHub Release contains `latest.json` and signature sidecars
-- [ ] README install instructions match the published asset names
+- [x] GitHub Release contains macOS, Windows, and Linux installers
+- [x] GitHub Release contains `latest.json` and signature sidecars
+- [x] README install instructions match the published asset names

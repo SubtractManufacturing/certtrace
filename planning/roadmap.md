@@ -127,10 +127,10 @@ apps/
 
 **Exit criteria:**
 
-- [ ] v0.1.0 tagged and published on GitHub Releases
-- [ ] Installers for macOS, Windows, Linux
-- [ ] Updater successfully moves beta tester from v0.1.0 → v0.1.1 (dry run)
-- [ ] README install instructions for all three platforms
+- [x] Beta builds tagged and published on GitHub Releases (`desktop-v0.0.x`)
+- [x] Installers for macOS, Windows, Linux
+- [x] Updater successfully moves an installed build to a newer release (dry run verified 2026-07-31)
+- [x] README install instructions for all three platforms
 - [ ] No telemetry verified (network inspection optional in QA)
 
 ---

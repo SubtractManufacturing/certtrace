@@ -168,15 +168,17 @@ Machines on old **1.0.x** builds will not downgrade via the updater; reinstall m
 
 When another shippable app exists (for example `apps/web`), add it under both `.github/release-please-config.json` (path, `component`, changelog) and `.github/release-please-manifest.json` (path → initial version). Keep `"separate-pull-requests": true` so each target gets a clear PR title (`chore: release desktop-v…` vs `chore: release web-v…`). Dispatch/build for the new target should follow the same `--tag_name` / `--release_created` pattern as desktop. Do not reintroduce a root umbrella package as a fake “core” release.
 
-## Updater dry run (`v0.1.0` → `v0.1.1`)
+## Updater dry run (`0.0.x` published builds)
 
-1. Install the published `v0.1.0` build on a test machine.
+1. Install a published older build on a test machine (for example `desktop-v0.0.1`).
 2. Open Settings and confirm automatic updates are enabled.
-3. Publish `v0.1.1` through release-please and wait for release assets.
-4. Launch the installed `v0.1.0` app and trigger an update check.
-5. Confirm the update dialog appears with the new version.
-6. Choose **Update now** and confirm the app downloads, installs, and relaunches as `v0.1.1`.
+3. Publish a newer release through release-please and wait for release assets + `latest.json`.
+4. Launch the installed older app and trigger an update check (or wait for the launch check after the 30-minute release-ready window).
+5. Confirm the update dialog appears with the new version and release notes snippet.
+6. Choose **Update now** and confirm the app downloads, installs, and relaunches on the new version.
 7. Verify libraries, settings, and recent-library data remain intact.
+
+Maintainer verified steps 4–6 on 2026-07-31 across the `0.0.1` → `0.0.3` line. Repeat per platform before calling the ship path fully proven.
 
 ## Local validation before tagging
 
