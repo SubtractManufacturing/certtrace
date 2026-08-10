@@ -121,14 +121,27 @@ jobs:
         shell: pwsh
         working-directory: apps/desktop
         run: |
+          # Object-form signCommand: string form is shell-split and breaks with
+          # "failed to run powershell" when the command itself is powershell.
+          $script = (Resolve-Path 'src-tauri/scripts/sign-windows.ps1').Path
           $config = @{
             bundle = @{
               createUpdaterArtifacts = $true
               windows = @{
-                signCommand = "powershell -NoProfile -ExecutionPolicy Bypass -File src-tauri/scripts/sign-windows.ps1 %1"
+                signCommand = @{
+                  cmd = 'powershell'
+                  args = @(
+                    '-NoProfile'
+                    '-ExecutionPolicy'
+                    'Bypass'
+                    '-File'
+                    $script
+                    '%1'
+                  )
+                }
               }
             }
-          } | ConvertTo-Json -Depth 5 -Compress
+          } | ConvertTo-Json -Depth 6 -Compress
           Set-Content -Path signing-config.windows.json -Value $config
 
       - name: Build and publish release assets
