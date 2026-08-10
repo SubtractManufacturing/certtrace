@@ -4,20 +4,27 @@ import {
   type AddFieldOptionResult,
   addFieldOption,
   archiveMaterial as archiveMaterialInLibrary,
+  type CreateJobInput,
   type CreateLibraryOptions,
   type CreateMaterialInput,
+  createJob,
   createLibrary,
   createMaterial,
+  listJobCustomers,
+  listJobs,
   listMaterialAttachments,
   listMaterials,
   type OpenLibraryResult,
   openLibrary,
   type RemoveSchemaDefinitionInput,
+  removeJob,
   removeMaterial,
   removeSchemaDefinition,
   unarchiveMaterial as unarchiveMaterialInLibrary,
+  type UpdateJobInput,
   type UpdateMaterialInput,
   updateFieldSchema,
+  updateJob,
   updateLibraryConfig,
   updateMaterial,
   updateNamingRules,
@@ -26,6 +33,7 @@ import {
 import type {
   AttachedFile,
   FieldSchemaV1,
+  JobMetadataV1,
   LibraryConfigV1,
   MaterialMetadataV1,
   NamingRulesV1,
@@ -133,6 +141,33 @@ export async function unarchiveMaterial(
   materialId: string,
 ): Promise<MaterialMetadataV1> {
   return unarchiveMaterialInLibrary(library, materialId);
+}
+
+export async function fetchJobs(library: OpenLibraryResult): Promise<JobMetadataV1[]> {
+  return listJobs(library);
+}
+
+export async function addJob(
+  library: OpenLibraryResult,
+  input: CreateJobInput,
+): Promise<JobMetadataV1> {
+  return createJob(library, input);
+}
+
+export async function updateJobMetadata(
+  library: OpenLibraryResult,
+  jobId: string,
+  input: UpdateJobInput,
+): Promise<JobMetadataV1> {
+  return updateJob(library, jobId, input);
+}
+
+export async function deleteJob(library: OpenLibraryResult, jobId: string): Promise<void> {
+  return removeJob(library, jobId);
+}
+
+export async function fetchJobCustomers(library: OpenLibraryResult): Promise<string[]> {
+  return listJobCustomers(library);
 }
 
 export async function addLibraryFieldOption(

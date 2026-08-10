@@ -3,6 +3,7 @@ import { generateMaterialId } from "@certtrace/id-generator";
 import {
   CERTTRACE_DIR,
   FIELD_SCHEMA_JSON,
+  JOBS_DIR,
   joinPath,
   LABELS_DIR,
   LIBRARY_JSON,
@@ -85,6 +86,16 @@ export {
   validateStrategyEntropy,
 } from "./library-config.js";
 export {
+  createJob,
+  filterJobsByCustomer,
+  getJob,
+  listJobCustomers,
+  listJobIds,
+  listJobs,
+  removeJob,
+  updateJob,
+} from "./jobs.js";
+export {
   filterableFields,
   filterableIdentifierKinds,
   filterMaterialsByArchiveState,
@@ -93,6 +104,7 @@ export {
   sanitizeMaterialFilterFields,
 } from "./material-filters.js";
 export type {
+  CreateJobInput,
   CreateMaterialInput,
   LibraryPaths,
   MaterialFilterValues,
@@ -100,6 +112,7 @@ export type {
   RemoveSchemaDefinitionInput,
   SchemaDefinitionRemovalStrategy,
   SchemaDefinitionType,
+  UpdateJobInput,
   UpdateMaterialInput,
 } from "./types.js";
 
@@ -110,6 +123,7 @@ export function getLibraryPaths(root: string) {
     root,
     certtrace: joinPath(root, CERTTRACE_DIR),
     materials: joinPath(root, MATERIALS_DIR),
+    jobs: joinPath(root, JOBS_DIR),
     labels: joinPath(root, LABELS_DIR),
     libraryJson: joinPath(root, LIBRARY_JSON),
     namingRulesJson: joinPath(root, NAMING_RULES_JSON),
@@ -165,6 +179,7 @@ export async function createLibrary(
 
   await fs.mkdir(paths.certtrace, { recursive: true });
   await fs.mkdir(paths.materials, { recursive: true });
+  await fs.mkdir(paths.jobs, { recursive: true });
   await fs.mkdir(paths.labels, { recursive: true });
 
   const { config, namingRules, wordLists, fieldSchema } = buildCreateLibraryConfig(options);

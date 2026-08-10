@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { JOB_ID_PATTERN } from "../paths.js";
 
 export const SCHEMA_VERSION = 3 as const;
 
@@ -318,6 +319,31 @@ export const materialMetadataV1Schema = z.object({
 });
 
 export type MaterialMetadataV1 = z.infer<typeof materialMetadataV1Schema>;
+
+export const jobIdSchema = z
+  .string()
+  .min(1)
+  .regex(JOB_ID_PATTERN, "Job id must be filesystem-safe");
+
+/** Shop-entered calendar date (YYYY-MM-DD). Not a created-at timestamp. */
+export const jobDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Job date must be YYYY-MM-DD");
+
+/** Job metadata: system id/timestamps plus shop-facing job number, date, optional customer/notes. */
+export const jobMetadataV1Schema = z.object({
+  version: z.literal(SCHEMA_VERSION),
+  id: jobIdSchema,
+  /** Trimmed shop-facing key; uniqueness within a Library is case-insensitive. */
+  jobNumber: z.string().min(1),
+  jobDate: jobDateSchema,
+  customer: z.string().min(1).optional(),
+  notes: z.string().min(1).optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export type JobMetadataV1 = z.infer<typeof jobMetadataV1Schema>;
 
 export const attachedFileFormatSchema = z.enum(["pdf", "png", "jpg", "jpeg", "tiff", "other"]);
 

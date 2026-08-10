@@ -6,6 +6,7 @@ import { AppShell, type AppView } from "./components/AppShell";
 import { CreateLibraryWizard } from "./components/CreateLibraryWizard";
 import { ErrorBanner } from "./components/ErrorBanner";
 import { LibrarySettingsView } from "./components/LibrarySettingsView";
+import { JobsWorkspace } from "./components/JobsWorkspace";
 import { MaterialsWorkspace } from "./components/MaterialsWorkspace";
 import { SettingsView } from "./components/SettingsView";
 import { UpdateAvailableDialog } from "./components/UpdateAvailableBanner";
@@ -370,6 +371,14 @@ function App() {
             onEditLabelTemplates={(path) => {
               void handleOpenLibrarySettings(path, { expandLabelTemplates: true });
             }}
+          />
+        ) : null}
+
+        {activeView === "jobs" ? (
+          <JobsWorkspace
+            sessionLibraries={session.sessionLibraries}
+            activeLibraryPath={session.activeLibraryPath}
+            error={error}
           />
         ) : null}
 

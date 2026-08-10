@@ -11,6 +11,7 @@ export interface LibraryPaths {
   root: string;
   certtrace: string;
   materials: string;
+  jobs: string;
   labels: string;
   libraryJson: string;
   namingRulesJson: string;
@@ -35,6 +36,22 @@ export interface CreateMaterialInput {
 export interface UpdateMaterialInput {
   fields?: Record<string, FieldValueV1>;
   identifiers?: Record<string, string>;
+}
+
+export interface CreateJobInput {
+  jobNumber: string;
+  jobDate: string;
+  customer?: string;
+  notes?: string;
+}
+
+export interface UpdateJobInput {
+  jobNumber?: string;
+  jobDate?: string;
+  /** Pass empty string to clear. Omitted leaves unchanged. */
+  customer?: string;
+  /** Pass empty string to clear. Omitted leaves unchanged. */
+  notes?: string;
 }
 
 export interface MaterialFilterValues {
