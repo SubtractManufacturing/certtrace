@@ -1,7 +1,9 @@
 import {
   type CreateMaterialInput,
+  filterMaterialsByArchiveState,
   filterMaterialsBySchema,
   type MaterialFilterValues,
+  type MaterialShelfFilter,
   type OpenLibraryResult,
 } from "@certtrace/library-engine";
 import { defaultFieldSchemaV1, type MaterialMetadataV1 } from "@certtrace/types";
@@ -13,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
   SearchInput,
+  Select,
 } from "@certtrace/ui";
 import { ListFilter, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -73,6 +76,7 @@ export function MaterialsWorkspace({
   const [schemaFilters, setSchemaFilters] = useState<MaterialFilterValues>(emptyMaterialFilters);
   const [draftFilters, setDraftFilters] = useState<MaterialFilterValues>(emptyMaterialFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [shelfFilter, setShelfFilter] = useState<MaterialShelfFilter>("active");
   const searchInputId = "materials-search-input";
 
   const showLibraryColumn = activeLibraryPath === "all";
@@ -83,13 +87,16 @@ export function MaterialsWorkspace({
       : null;
 
   const searchedMaterials = useMemo(() => filterMaterials(query), [filterMaterials, query]);
-  const filteredMaterials = useMemo(
-    () =>
-      activeSingleLibrary
-        ? filterMaterialsBySchema(searchedMaterials, activeSingleLibrary.fieldSchema, schemaFilters)
-        : searchedMaterials,
-    [activeSingleLibrary, schemaFilters, searchedMaterials],
-  );
+  const filteredMaterials = useMemo(() => {
+    // Text search already applies Settings → include archived; don't hide those hits
+    // behind the default Active shelf. Shelf filter applies when browsing (empty query).
+    const byShelf = query.trim()
+      ? searchedMaterials
+      : filterMaterialsByArchiveState(searchedMaterials, shelfFilter);
+    return activeSingleLibrary
+      ? filterMaterialsBySchema(byShelf, activeSingleLibrary.fieldSchema, schemaFilters)
+      : byShelf;
+  }, [activeSingleLibrary, query, schemaFilters, searchedMaterials, shelfFilter]);
 
   const listSchema = activeSingleLibrary?.fieldSchema ?? defaultFieldSchemaV1;
 
@@ -252,6 +259,16 @@ export function MaterialsWorkspace({
               placeholder={searchPlaceholder}
               className="min-w-[16rem]"
             />
+            <Select
+              aria-label="Material shelf"
+              value={shelfFilter}
+              className="w-36 shrink-0"
+              onChange={(event) => setShelfFilter(event.target.value as MaterialShelfFilter)}
+            >
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+              <option value="all">All</option>
+            </Select>
             {activeSingleLibrary ? (
               <Button
                 type="button"
@@ -319,8 +336,11 @@ export function MaterialsWorkspace({
               setSelectedMaterial(null);
             }
           }}
-          onMaterialUpdated={async () => {
+          onMaterialUpdated={async (updated) => {
             await onRefreshLibrary(selectedMaterial.libraryPath);
+            setSelectedMaterial((current) =>
+              current ? { ...current, ...updated, libraryPath: current.libraryPath } : null,
+            );
           }}
           onEditLabelTemplates={() => {
             setSelectedMaterial(null);

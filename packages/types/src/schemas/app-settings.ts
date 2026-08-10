@@ -23,6 +23,8 @@ export const appSettingsV1Schema = z.object({
     .union([z.string().min(1), z.literal("all")])
     .nullable()
     .default(null),
+  /** When false (default), search excludes Archived Materials. */
+  includeArchivedMaterialsInSearch: z.boolean().default(false),
 });
 
 export type AppSettingsV1 = z.infer<typeof appSettingsV1Schema>;
@@ -37,5 +39,6 @@ export function createDefaultAppSettingsV1(): AppSettingsV1 {
     recentLibraries: [],
     checkForUpdates: true,
     defaultLibraryOnLaunch: null,
+    includeArchivedMaterialsInSearch: false,
   };
 }

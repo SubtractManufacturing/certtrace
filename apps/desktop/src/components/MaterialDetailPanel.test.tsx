@@ -11,7 +11,11 @@ import {
   revealAttachmentInFolder,
 } from "../lib/attachment-client";
 import { printLabelPdf, saveLabelPdfViaDialog } from "../lib/label-client";
-import { fetchMaterialAttachments } from "../lib/library-client";
+import {
+  archiveMaterial,
+  fetchMaterialAttachments,
+  unarchiveMaterial,
+} from "../lib/library-client";
 import { chooseSelectOption } from "../test/select-helpers";
 import { MaterialDetailPanel } from "./MaterialDetailPanel";
 
@@ -25,8 +29,10 @@ vi.mock("../lib/attachment-client", () => ({
 
 vi.mock("../lib/library-client", () => ({
   addLibraryFieldOption: vi.fn(),
+  archiveMaterial: vi.fn(),
   deleteMaterial: vi.fn(),
   fetchMaterialAttachments: vi.fn(),
+  unarchiveMaterial: vi.fn(),
   updateMaterialMetadata: vi.fn(),
 }));
 
@@ -70,6 +76,7 @@ const material = {
   id: "AL-falcon-101",
   fields: {},
   identifiers: {},
+  archived: false,
   createdAt: "2026-05-28T12:00:00.000Z",
   updatedAt: "2026-05-28T12:00:00.000Z",
 };
@@ -171,5 +178,52 @@ describe("MaterialDetailPanel label preview hub", () => {
 
     expect(await screen.findByRole("heading", { name: /Label preview/i })).toBeTruthy();
     expect(saveLabelPdfViaDialog).not.toHaveBeenCalled();
+  });
+
+  it("archives a material after confirmation", async () => {
+    const onMaterialUpdated = vi.fn();
+    vi.mocked(archiveMaterial).mockResolvedValue({ ...material, archived: true });
+
+    render(
+      <MaterialDetailPanel
+        library={library}
+        material={material}
+        open
+        onOpenChange={() => undefined}
+        onMaterialUpdated={onMaterialUpdated}
+        onEditLabelTemplates={() => undefined}
+        onMaterialDeleted={() => undefined}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /^Archive$/i }));
+    expect(screen.getByRole("heading", { name: /Archive material AL-falcon-101/i })).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /^Archive material$/i }));
+
+    await waitFor(() => expect(archiveMaterial).toHaveBeenCalledWith(library, material.id));
+    expect(onMaterialUpdated).toHaveBeenCalledWith(expect.objectContaining({ archived: true }));
+  });
+
+  it("unarchives a material without confirmation", async () => {
+    const onMaterialUpdated = vi.fn();
+    vi.mocked(unarchiveMaterial).mockResolvedValue({ ...material, archived: false });
+
+    render(
+      <MaterialDetailPanel
+        library={library}
+        material={{ ...material, archived: true }}
+        open
+        onOpenChange={() => undefined}
+        onMaterialUpdated={onMaterialUpdated}
+        onEditLabelTemplates={() => undefined}
+        onMaterialDeleted={() => undefined}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /^Unarchive$/i }));
+
+    await waitFor(() => expect(unarchiveMaterial).toHaveBeenCalledWith(library, material.id));
+    expect(onMaterialUpdated).toHaveBeenCalledWith(expect.objectContaining({ archived: false }));
+    expect(screen.queryByRole("heading", { name: /Archive material/i })).toBeNull();
   });
 });

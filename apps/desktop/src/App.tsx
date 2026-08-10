@@ -99,6 +99,7 @@ function App() {
     sessionLibraries: session.sessionLibraries,
     activeLibraryPath: session.activeLibraryPath,
     recentLibraries,
+    includeArchivedMaterialsInSearch: settings?.includeArchivedMaterialsInSearch ?? false,
   });
 
   const libraryPickerOptions = useMemo(
@@ -377,6 +378,7 @@ function App() {
             theme={settings.theme}
             resolvedTheme={resolvedTheme}
             checkForUpdates={settings.checkForUpdates}
+            includeArchivedMaterialsInSearch={settings.includeArchivedMaterialsInSearch}
             defaultLibraryOnLaunch={settings.defaultLibraryOnLaunch}
             recentLibraries={librariesForSettings}
             checkingForUpdates={updateCheck.checking}
@@ -388,6 +390,9 @@ function App() {
             removingLibrary={removingLibrary}
             onThemeChange={(theme) => void setTheme(theme)}
             onCheckForUpdatesChange={(value) => void updateSettings({ checkForUpdates: value })}
+            onIncludeArchivedMaterialsInSearchChange={(value) =>
+              void updateSettings({ includeArchivedMaterialsInSearch: value })
+            }
             onDefaultLibraryChange={(value) =>
               void updateSettings({ defaultLibraryOnLaunch: value })
             }

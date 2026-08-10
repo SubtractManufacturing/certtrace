@@ -311,6 +311,8 @@ export const materialMetadataV1Schema = z.object({
   id: materialIdSchema,
   fields: z.record(z.string().min(1), fieldValueV1Schema),
   identifiers: z.record(z.string().min(1), z.string()),
+  /** Lifecycle flag: false/active by default; legacy metadata without the field opens as active. */
+  archived: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

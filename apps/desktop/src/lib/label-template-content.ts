@@ -37,6 +37,7 @@ export function createSampleLabelMaterial(): MaterialMetadataV1 {
       lot_number: "L-7781",
       purchase_order: "PO-4412",
     },
+    archived: false,
     createdAt: "2026-05-28T12:00:00.000Z",
     updatedAt: "2026-05-28T12:00:00.000Z",
   };

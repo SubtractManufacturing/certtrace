@@ -15,11 +15,22 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Badge,
   Input,
   Label,
   Select,
 } from "@certtrace/ui";
-import { FileText, FolderOpen, Pencil, Plus, Printer, Trash2, X } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  FileText,
+  FolderOpen,
+  Pencil,
+  Plus,
+  Printer,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   attachFilesToMaterial,
@@ -31,10 +42,13 @@ import {
 import { openPathWithOpener } from "../lib/label-client";
 import {
   addLibraryFieldOption,
+  archiveMaterial,
   deleteMaterial,
   fetchMaterialAttachments,
+  unarchiveMaterial,
   updateMaterialMetadata,
 } from "../lib/library-client";
+import { ArchiveMaterialDialog } from "./ArchiveMaterialDialog";
 import { DeleteMaterialDialog } from "./DeleteMaterialDialog";
 import { ErrorBanner } from "./ErrorBanner";
 import { LabelPreviewDialog } from "./LabelPreviewDialog";
@@ -85,6 +99,7 @@ export function MaterialDetailPanel({
   const [renameFilename, setRenameFilename] = useState("");
   const [labelPreviewOpen, setLabelPreviewOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -242,6 +257,33 @@ export function MaterialDetailPanel({
     }
   }
 
+  async function handleArchiveMaterial() {
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await archiveMaterial(library, material.id);
+      onMaterialUpdated(updated);
+      setArchiveDialogOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleUnarchiveMaterial() {
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await unarchiveMaterial(library, material.id);
+      onMaterialUpdated(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function openRenameDialog(file: AttachedFile) {
     setRenamingFile(file);
     setRenameFilename(file.name);
@@ -311,7 +353,10 @@ export function MaterialDetailPanel({
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="flex max-h-[min(90vh,100dvh-2rem)] w-full max-w-3xl flex-col gap-0 overflow-hidden lg:max-w-4xl">
           <DialogHeader className="shrink-0 px-6 pt-6">
-            <DialogTitle>{material.id}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <span>{material.id}</span>
+              {material.archived ? <Badge variant="secondary">Archived</Badge> : null}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-4">
@@ -445,6 +490,29 @@ export function MaterialDetailPanel({
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
+              {material.archived ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => void handleUnarchiveMaterial()}
+                >
+                  <ArchiveRestore className="mr-2 h-4 w-4" />
+                  Unarchive
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => setArchiveDialogOpen(true)}
+                >
+                  <Archive className="mr-2 h-4 w-4" />
+                  Archive
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="outline"
@@ -587,6 +655,14 @@ export function MaterialDetailPanel({
         busy={busy}
         onClose={() => setDeleteDialogOpen(false)}
         onConfirm={() => void handleDeleteMaterial()}
+      />
+
+      <ArchiveMaterialDialog
+        open={archiveDialogOpen}
+        materialId={material.id}
+        busy={busy}
+        onClose={() => setArchiveDialogOpen(false)}
+        onConfirm={() => void handleArchiveMaterial()}
       />
     </>
   );

@@ -21,14 +21,20 @@ function library(path: string, name: string): OpenLibraryResult {
   } as OpenLibraryResult;
 }
 
-function material(id: string, identifier: string): MaterialMetadataV1 {
+function material(
+  id: string,
+  identifier: string,
+  overrides: Partial<MaterialMetadataV1> = {},
+): MaterialMetadataV1 {
   return {
     version: 3,
     id,
     fields: { notes: `Notes for ${identifier}` },
     identifiers: { heat_number: identifier },
+    archived: false,
     createdAt: "2026-05-28T12:00:00.000Z",
     updatedAt: "2026-05-28T12:00:00.000Z",
+    ...overrides,
   };
 }
 
@@ -94,5 +100,52 @@ describe("useSearchIndex", () => {
         libraryPath: north.paths.root,
       }),
     ]);
+  });
+
+  it("excludes archived materials from search by default", async () => {
+    const north = library("/libraries/north", "North");
+    fetchMaterialsMock.mockResolvedValue([
+      material("AL-active-101", "HEAT-ACTIVE"),
+      material("AL-archived-102", "HEAT-ARCHIVED", { archived: true }),
+    ]);
+    const sessionLibraries = new Map([[north.paths.root, north]]);
+
+    const { result } = renderHook(() =>
+      useSearchIndex({
+        sessionLibraries,
+        activeLibraryPath: north.paths.root,
+        recentLibraries: [],
+        includeArchivedMaterialsInSearch: false,
+      }),
+    );
+
+    await waitFor(() => expect(result.current.indexedMaterials).toHaveLength(2));
+
+    expect(result.current.filterMaterials("").map((entry) => entry.id).sort()).toEqual([
+      "AL-active-101",
+      "AL-archived-102",
+    ]);
+    expect(result.current.filterMaterials("HEAT-ACTIVE")).toHaveLength(1);
+    expect(result.current.filterMaterials("HEAT-ARCHIVED")).toHaveLength(0);
+  });
+
+  it("includes archived materials in search when the setting is on", async () => {
+    const north = library("/libraries/north", "North");
+    fetchMaterialsMock.mockResolvedValue([
+      material("AL-archived-102", "HEAT-ARCHIVED", { archived: true }),
+    ]);
+    const sessionLibraries = new Map([[north.paths.root, north]]);
+
+    const { result } = renderHook(() =>
+      useSearchIndex({
+        sessionLibraries,
+        activeLibraryPath: north.paths.root,
+        recentLibraries: [],
+        includeArchivedMaterialsInSearch: true,
+      }),
+    );
+
+    await waitFor(() => expect(result.current.indexedMaterials).toHaveLength(1));
+    expect(result.current.filterMaterials("HEAT-ARCHIVED")).toHaveLength(1);
   });
 });

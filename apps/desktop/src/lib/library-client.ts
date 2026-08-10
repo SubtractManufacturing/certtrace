@@ -3,6 +3,7 @@ import {
   type AddFieldOptionInput,
   type AddFieldOptionResult,
   addFieldOption,
+  archiveMaterial as archiveMaterialInLibrary,
   type CreateLibraryOptions,
   type CreateMaterialInput,
   createLibrary,
@@ -14,6 +15,7 @@ import {
   type RemoveSchemaDefinitionInput,
   removeMaterial,
   removeSchemaDefinition,
+  unarchiveMaterial as unarchiveMaterialInLibrary,
   type UpdateMaterialInput,
   updateFieldSchema,
   updateLibraryConfig,
@@ -117,6 +119,20 @@ export async function deleteMaterial(
   materialId: string,
 ): Promise<void> {
   return removeMaterial(library, materialId);
+}
+
+export async function archiveMaterial(
+  library: OpenLibraryResult,
+  materialId: string,
+): Promise<MaterialMetadataV1> {
+  return archiveMaterialInLibrary(library, materialId);
+}
+
+export async function unarchiveMaterial(
+  library: OpenLibraryResult,
+  materialId: string,
+): Promise<MaterialMetadataV1> {
+  return unarchiveMaterialInLibrary(library, materialId);
 }
 
 export async function addLibraryFieldOption(

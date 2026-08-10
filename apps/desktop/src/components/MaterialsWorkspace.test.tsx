@@ -57,6 +57,7 @@ const materials: IndexedMaterial[] = [
     identifiers: {
       heat_number: "H-22",
     },
+    archived: false,
     createdAt: "2026-05-28T12:00:00.000Z",
     updatedAt: "2026-05-28T12:00:00.000Z",
     libraryPath: "/tmp/shop",
@@ -74,6 +75,7 @@ const materials: IndexedMaterial[] = [
     identifiers: {
       heat_number: "H-44",
     },
+    archived: false,
     createdAt: "2026-05-28T12:00:00.000Z",
     updatedAt: "2026-05-28T12:00:00.000Z",
     libraryPath: "/tmp/shop",
@@ -120,6 +122,61 @@ describe("MaterialsWorkspace", () => {
 
     expect(filterMaterials).toHaveBeenCalled();
     expect(filterMaterials.mock.calls.at(-1)?.[0]).toBe("H-44");
+  });
+
+  it("defaults to the active shelf and can show archived materials with a badge", async () => {
+    const mixed: IndexedMaterial[] = [
+      materials[0]!,
+      { ...materials[1]!, archived: true },
+    ];
+
+    render(
+      <MaterialsWorkspace
+        sessionLibraries={new Map([["/tmp/shop", sampleLibrary]])}
+        activeLibraryPath="/tmp/shop"
+        materials={mixed}
+        onRefreshLibrary={async () => undefined}
+        filterMaterials={() => mixed}
+      />,
+    );
+
+    expect(getSelectValue(screen.getByLabelText("Material shelf"))).toBe("active");
+    expect(within(screen.getByRole("table")).getByText("AL-falcon-101")).toBeTruthy();
+    expect(within(screen.getByRole("table")).queryByText("AL-river-102")).toBeNull();
+
+    await chooseSelectOption(screen.getByLabelText("Material shelf"), "Archived");
+    expect(within(screen.getByRole("table")).getByText("AL-river-102")).toBeTruthy();
+    expect(within(screen.getByRole("table")).getByText("Archived")).toBeTruthy();
+    expect(within(screen.getByRole("table")).queryByText("AL-falcon-101")).toBeNull();
+
+    await chooseSelectOption(screen.getByLabelText("Material shelf"), "All");
+    expect(within(screen.getByRole("table")).getByText("AL-falcon-101")).toBeTruthy();
+    expect(within(screen.getByRole("table")).getByText("AL-river-102")).toBeTruthy();
+  });
+
+  it("shows archived search hits even when the Active shelf is selected", async () => {
+    const mixed: IndexedMaterial[] = [
+      materials[0]!,
+      { ...materials[1]!, archived: true },
+    ];
+    const filterMaterials = vi.fn((query: string) =>
+      query.trim() ? mixed.filter((entry) => entry.id.includes(query)) : mixed,
+    );
+
+    render(
+      <MaterialsWorkspace
+        sessionLibraries={new Map([["/tmp/shop", sampleLibrary]])}
+        activeLibraryPath="/tmp/shop"
+        materials={mixed}
+        onRefreshLibrary={async () => undefined}
+        filterMaterials={filterMaterials}
+      />,
+    );
+
+    expect(within(screen.getByRole("table")).queryByText("AL-river-102")).toBeNull();
+    await userEvent.type(screen.getByPlaceholderText(/Search Main Shop/i), "river");
+    expect(within(screen.getByRole("table")).getByText("AL-river-102")).toBeTruthy();
+    expect(within(screen.getByRole("table")).getByText("Archived")).toBeTruthy();
   });
 
   it("shows filterable schema definitions in the flyout and narrows the current library", async () => {
@@ -261,6 +318,7 @@ describe("MaterialsWorkspace", () => {
       version: 3,
       fields: {},
       identifiers: {},
+      archived: false,
       createdAt: "2026-05-28T12:00:00.000Z",
       updatedAt: "2026-05-28T12:00:00.000Z",
     });
@@ -390,6 +448,7 @@ describe("MaterialsWorkspace", () => {
       version: 3 as const,
       fields: { family: "aluminum", alloy: "6061" },
       identifiers: { heat_number: "H-200" },
+      archived: false,
       createdAt: "2026-05-28T12:00:00.000Z",
       updatedAt: "2026-05-28T12:00:00.000Z",
     };
@@ -435,6 +494,7 @@ describe("MaterialsWorkspace", () => {
       version: 3,
       fields: {},
       identifiers: {},
+      archived: false,
       createdAt: "2026-05-28T12:00:00.000Z",
       updatedAt: "2026-05-28T12:00:00.000Z",
     });

@@ -57,6 +57,7 @@ const material = {
     temper: "T6",
   },
   identifiers: {},
+  archived: false,
   createdAt: "2026-05-28T12:00:00.000Z",
   updatedAt: "2026-05-28T12:00:00.000Z",
 };

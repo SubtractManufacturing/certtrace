@@ -87,7 +87,9 @@ export {
 export {
   filterableFields,
   filterableIdentifierKinds,
+  filterMaterialsByArchiveState,
   filterMaterialsBySchema,
+  type MaterialShelfFilter,
   sanitizeMaterialFilterFields,
 } from "./material-filters.js";
 export type {
@@ -338,6 +340,7 @@ export async function createMaterial(
     id,
     fields: input.fields ?? {},
     identifiers: input.identifiers ?? {},
+    archived: false,
     createdAt: now,
     updatedAt: now,
   });
@@ -368,6 +371,7 @@ export async function updateMaterial(
     },
     id: current.id,
     version: current.version,
+    archived: current.archived,
     createdAt: current.createdAt,
     updatedAt: new Date().toISOString(),
   };
@@ -378,6 +382,44 @@ export async function updateMaterial(
   await writeJson(library.fs, metadataPath, updated);
 
   return updated;
+}
+
+async function setMaterialArchived(
+  library: OpenLibraryResult,
+  materialId: string,
+  archived: boolean,
+): Promise<MaterialMetadataV1> {
+  const current = await getMaterial(library, materialId);
+  if (current.archived === archived) {
+    return current;
+  }
+
+  const updated: MaterialMetadataV1 = {
+    ...current,
+    archived,
+    updatedAt: new Date().toISOString(),
+  };
+  materialMetadataV1Schema.parse(updated);
+
+  const metadataPath = joinPath(library.paths.root, materialMetadataPath(materialId));
+  await writeJson(library.fs, metadataPath, updated);
+  return updated;
+}
+
+/** Mark a Material as Archived (restorable). Same Library folder and id. */
+export async function archiveMaterial(
+  library: OpenLibraryResult,
+  materialId: string,
+): Promise<MaterialMetadataV1> {
+  return setMaterialArchived(library, materialId, true);
+}
+
+/** Restore an Archived Material to active. */
+export async function unarchiveMaterial(
+  library: OpenLibraryResult,
+  materialId: string,
+): Promise<MaterialMetadataV1> {
+  return setMaterialArchived(library, materialId, false);
 }
 
 /** Permanently remove a material folder (metadata + attachments). */
