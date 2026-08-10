@@ -63,6 +63,12 @@ Never commit the private key file. Add the private key contents to GitHub Action
 | `APPLE_ID` | Apple ID for notarization |
 | `APPLE_PASSWORD` | App-specific password for notarization |
 | `APPLE_TEAM_ID` | Apple Developer Team ID |
+| `AZURE_CLIENT_ID` | Entra app client ID for Artifact Signing (GitHub OIDC) |
+| `AZURE_TENANT_ID` | Entra tenant ID |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription that owns the Artifact Signing account |
+| `AZURE_ARTIFACT_SIGNING_ACCOUNT` | Artifact Signing account name (e.g. `CertTrace`) |
+| `AZURE_ARTIFACT_SIGNING_PROFILE` | Public Trust certificate profile name |
+| `AZURE_ARTIFACT_SIGNING_ENDPOINT` | Regional endpoint (e.g. `https://wus2.codesigning.azure.net`) |
 | `DISCORD_WEBHOOK_URL` | Discord channel webhook URL for release announcements |
 
 macOS release builds use `--target universal-apple-darwin` (Apple Silicon + Intel) on `macos-latest`. After each macOS publish, spot-check Gatekeeper on a clean install:
@@ -76,7 +82,29 @@ spctl -a -vv "$APP"
 # Expect Developer ID + notarized / accepted
 ```
 
-Windows code signing can be added later via SignPath or a purchased certificate. Unsigned Windows builds may still publish, but SmartScreen warnings are expected until signing is configured.
+Windows release builds Authenticode-sign NSIS (and MSI when published) via **Azure Artifact Signing** on `windows-latest`. The release workflow uses GitHub OIDC (`azure/login`) and Tauri `signCommand` (`apps/desktop/src-tauri/scripts/sign-windows.ps1` with the `dotnet sign` tool). Updater minisign (`TAURI_SIGNING_*`) is separate from Authenticode.
+
+### Windows Authenticode setup (one-time)
+
+1. Artifact Signing account with **Completed** Public Trust identity validation.
+2. **Public Trust** certificate profile bound to that identity.
+3. Entra app registration with **GitHub Actions federated credential** (branch `main` on `SubtractManufacturing/certtrace`).
+4. **Artifact Signing Certificate User** role on the app service principal (at the account or profile scope).
+5. GitHub Actions secrets listed in the table above.
+
+Identity validation expires (check the portal). Renew before expiry or signing stops. The Artifact Signing account bills ~$9.99/mo Basic while active.
+
+### Windows Authenticode QA (issue #44)
+
+After a release build, download the NSIS installer from the GitHub release page and verify on Windows:
+
+```powershell
+Get-AuthenticodeSignature .\CertTrace_*-setup.exe | Format-List
+```
+
+Expect **Status: Valid** and a publisher matching the validated legal entity (e.g. Subtract LLC). Install from the signed installer on a clean VM; SmartScreen may still warn on early builds until publisher reputation builds.
+
+Desktop preview (`/build`) Windows artifacts remain **unsigned** unless signing is added to that workflow separately.
 
 ## Desktop preview builds (`/build`)
 

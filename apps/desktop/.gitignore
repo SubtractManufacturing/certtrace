@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+signing-config.windows.json
 *.local
 
 # Editor directories and files
