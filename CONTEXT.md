@@ -45,6 +45,10 @@ Where the piece lives in the shop — e.g. Rack B2.
 **Date Received**:
 The date the piece arrived.
 
+**Archived**:
+A Material lifecycle state meaning the physical piece is no longer active stock in the shop. The Material remains in the same Library with the same identity, identifiers, and attachments, and can be restored to active. Distinct from deletion (permanent removal) and from Storage Location.
+_Avoid_: Soft-delete (as the product name for this), Inactive, Retired (unless speaking loosely), Archive library (a separate Library used only as a graveyard)
+
 ### Identifiers
 
 **Identifier**:
@@ -82,6 +86,28 @@ _Avoid_: File type (when meaning cert role — that is pdf/png/etc.), Document t
 **Option short code**:
 An optional compact code on a select option (e.g. Aluminum → `AL`) used by material ID templates. When a template asks for that field's token and no short code is set, the option's display name is used instead.
 _Avoid_: Material code (as a separate free-floating concept), Prefix (unless speaking loosely)
+
+### Jobs
+
+**Job**:
+A first-class shop work record owned by a Library, identified by a user-entered job number, with a shop-entered job date and optional customer name and notes. Used to audit which Materials (and their certs) relate to that work — not to reserve or track inventory.
+_Avoid_: Work order (unless a shop renames), Order (confused with Purchase Order), Job as an identifier kind on Material
+
+**Job number**:
+The user-entered unique key of a Job within its Library. Uniqueness is case-insensitive after trimming ends; CertTrace does not invent a separate human-facing job code.
+_Avoid_: System job id (as the shop-facing key), Work order number (unless a shop renames)
+
+**Job date**:
+The shop-entered date on a Job used to find and order jobs. Not the record’s created-at timestamp and not auto-filled.
+_Avoid_: Created at (for this concept), Due date (unless that is what the shop means by the date)
+
+**Job customer**:
+An optional free-text name on a Job used only to find and filter jobs. Not a first-class Customer record, screen, or profile.
+_Avoid_: Customer entity, Client, Account, Customer profile
+
+**Job assignment**:
+A historical many-to-many link between a Job and a Material recording that the material (and its certification paperwork) relates to that job for audit. Not a reservation or current allocation of stock.
+_Avoid_: Reservation, Allocation, Inventory assignment
 
 ### Labels
 
