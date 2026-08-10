@@ -1,8 +1,5 @@
-import {
-  filterJobsByCustomer,
-  type OpenLibraryResult,
-} from "@certtrace/library-engine";
-import type { JobMetadataV1 } from "@certtrace/types";
+import { filterJobsByCustomer, type OpenLibraryResult } from "@certtrace/library-engine";
+import type { JobMetadataV1, MaterialMetadataV1 } from "@certtrace/types";
 import {
   Button,
   Dialog,
@@ -13,6 +10,7 @@ import {
   Input,
   Label,
   SearchInput,
+  Select,
   Table,
   TableBody,
   TableCell,
@@ -26,13 +24,19 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ActiveLibraryPath } from "../hooks/useLibrarySession";
 import {
   addJob,
+  assignMaterialToJob,
   deleteJob,
+  fetchAssignedMaterialIds,
   fetchJobCustomers,
   fetchJobs,
+  fetchMaterials,
+  fetchMaterialsForJob,
+  unassignMaterialFromJob,
   updateJobMetadata,
 } from "../lib/library-client";
 import { DeleteJobDialog } from "./DeleteJobDialog";
 import { ErrorBanner } from "./ErrorBanner";
+import { UnassignJobMaterialDialog } from "./UnassignJobMaterialDialog";
 
 interface JobsWorkspaceProps {
   sessionLibraries: Map<string, OpenLibraryResult>;
@@ -74,7 +78,14 @@ export function JobsWorkspace({
   const [form, setForm] = useState<JobFormState>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<JobMetadataV1 | null>(null);
+  const [deleteLinkedMaterialIds, setDeleteLinkedMaterialIds] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
+  const [linkedMaterials, setLinkedMaterials] = useState<MaterialMetadataV1[]>([]);
+  const [allMaterials, setAllMaterials] = useState<MaterialMetadataV1[]>([]);
+  const [assignMaterialId, setAssignMaterialId] = useState("");
+  const [assigning, setAssigning] = useState(false);
+  const [unassignTarget, setUnassignTarget] = useState<MaterialMetadataV1 | null>(null);
+  const [unassigning, setUnassigning] = useState(false);
   const customerListId = "job-customer-suggestions";
 
   const refresh = useCallback(async () => {
@@ -103,14 +114,39 @@ export function JobsWorkspace({
     void refresh();
   }, [refresh]);
 
+  const refreshLinkedMaterials = useCallback(
+    async (jobId: string) => {
+      if (!activeLibrary) {
+        setLinkedMaterials([]);
+        return;
+      }
+      const [linked, materials] = await Promise.all([
+        fetchMaterialsForJob(activeLibrary, jobId),
+        fetchMaterials(activeLibrary),
+      ]);
+      setLinkedMaterials(linked);
+      setAllMaterials(materials);
+      setAssignMaterialId("");
+    },
+    [activeLibrary],
+  );
+
   const filteredJobs = useMemo(
     () => filterJobsByCustomer(jobs, customerQuery),
     [customerQuery, jobs],
   );
 
+  const assignableMaterials = useMemo(() => {
+    const linkedIds = new Set(linkedMaterials.map((material) => material.id));
+    return allMaterials.filter((material) => !linkedIds.has(material.id));
+  }, [allMaterials, linkedMaterials]);
+
   function openCreate() {
     setEditingJob(null);
     setForm(emptyForm);
+    setLinkedMaterials([]);
+    setAllMaterials([]);
+    setAssignMaterialId("");
     setLocalError(null);
     setFormOpen(true);
   }
@@ -125,6 +161,9 @@ export function JobsWorkspace({
     });
     setLocalError(null);
     setFormOpen(true);
+    void refreshLinkedMaterials(job.id).catch((err) => {
+      setLocalError(err instanceof Error ? err.message : String(err));
+    });
   }
 
   async function handleSave() {
@@ -160,6 +199,19 @@ export function JobsWorkspace({
     }
   }
 
+  async function openDelete(job: JobMetadataV1) {
+    if (!activeLibrary) {
+      return;
+    }
+    setLocalError(null);
+    try {
+      setDeleteLinkedMaterialIds(await fetchAssignedMaterialIds(activeLibrary, job.id));
+      setDeleteTarget(job);
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   async function handleDelete() {
     if (!activeLibrary || !deleteTarget) {
       return;
@@ -169,11 +221,45 @@ export function JobsWorkspace({
     try {
       await deleteJob(activeLibrary, deleteTarget.id);
       setDeleteTarget(null);
+      setDeleteLinkedMaterialIds([]);
       await refresh();
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : String(err));
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handleAssign() {
+    if (!activeLibrary || !editingJob || !assignMaterialId) {
+      return;
+    }
+    setAssigning(true);
+    setLocalError(null);
+    try {
+      await assignMaterialToJob(activeLibrary, editingJob.id, assignMaterialId);
+      await refreshLinkedMaterials(editingJob.id);
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAssigning(false);
+    }
+  }
+
+  async function handleUnassign() {
+    if (!activeLibrary || !editingJob || !unassignTarget) {
+      return;
+    }
+    setUnassigning(true);
+    setLocalError(null);
+    try {
+      await unassignMaterialFromJob(activeLibrary, editingJob.id, unassignTarget.id);
+      setUnassignTarget(null);
+      await refreshLinkedMaterials(editingJob.id);
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setUnassigning(false);
     }
   }
 
@@ -235,11 +321,7 @@ export function JobsWorkspace({
               </TableHeader>
               <TableBody>
                 {filteredJobs.map((job) => (
-                  <TableRow
-                    key={job.id}
-                    className="cursor-pointer"
-                    onClick={() => openEdit(job)}
-                  >
+                  <TableRow key={job.id} className="cursor-pointer" onClick={() => openEdit(job)}>
                     <TableCell className="font-medium">{job.jobNumber}</TableCell>
                     <TableCell>{job.jobDate}</TableCell>
                     <TableCell>{job.customer ?? "—"}</TableCell>
@@ -253,7 +335,7 @@ export function JobsWorkspace({
                         size="sm"
                         onClick={(event) => {
                           event.stopPropagation();
-                          setDeleteTarget(job);
+                          void openDelete(job);
                         }}
                       >
                         Delete
@@ -280,6 +362,8 @@ export function JobsWorkspace({
           if (!open) {
             setEditingJob(null);
             setForm(emptyForm);
+            setLinkedMaterials([]);
+            setAssignMaterialId("");
           }
         }}
       >
@@ -293,7 +377,9 @@ export function JobsWorkspace({
               <Input
                 id="job-number"
                 value={form.jobNumber}
-                onChange={(event) => setForm((current) => ({ ...current, jobNumber: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, jobNumber: event.target.value }))
+                }
                 autoComplete="off"
               />
             </div>
@@ -303,7 +389,9 @@ export function JobsWorkspace({
                 id="job-date"
                 type="date"
                 value={form.jobDate}
-                onChange={(event) => setForm((current) => ({ ...current, jobDate: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, jobDate: event.target.value }))
+                }
               />
             </div>
             <div className="space-y-2">
@@ -312,7 +400,9 @@ export function JobsWorkspace({
                 id="job-customer"
                 list={customerListId}
                 value={form.customer}
-                onChange={(event) => setForm((current) => ({ ...current, customer: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, customer: event.target.value }))
+                }
                 autoComplete="off"
               />
               <datalist id={customerListId}>
@@ -326,10 +416,75 @@ export function JobsWorkspace({
               <Textarea
                 id="job-notes"
                 value={form.notes}
-                onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, notes: event.target.value }))
+                }
                 rows={3}
               />
             </div>
+
+            {editingJob ? (
+              <section className="space-y-2 border-t border-slate-200 pt-4 dark:border-slate-700">
+                <h3 className="text-sm font-semibold">Materials</h3>
+                {linkedMaterials.length === 0 ? (
+                  <p className="text-sm text-slate-500">No materials assigned yet.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {linkedMaterials.map((material) => (
+                      <li
+                        key={material.id}
+                        className="flex items-center justify-between gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"
+                      >
+                        <span className="truncate font-mono">
+                          {material.id}
+                          {material.archived ? " (archived)" : ""}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setUnassignTarget(material)}
+                        >
+                          Unlink
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="flex items-end gap-2">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Label htmlFor="assign-material">Assign material</Label>
+                    <Select
+                      id="assign-material"
+                      value={assignMaterialId}
+                      disabled={assignableMaterials.length === 0 || assigning}
+                      onChange={(event) => setAssignMaterialId(event.target.value)}
+                    >
+                      <option value="">
+                        {assignableMaterials.length === 0
+                          ? "No materials available"
+                          : "Select a material…"}
+                      </option>
+                      {assignableMaterials.map((material) => (
+                        <option key={material.id} value={material.id}>
+                          {material.id}
+                          {material.archived ? " (archived)" : ""}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={!assignMaterialId || assigning}
+                    onClick={() => void handleAssign()}
+                  >
+                    Assign
+                  </Button>
+                </div>
+              </section>
+            ) : null}
+
             {localError ? <ErrorBanner message={localError} /> : null}
           </div>
           <DialogFooter>
@@ -347,9 +502,24 @@ export function JobsWorkspace({
         <DeleteJobDialog
           open
           jobNumber={deleteTarget.jobNumber}
+          linkedMaterialIds={deleteLinkedMaterialIds}
           busy={deleting}
-          onClose={() => setDeleteTarget(null)}
+          onClose={() => {
+            setDeleteTarget(null);
+            setDeleteLinkedMaterialIds([]);
+          }}
           onConfirm={() => void handleDelete()}
+        />
+      ) : null}
+
+      {editingJob && unassignTarget ? (
+        <UnassignJobMaterialDialog
+          open
+          jobNumber={editingJob.jobNumber}
+          materialId={unassignTarget.id}
+          busy={unassigning}
+          onClose={() => setUnassignTarget(null)}
+          onConfirm={() => void handleUnassign()}
         />
       ) : null}
     </div>

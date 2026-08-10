@@ -1,22 +1,33 @@
 import type { OpenLibraryResult } from "@certtrace/library-engine";
-import type { JobMetadataV1 } from "@certtrace/types";
+import type { JobMetadataV1, MaterialMetadataV1 } from "@certtrace/types";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addJob,
+  assignMaterialToJob,
   deleteJob,
+  fetchAssignedMaterialIds,
   fetchJobCustomers,
   fetchJobs,
+  fetchMaterials,
+  fetchMaterialsForJob,
+  unassignMaterialFromJob,
   updateJobMetadata,
 } from "../lib/library-client";
+import { chooseSelectOption } from "../test/select-helpers";
 import { JobsWorkspace } from "./JobsWorkspace";
 
 vi.mock("../lib/library-client", () => ({
   addJob: vi.fn(),
+  assignMaterialToJob: vi.fn(),
   deleteJob: vi.fn(),
+  fetchAssignedMaterialIds: vi.fn(async () => []),
   fetchJobCustomers: vi.fn(async () => []),
   fetchJobs: vi.fn(async () => []),
+  fetchMaterials: vi.fn(async () => []),
+  fetchMaterialsForJob: vi.fn(async () => []),
+  unassignMaterialFromJob: vi.fn(),
   updateJobMetadata: vi.fn(),
 }));
 
@@ -47,20 +58,42 @@ const sampleJobs: JobMetadataV1[] = [
   },
 ];
 
+const sampleMaterials: MaterialMetadataV1[] = [
+  {
+    version: 3,
+    id: "AL-100",
+    fields: {},
+    identifiers: {},
+    archived: false,
+    createdAt: "2026-08-10T12:00:00.000Z",
+    updatedAt: "2026-08-10T12:00:00.000Z",
+  },
+  {
+    version: 3,
+    id: "ST-200",
+    fields: {},
+    identifiers: {},
+    archived: true,
+    createdAt: "2026-08-10T12:00:00.000Z",
+    updatedAt: "2026-08-10T12:00:00.000Z",
+  },
+];
+
 describe("JobsWorkspace", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(fetchJobs).mockResolvedValue(sampleJobs);
     vi.mocked(fetchJobCustomers).mockResolvedValue(["Acme Machining", "Beta Works"]);
+    vi.mocked(fetchMaterials).mockResolvedValue(sampleMaterials);
+    vi.mocked(fetchMaterialsForJob).mockResolvedValue([]);
+    vi.mocked(fetchAssignedMaterialIds).mockResolvedValue([]);
   });
 
   it("lists jobs for the open library and filters by customer", async () => {
     const user = userEvent.setup();
     const sessionLibraries = new Map([["/tmp/shop", sampleLibrary]]);
 
-    render(
-      <JobsWorkspace sessionLibraries={sessionLibraries} activeLibraryPath="/tmp/shop" />,
-    );
+    render(<JobsWorkspace sessionLibraries={sessionLibraries} activeLibraryPath="/tmp/shop" />);
 
     expect(await screen.findByText("JO-1001")).toBeTruthy();
     expect(screen.getByText("JO-1002")).toBeTruthy();
@@ -80,9 +113,7 @@ describe("JobsWorkspace", () => {
       jobNumber: "JO-2000",
     });
 
-    render(
-      <JobsWorkspace sessionLibraries={sessionLibraries} activeLibraryPath="/tmp/shop" />,
-    );
+    render(<JobsWorkspace sessionLibraries={sessionLibraries} activeLibraryPath="/tmp/shop" />);
     await screen.findByText("JO-1001");
 
     await user.click(screen.getByRole("button", { name: /add job/i }));
@@ -120,9 +151,7 @@ describe("JobsWorkspace", () => {
       new Error('A Job with number "JO-1001" already exists in this library.'),
     );
 
-    render(
-      <JobsWorkspace sessionLibraries={sessionLibraries} activeLibraryPath="/tmp/shop" />,
-    );
+    render(<JobsWorkspace sessionLibraries={sessionLibraries} activeLibraryPath="/tmp/shop" />);
     await screen.findByText("JO-1001");
 
     await user.click(screen.getByRole("button", { name: /add job/i }));
@@ -145,10 +174,10 @@ describe("JobsWorkspace", () => {
       customer: "Updated Co",
     });
     vi.mocked(deleteJob).mockResolvedValue(undefined);
+    vi.mocked(fetchMaterialsForJob).mockResolvedValue([sampleMaterials[0]!]);
+    vi.mocked(fetchAssignedMaterialIds).mockResolvedValue([sampleMaterials[0]!.id]);
 
-    render(
-      <JobsWorkspace sessionLibraries={sessionLibraries} activeLibraryPath="/tmp/shop" />,
-    );
+    render(<JobsWorkspace sessionLibraries={sessionLibraries} activeLibraryPath="/tmp/shop" />);
     await screen.findByText("JO-1001");
 
     await user.click(screen.getByText("JO-1001"));
@@ -169,10 +198,52 @@ describe("JobsWorkspace", () => {
 
     const deleteButtons = screen.getAllByRole("button", { name: /^delete$/i });
     await user.click(deleteButtons[0]!);
+    expect(await screen.findByText("AL-100")).toBeTruthy();
+    expect(screen.getByText(/1 Job assignment/i)).toBeTruthy();
     await user.click(screen.getByRole("button", { name: /delete job/i }));
 
     await waitFor(() => {
       expect(deleteJob).toHaveBeenCalledWith(sampleLibrary, "job_1");
+    });
+  });
+
+  it("assigns and unassigns materials from a job with unlink confirmation", async () => {
+    const user = userEvent.setup();
+    const sessionLibraries = new Map([["/tmp/shop", sampleLibrary]]);
+    vi.mocked(fetchMaterialsForJob)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([sampleMaterials[1]!])
+      .mockResolvedValueOnce([]);
+    vi.mocked(assignMaterialToJob).mockResolvedValue(undefined);
+    vi.mocked(unassignMaterialFromJob).mockResolvedValue(undefined);
+
+    render(<JobsWorkspace sessionLibraries={sessionLibraries} activeLibraryPath="/tmp/shop" />);
+    await screen.findByText("JO-1001");
+    await user.click(screen.getByText("JO-1001"));
+
+    const editDialog = await screen.findByRole("dialog");
+    const assignSelect = await waitFor(() => {
+      const combobox = within(editDialog).getByLabelText("Assign material");
+      expect(combobox.getAttribute("data-value")).toBe("");
+      expect((combobox as HTMLButtonElement).disabled).toBe(false);
+      return combobox;
+    });
+
+    await chooseSelectOption(assignSelect, /ST-200/);
+    await user.click(within(editDialog).getByRole("button", { name: /^assign$/i }));
+
+    await waitFor(() => {
+      expect(assignMaterialToJob).toHaveBeenCalledWith(sampleLibrary, "job_1", "ST-200");
+    });
+    expect(await within(editDialog).findByText(/ST-200/)).toBeTruthy();
+
+    await user.click(within(editDialog).getByRole("button", { name: /^unlink$/i }));
+    expect(screen.getByRole("heading", { name: /unlink material from job/i })).toBeTruthy();
+    const unlinkButtons = screen.getAllByRole("button", { name: /^unlink$/i });
+    await user.click(unlinkButtons[unlinkButtons.length - 1]!);
+
+    await waitFor(() => {
+      expect(unassignMaterialFromJob).toHaveBeenCalledWith(sampleLibrary, "job_1", "ST-200");
     });
   });
 

@@ -18,6 +18,8 @@ export const materialMetadataPath = (materialId: string) =>
 
 export const jobDir = (jobId: string) => `${JOBS_DIR}/${jobId}`;
 export const jobMetadataPath = (jobId: string) => `${jobDir(jobId)}/metadata.json`;
+/** Sidecar listing Material ids historically assigned to a Job. */
+export const jobAssignmentsPath = (jobId: string) => `${jobDir(jobId)}/assignments.json`;
 
 /** Join path segments for library layout (browser + Node safe). */
 export function joinPath(base: string, ...parts: string[]): string {

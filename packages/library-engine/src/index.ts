@@ -19,6 +19,7 @@ import {
   WORD_LISTS_JSON,
 } from "@certtrace/types";
 import { LibraryError } from "./errors.js";
+import { removeMaterialFromAllJobAssignments } from "./job-assignments.js";
 import {
   buildCreateLibraryConfig,
   type CreateLibraryOptions,
@@ -58,6 +59,23 @@ export {
   validateMaterialValues,
 } from "./field-dependencies.js";
 export {
+  assignMaterialToJob,
+  listAssignedMaterialIds,
+  listJobsForMaterial,
+  listMaterialsForJob,
+  unassignMaterialFromJob,
+} from "./job-assignments.js";
+export {
+  createJob,
+  filterJobsByCustomer,
+  getJob,
+  listJobCustomers,
+  listJobIds,
+  listJobs,
+  removeJob,
+  updateJob,
+} from "./jobs.js";
+export {
   type AddFieldOptionInput,
   type AddFieldOptionResult,
   addFieldOption,
@@ -85,16 +103,6 @@ export {
   updateWordLists,
   validateStrategyEntropy,
 } from "./library-config.js";
-export {
-  createJob,
-  filterJobsByCustomer,
-  getJob,
-  listJobCustomers,
-  listJobIds,
-  listJobs,
-  removeJob,
-  updateJob,
-} from "./jobs.js";
 export {
   filterableFields,
   filterableIdentifierKinds,
@@ -437,12 +445,13 @@ export async function unarchiveMaterial(
   return setMaterialArchived(library, materialId, false);
 }
 
-/** Permanently remove a material folder (metadata + attachments). */
+/** Permanently remove a material folder (metadata + attachments) and cascade Job assignments. */
 export async function removeMaterial(
   library: OpenLibraryResult,
   materialId: string,
 ): Promise<void> {
   await getMaterial(library, materialId);
+  await removeMaterialFromAllJobAssignments(library, materialId);
   await library.fs.remove(joinPath(library.paths.materials, materialId));
 }
 

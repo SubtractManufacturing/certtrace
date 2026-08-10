@@ -12,7 +12,7 @@ ${libraryName}/
   README.md           ← this file
   .certtrace/         ← library settings (do not delete)
   materials/          ← one folder per material with certs attached
-  jobs/               ← one folder per Job
+  jobs/               ← one folder per Job (metadata + optional assignments.json)
 \`\`\`
 
 ## Notes

@@ -4,25 +4,30 @@ import {
   type AddFieldOptionResult,
   addFieldOption,
   archiveMaterial as archiveMaterialInLibrary,
+  assignMaterialToJob as assignMaterialToJobInLibrary,
   type CreateJobInput,
   type CreateLibraryOptions,
   type CreateMaterialInput,
   createJob,
   createLibrary,
   createMaterial,
+  listAssignedMaterialIds,
   listJobCustomers,
   listJobs,
+  listJobsForMaterial,
   listMaterialAttachments,
   listMaterials,
+  listMaterialsForJob,
   type OpenLibraryResult,
   openLibrary,
   type RemoveSchemaDefinitionInput,
   removeJob,
   removeMaterial,
   removeSchemaDefinition,
-  unarchiveMaterial as unarchiveMaterialInLibrary,
   type UpdateJobInput,
   type UpdateMaterialInput,
+  unarchiveMaterial as unarchiveMaterialInLibrary,
+  unassignMaterialFromJob as unassignMaterialFromJobInLibrary,
   updateFieldSchema,
   updateJob,
   updateLibraryConfig,
@@ -168,6 +173,43 @@ export async function deleteJob(library: OpenLibraryResult, jobId: string): Prom
 
 export async function fetchJobCustomers(library: OpenLibraryResult): Promise<string[]> {
   return listJobCustomers(library);
+}
+
+export async function assignMaterialToJob(
+  library: OpenLibraryResult,
+  jobId: string,
+  materialId: string,
+): Promise<void> {
+  return assignMaterialToJobInLibrary(library, jobId, materialId);
+}
+
+export async function unassignMaterialFromJob(
+  library: OpenLibraryResult,
+  jobId: string,
+  materialId: string,
+): Promise<void> {
+  return unassignMaterialFromJobInLibrary(library, jobId, materialId);
+}
+
+export async function fetchMaterialsForJob(
+  library: OpenLibraryResult,
+  jobId: string,
+): Promise<MaterialMetadataV1[]> {
+  return listMaterialsForJob(library, jobId);
+}
+
+export async function fetchAssignedMaterialIds(
+  library: OpenLibraryResult,
+  jobId: string,
+): Promise<string[]> {
+  return listAssignedMaterialIds(library, jobId);
+}
+
+export async function fetchJobsForMaterial(
+  library: OpenLibraryResult,
+  materialId: string,
+): Promise<JobMetadataV1[]> {
+  return listJobsForMaterial(library, materialId);
 }
 
 export async function addLibraryFieldOption(
