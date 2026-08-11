@@ -17,6 +17,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../lib/utils.js";
+import { Input } from "./input.js";
 
 const selectVariants = cva(
   "flex w-full items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 py-1 text-left text-sm text-slate-900 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus-visible:ring-slate-500",
@@ -144,6 +145,9 @@ export interface SelectProps
     VariantProps<typeof selectVariants> {
   children: ReactNode;
   footer?: ReactNode;
+  /** When true, the open menu includes a typeahead field that filters options by label. */
+  searchable?: boolean;
+  searchPlaceholder?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -153,6 +157,8 @@ export function Select({
   fieldSize,
   children,
   footer,
+  searchable = false,
+  searchPlaceholder = "Search…",
   value,
   defaultValue,
   disabled,
@@ -168,6 +174,7 @@ export function Select({
 }: SelectProps) {
   const options = useMemo(() => parseSelectOptions(children), [children]);
   const listboxId = useId();
+  const searchInputId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -178,6 +185,7 @@ export function Select({
     undefined,
   );
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [searchQuery, setSearchQuery] = useState("");
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number } | null>(
     null,
   );
@@ -205,7 +213,25 @@ export function Select({
   }, [defaultValue, isControlled, multiple, uncontrolledValue, value]);
 
   const selectedValue = multiple ? selectedValues : (selectedValues[0] ?? "");
-  const enabledOptions = useMemo(() => options.filter((option) => !option.disabled), [options]);
+  const visibleOptions = useMemo(() => {
+    if (!searchable || multiple) {
+      return options;
+    }
+    const needle = searchQuery.trim().toLowerCase();
+    if (!needle) {
+      return options;
+    }
+    return options.filter((option) => {
+      if (option.value === "") {
+        return false;
+      }
+      return option.label.toLowerCase().includes(needle);
+    });
+  }, [multiple, options, searchQuery, searchable]);
+  const enabledOptions = useMemo(
+    () => visibleOptions.filter((option) => !option.disabled),
+    [visibleOptions],
+  );
   const selectedLabels = options
     .filter((option) => selectedValues.includes(option.value))
     .map((option) => option.label);
@@ -227,7 +253,11 @@ export function Select({
 
     const rect = trigger.getBoundingClientRect();
     const viewportPadding = 8;
-    const estimatedMenuHeight = Math.min(enabledOptions.length * 36 + (footer ? 44 : 0) + 8, 240);
+    const searchHeight = searchable && !multiple ? 44 : 0;
+    const estimatedMenuHeight = Math.min(
+      enabledOptions.length * 36 + (footer ? 44 : 0) + searchHeight + 8,
+      280,
+    );
     const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
     const spaceAbove = rect.top - viewportPadding;
     const openUpward = spaceBelow < estimatedMenuHeight && spaceAbove > spaceBelow;
@@ -240,11 +270,12 @@ export function Select({
       left: rect.left,
       width: rect.width,
     });
-  }, [enabledOptions.length, footer]);
+  }, [enabledOptions.length, footer, multiple, searchable]);
 
   const closeMenu = useCallback(() => {
     setOpen(false);
     setHighlightedIndex(-1);
+    setSearchQuery("");
   }, [setOpen]);
 
   const emitChange = useCallback(
@@ -335,8 +366,64 @@ export function Select({
     const selectedIndex = enabledOptions.findIndex((option) =>
       multiple ? selectedValues.includes(option.value) : option.value === selectedValue,
     );
-    setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+    setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : enabledOptions.length > 0 ? 0 : -1);
   }, [enabledOptions, multiple, open, selectedValue, selectedValues]);
+
+  function moveHighlight(delta: number) {
+    setHighlightedIndex((current) => {
+      if (enabledOptions.length === 0) {
+        return -1;
+      }
+      if (current < 0) {
+        return delta > 0 ? 0 : enabledOptions.length - 1;
+      }
+      const next = current + delta;
+      if (next >= enabledOptions.length) {
+        return 0;
+      }
+      if (next < 0) {
+        return enabledOptions.length - 1;
+      }
+      return next;
+    });
+  }
+
+  function onListNavigationKeyDown(event: ReactKeyboardEvent) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      moveHighlight(1);
+      return true;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      moveHighlight(-1);
+      return true;
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault();
+      setHighlightedIndex(enabledOptions.length > 0 ? 0 : -1);
+      return true;
+    }
+
+    if (event.key === "End") {
+      event.preventDefault();
+      setHighlightedIndex(enabledOptions.length > 0 ? enabledOptions.length - 1 : -1);
+      return true;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const option = enabledOptions[highlightedIndex];
+      if (option) {
+        selectOption(option);
+      }
+      return true;
+    }
+
+    return false;
+  }
 
   function onTriggerKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>) {
     if (disabled) {
@@ -352,47 +439,44 @@ export function Select({
       ) {
         event.preventDefault();
         setOpen(true);
+        return;
+      }
+      if (
+        searchable &&
+        !multiple &&
+        event.key.length === 1 &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey
+      ) {
+        event.preventDefault();
+        setSearchQuery(event.key);
+        setOpen(true);
       }
       return;
     }
 
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setHighlightedIndex((current) => {
-        const next = current + 1;
-        return next >= enabledOptions.length ? 0 : next;
-      });
-      return;
-    }
-
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setHighlightedIndex((current) => {
-        const next = current - 1;
-        return next < 0 ? enabledOptions.length - 1 : next;
-      });
-      return;
-    }
-
-    if (event.key === "Home") {
-      event.preventDefault();
-      setHighlightedIndex(0);
-      return;
-    }
-
-    if (event.key === "End") {
-      event.preventDefault();
-      setHighlightedIndex(enabledOptions.length - 1);
-      return;
-    }
-
-    if (event.key === "Enter" || event.key === " ") {
+    if (event.key === " " && !searchable) {
       event.preventDefault();
       const option = enabledOptions[highlightedIndex];
       if (option) {
         selectOption(option);
       }
+      return;
     }
+
+    onListNavigationKeyDown(event);
+  }
+
+  function onSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu();
+      triggerRef.current?.focus();
+      return;
+    }
+    void onListNavigationKeyDown(event);
   }
 
   if (multiple) {
@@ -510,48 +594,69 @@ export function Select({
               role="listbox"
               aria-label={ariaLabel}
               aria-labelledby={ariaLabelledBy}
-              className="fixed z-[100] flex max-h-60 flex-col overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-950"
+              className="fixed z-[100] flex max-h-72 flex-col overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-950"
               style={{
                 top: menuStyle.top,
                 left: menuStyle.left,
                 width: menuStyle.width,
               }}
             >
+              {searchable ? (
+                <div className="shrink-0 border-b border-slate-200 p-1.5 dark:border-slate-700">
+                  <Input
+                    id={searchInputId}
+                    value={searchQuery}
+                    placeholder={searchPlaceholder}
+                    aria-label={searchPlaceholder}
+                    className="h-8"
+                    autoFocus
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    onKeyDown={onSearchKeyDown}
+                    onClick={(event) => event.stopPropagation()}
+                  />
+                </div>
+              ) : null}
               <div className="overflow-y-auto p-1">
-                {options.map((option) => {
-                  const selected = option.value === selectedValue;
-                  const highlighted = enabledOptions[highlightedIndex]?.value === option.value;
-                  return (
-                    <button
-                      key={option.value || "__empty__"}
-                      type="button"
-                      role="option"
-                      aria-selected={selected}
-                      data-value={option.value}
-                      disabled={option.disabled}
-                      data-highlighted={highlighted || undefined}
-                      className={cn(
-                        "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-slate-900 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-100 dark:hover:bg-slate-800 dark:focus-visible:ring-slate-500",
-                        selected && "bg-slate-100 dark:bg-slate-800",
-                        highlighted && !selected && "bg-slate-50 dark:bg-slate-900",
-                      )}
-                      onMouseEnter={() => {
-                        const enabledIndex = enabledOptions.findIndex(
-                          (entry) => entry.value === option.value,
-                        );
-                        if (enabledIndex >= 0) {
-                          setHighlightedIndex(enabledIndex);
-                        }
-                      }}
-                      onClick={() => selectOption(option)}
-                    >
-                      <span className="flex h-4 w-4 items-center justify-center">
-                        {selected ? <CheckIcon /> : null}
-                      </span>
-                      <span className="truncate">{option.label}</span>
-                    </button>
-                  );
-                })}
+                {visibleOptions.length === 0 ? (
+                  <p className="px-2 py-1.5 text-sm text-slate-500 dark:text-slate-400">
+                    No matches
+                  </p>
+                ) : (
+                  visibleOptions.map((option) => {
+                    const selected = option.value === selectedValue;
+                    const highlighted = enabledOptions[highlightedIndex]?.value === option.value;
+                    return (
+                      <button
+                        key={option.value || "__empty__"}
+                        type="button"
+                        role="option"
+                        aria-selected={selected}
+                        data-value={option.value}
+                        disabled={option.disabled}
+                        data-highlighted={highlighted || undefined}
+                        className={cn(
+                          "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-slate-900 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-100 dark:hover:bg-slate-800 dark:focus-visible:ring-slate-500",
+                          selected && "bg-slate-100 dark:bg-slate-800",
+                          highlighted && !selected && "bg-slate-50 dark:bg-slate-900",
+                        )}
+                        onMouseEnter={() => {
+                          const enabledIndex = enabledOptions.findIndex(
+                            (entry) => entry.value === option.value,
+                          );
+                          if (enabledIndex >= 0) {
+                            setHighlightedIndex(enabledIndex);
+                          }
+                        }}
+                        onClick={() => selectOption(option)}
+                      >
+                        <span className="flex h-4 w-4 items-center justify-center">
+                          {selected ? <CheckIcon /> : null}
+                        </span>
+                        <span className="truncate">{option.label}</span>
+                      </button>
+                    );
+                  })
+                )}
               </div>
               {footer ? (
                 <div className="shrink-0 border-t border-slate-200 p-1 dark:border-slate-700">

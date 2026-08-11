@@ -1,9 +1,9 @@
 import { isNotFoundError } from "@certtrace/file-storage";
 import {
-  joinPath,
   type JobMetadataV1,
   jobMetadataPath,
   jobMetadataV1Schema,
+  joinPath,
   SCHEMA_VERSION,
 } from "@certtrace/types";
 import { LibraryError } from "./errors.js";
@@ -33,11 +33,7 @@ function generateJobId(existingIds: Set<string>): string {
   throw new LibraryError("Unable to allocate a unique Job id");
 }
 
-async function writeJson(
-  library: OpenLibraryResult,
-  path: string,
-  value: unknown,
-): Promise<void> {
+async function writeJson(library: OpenLibraryResult, path: string, value: unknown): Promise<void> {
   await library.fs.writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
@@ -45,10 +41,7 @@ async function ensureJobsDir(library: OpenLibraryResult): Promise<void> {
   await library.fs.mkdir(library.paths.jobs, { recursive: true });
 }
 
-async function readJobMetadata(
-  library: OpenLibraryResult,
-  jobId: string,
-): Promise<JobMetadataV1> {
+async function readJobMetadata(library: OpenLibraryResult, jobId: string): Promise<JobMetadataV1> {
   const metadataPath = joinPath(library.paths.root, jobMetadataPath(jobId));
   let raw: string;
   try {
@@ -116,7 +109,9 @@ async function assertUniqueJobNumber(
       continue;
     }
     if (normalizeJobNumberKey(job.jobNumber) === key) {
-      throw new LibraryError(`A Job with number "${job.jobNumber}" already exists in this library.`);
+      throw new LibraryError(
+        `A Job with number "${job.jobNumber}" already exists in this library.`,
+      );
     }
   }
 }
@@ -169,8 +164,7 @@ export async function updateJob(
 ): Promise<JobMetadataV1> {
   const current = await getJob(library, jobId);
 
-  const nextJobNumber =
-    input.jobNumber !== undefined ? input.jobNumber.trim() : current.jobNumber;
+  const nextJobNumber = input.jobNumber !== undefined ? input.jobNumber.trim() : current.jobNumber;
   if (!nextJobNumber) {
     throw new LibraryError("Job number is required.");
   }
@@ -223,11 +217,15 @@ export async function listJobCustomers(library: OpenLibraryResult): Promise<stri
   return [...customers].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
-/** Find Jobs whose customer contains the query (case-insensitive). Empty query returns all. */
-export function filterJobsByCustomer(jobs: JobMetadataV1[], customerQuery: string): JobMetadataV1[] {
-  const needle = customerQuery.trim().toLowerCase();
+/** Find Jobs matching the query against number, customer, or notes (case-insensitive). Empty query returns all. */
+export function filterJobs(jobs: JobMetadataV1[], query: string): JobMetadataV1[] {
+  const needle = query.trim().toLowerCase();
   if (!needle) {
     return jobs;
   }
-  return jobs.filter((job) => job.customer?.toLowerCase().includes(needle));
+  return jobs.filter((job) => {
+    const haystacks = [job.jobNumber, job.customer ?? "", job.notes ?? ""];
+    return haystacks.some((value) => value.toLowerCase().includes(needle));
+  });
 }
+

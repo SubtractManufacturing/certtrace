@@ -20,6 +20,8 @@ interface MaterialFiltersFlyoutProps {
   materials: MaterialMetadataV1[];
   values: MaterialFilterValues;
   onChange: (values: MaterialFilterValues) => void;
+  showArchived: boolean;
+  onShowArchivedChange: (showArchived: boolean) => void;
   onApply: () => void;
 }
 
@@ -30,6 +32,8 @@ export function MaterialFiltersFlyout({
   materials,
   values,
   onChange,
+  showArchived,
+  onShowArchivedChange,
   onApply,
 }: MaterialFiltersFlyoutProps) {
   return (
@@ -45,6 +49,8 @@ export function MaterialFiltersFlyout({
             materials={materials}
             values={values}
             onChange={onChange}
+            showArchived={showArchived}
+            onShowArchivedChange={onShowArchivedChange}
           />
         </div>
         <SheetFooter className="mt-6 shrink-0">

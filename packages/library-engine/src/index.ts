@@ -67,7 +67,7 @@ export {
 } from "./job-assignments.js";
 export {
   createJob,
-  filterJobsByCustomer,
+  filterJobs,
   getJob,
   listJobCustomers,
   listJobIds,

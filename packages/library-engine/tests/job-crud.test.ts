@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   createJob,
   createLibrary,
-  filterJobsByCustomer,
+  filterJobs,
   getJob,
   LibraryError,
   listJobCustomers,
@@ -123,7 +123,7 @@ describe("job CRUD", () => {
     }
   });
 
-  it("lists distinct job customers and filters jobs by customer", async () => {
+  it("lists distinct job customers and filters jobs by query", async () => {
     const fs = createNodeFileSystem();
     const parentDir = await mkdtemp(join(tmpdir(), "certtrace-job-"));
 
@@ -150,14 +150,16 @@ describe("job CRUD", () => {
       expect(customers).toEqual(["Acme Machining", "Beta Works", "acme machining"]);
 
       const jobs = await listJobs(library);
-      const filtered = filterJobsByCustomer(jobs, "acme");
+      const filtered = filterJobs(jobs, "acme");
       expect(filtered.map((job) => job.jobNumber).sort()).toEqual(["A", "B"]);
-      expect(filterJobsByCustomer(jobs, "  ").map((job) => job.jobNumber).sort()).toEqual([
+      expect(filterJobs(jobs, "  ").map((job) => job.jobNumber).sort()).toEqual([
         "A",
         "B",
         "C",
         "D",
       ]);
+      expect(filterJobs(jobs, "beta").map((job) => job.jobNumber)).toEqual(["C"]);
+      expect(filterJobs(jobs, "D").map((job) => job.jobNumber)).toEqual(["D"]);
     } finally {
       await rm(parentDir, { recursive: true, force: true });
     }

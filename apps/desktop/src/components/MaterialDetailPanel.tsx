@@ -565,6 +565,8 @@ export function MaterialDetailPanel({
                   <Label htmlFor="assign-job">Assign job</Label>
                   <Select
                     id="assign-job"
+                    searchable
+                    searchPlaceholder="Search jobs…"
                     value={assignJobId}
                     disabled={busy || assignableJobs.length === 0}
                     onChange={(event) => setAssignJobId(event.target.value)}
@@ -574,7 +576,7 @@ export function MaterialDetailPanel({
                     </option>
                     {assignableJobs.map((job) => (
                       <option key={job.id} value={job.id}>
-                        {job.jobNumber} · {job.jobDate}
+                        {job.jobNumber}
                       </option>
                     ))}
                   </Select>

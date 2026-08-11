@@ -191,7 +191,7 @@ describe("MaterialDetailPanel job assignments", () => {
       expect((combobox as HTMLButtonElement).disabled).toBe(false);
       return combobox;
     });
-    await chooseSelectOption(assignSelect, /JO-1001/);
+    await chooseSelectOption(assignSelect, "JO-1001");
     await user.click(screen.getByRole("button", { name: /^assign$/i }));
 
     await waitFor(() => {

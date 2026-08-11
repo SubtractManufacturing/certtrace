@@ -140,7 +140,7 @@ export function useSearchIndex({
   const filterMaterials = useCallback(
     (query: string) => {
       if (!query.trim()) {
-        // Empty query browses the shelf; archive inclusion is the shelf filter's job.
+        // Empty query browses the table; archive inclusion is the Archived filter's job.
         return indexedMaterials;
       }
       const matches = new Set(searchMaterials(searchIndex, query));

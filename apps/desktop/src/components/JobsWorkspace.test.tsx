@@ -86,10 +86,15 @@ describe("JobsWorkspace", () => {
     vi.mocked(fetchJobCustomers).mockResolvedValue(["Acme Machining", "Beta Works"]);
     vi.mocked(fetchMaterials).mockResolvedValue(sampleMaterials);
     vi.mocked(fetchMaterialsForJob).mockResolvedValue([]);
-    vi.mocked(fetchAssignedMaterialIds).mockResolvedValue([]);
+    vi.mocked(fetchAssignedMaterialIds).mockImplementation(async (_library, jobId) => {
+      if (jobId === "job_1") {
+        return ["AL-100", "ST-200", "TI-300"];
+      }
+      return [];
+    });
   });
 
-  it("lists jobs for the open library and filters by customer", async () => {
+  it("lists jobs for the open library and searches across job fields", async () => {
     const user = userEvent.setup();
     const sessionLibraries = new Map([["/tmp/shop", sampleLibrary]]);
 
@@ -98,8 +103,13 @@ describe("JobsWorkspace", () => {
     expect(await screen.findByText("JO-1001")).toBeTruthy();
     expect(screen.getByText("JO-1002")).toBeTruthy();
     expect(fetchJobs).toHaveBeenCalledWith(sampleLibrary);
+    expect(screen.getByText("AL-100")).toBeTruthy();
+    expect(screen.getByText("ST-200")).toBeTruthy();
+    expect(screen.getByText("…")).toBeTruthy();
+    expect(screen.queryByText("Notes")).toBeNull();
+    expect(screen.queryByText("Actions")).toBeNull();
 
-    await user.type(screen.getByPlaceholderText("Find by customer…"), "acme");
+    await user.type(screen.getByPlaceholderText("Search Jobs"), "acme");
     expect(screen.getByText("JO-1001")).toBeTruthy();
     expect(screen.queryByText("JO-1002")).toBeNull();
   });
@@ -166,7 +176,7 @@ describe("JobsWorkspace", () => {
     ).toBeTruthy();
   });
 
-  it("edits and deletes a job through the client", async () => {
+  it("edits and deletes a job from the detail modal", async () => {
     const user = userEvent.setup();
     const sessionLibraries = new Map([["/tmp/shop", sampleLibrary]]);
     vi.mocked(updateJobMetadata).mockResolvedValue({
@@ -196,11 +206,13 @@ describe("JobsWorkspace", () => {
       });
     });
 
-    const deleteButtons = screen.getAllByRole("button", { name: /^delete$/i });
-    await user.click(deleteButtons[0]!);
-    expect(await screen.findByText("AL-100")).toBeTruthy();
+    await user.click(await screen.findByText("JO-1001"));
+    const reopenDialog = screen.getByRole("dialog");
+    await user.click(within(reopenDialog).getByLabelText("Delete job"));
+    expect(await screen.findByRole("heading", { name: /delete job jo-1001/i })).toBeTruthy();
     expect(screen.getByText(/1 Job assignment/i)).toBeTruthy();
-    await user.click(screen.getByRole("button", { name: /delete job/i }));
+    const confirmButtons = screen.getAllByRole("button", { name: /^delete job$/i });
+    await user.click(confirmButtons[confirmButtons.length - 1]!);
 
     await waitFor(() => {
       expect(deleteJob).toHaveBeenCalledWith(sampleLibrary, "job_1");

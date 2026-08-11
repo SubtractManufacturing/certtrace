@@ -1,5 +1,5 @@
 import { cn, Separator } from "@certtrace/ui";
-import { Briefcase, Check, ChevronDown, Layers, Settings } from "lucide-react";
+import { Check, ChevronDown, ClipboardList, Layers, Settings } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ActiveLibraryPath } from "../hooks/useLibrarySession";
 import { AppLogo } from "./AppLogo";
@@ -51,7 +51,7 @@ export function AppShell({
           />
           <NavButton
             active={activeView === "jobs"}
-            icon={<Briefcase className="h-4 w-4" />}
+            icon={<ClipboardList className="h-4 w-4" />}
             label="Jobs"
             onClick={() => onViewChange("jobs")}
           />

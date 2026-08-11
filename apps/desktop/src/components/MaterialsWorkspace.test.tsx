@@ -124,11 +124,9 @@ describe("MaterialsWorkspace", () => {
     expect(filterMaterials.mock.calls.at(-1)?.[0]).toBe("H-44");
   });
 
-  it("defaults to the active shelf and can show archived materials with a badge", async () => {
-    const mixed: IndexedMaterial[] = [
-      materials[0]!,
-      { ...materials[1]!, archived: true },
-    ];
+  it("defaults to active materials and can show archived via the filter checkbox", async () => {
+    const user = userEvent.setup();
+    const mixed: IndexedMaterial[] = [materials[0]!, { ...materials[1]!, archived: true }];
 
     render(
       <MaterialsWorkspace
@@ -140,25 +138,20 @@ describe("MaterialsWorkspace", () => {
       />,
     );
 
-    expect(getSelectValue(screen.getByLabelText("Material shelf"))).toBe("active");
     expect(within(screen.getByRole("table")).getByText("AL-falcon-101")).toBeTruthy();
     expect(within(screen.getByRole("table")).queryByText("AL-river-102")).toBeNull();
 
-    await chooseSelectOption(screen.getByLabelText("Material shelf"), "Archived");
+    await openFilters();
+    await user.click(screen.getByLabelText("Archived"));
+    await user.click(screen.getByRole("button", { name: /apply filters/i }));
+
     expect(within(screen.getByRole("table")).getByText("AL-river-102")).toBeTruthy();
     expect(within(screen.getByRole("table")).getByText("Archived")).toBeTruthy();
     expect(within(screen.getByRole("table")).queryByText("AL-falcon-101")).toBeNull();
-
-    await chooseSelectOption(screen.getByLabelText("Material shelf"), "All");
-    expect(within(screen.getByRole("table")).getByText("AL-falcon-101")).toBeTruthy();
-    expect(within(screen.getByRole("table")).getByText("AL-river-102")).toBeTruthy();
   });
 
-  it("shows archived search hits even when the Active shelf is selected", async () => {
-    const mixed: IndexedMaterial[] = [
-      materials[0]!,
-      { ...materials[1]!, archived: true },
-    ];
+  it("shows archived search hits even when browsing active materials", async () => {
+    const mixed: IndexedMaterial[] = [materials[0]!, { ...materials[1]!, archived: true }];
     const filterMaterials = vi.fn((query: string) =>
       query.trim() ? mixed.filter((entry) => entry.id.includes(query)) : mixed,
     );

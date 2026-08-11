@@ -264,8 +264,8 @@ export function SettingsView({
               </Label>
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 When off, text search only matches active materials. When on, search can return
-                archived materials even if the shelf filter is Active. Use Active / Archived / All to
-                browse without a search query.
+                archived materials even when browsing active stock. Use the Archived filter to
+                browse archived materials without a search query.
               </p>
             </div>
             <Switch

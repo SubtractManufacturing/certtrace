@@ -129,4 +129,33 @@ describe("Select", () => {
       .find((option) => option.getAttribute("data-highlighted") === "true");
     expect(highlighted?.getAttribute("data-value")).toBe("light");
   });
+
+  it("filters options when searchable", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <Select
+        aria-label="Material"
+        searchable
+        searchPlaceholder="Search materials…"
+        value=""
+        onChange={onChange}
+      >
+        <option value="">Select a material…</option>
+        <option value="al-100">AL-100</option>
+        <option value="st-200">ST-200</option>
+      </Select>,
+    );
+
+    await user.click(screen.getByRole("combobox", { name: "Material" }));
+    const search = screen.getByLabelText("Search materials…");
+    await user.type(search, "st");
+
+    expect(screen.queryByRole("option", { name: "AL-100" })).toBeNull();
+    expect(screen.getByRole("option", { name: "ST-200" })).toBeTruthy();
+
+    await user.click(screen.getByRole("option", { name: "ST-200" }));
+    expect(onChange.mock.calls[0]?.[0].target.value).toBe("st-200");
+  });
 });

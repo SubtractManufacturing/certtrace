@@ -3,7 +3,6 @@ import {
   filterMaterialsByArchiveState,
   filterMaterialsBySchema,
   type MaterialFilterValues,
-  type MaterialShelfFilter,
   type OpenLibraryResult,
 } from "@certtrace/library-engine";
 import { defaultFieldSchemaV1, type MaterialMetadataV1 } from "@certtrace/types";
@@ -15,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
   SearchInput,
-  Select,
 } from "@certtrace/ui";
 import { ListFilter, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -76,7 +74,8 @@ export function MaterialsWorkspace({
   const [schemaFilters, setSchemaFilters] = useState<MaterialFilterValues>(emptyMaterialFilters);
   const [draftFilters, setDraftFilters] = useState<MaterialFilterValues>(emptyMaterialFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [shelfFilter, setShelfFilter] = useState<MaterialShelfFilter>("active");
+  const [showArchived, setShowArchived] = useState(false);
+  const [draftShowArchived, setDraftShowArchived] = useState(false);
   const searchInputId = "materials-search-input";
 
   const showLibraryColumn = activeLibraryPath === "all";
@@ -89,14 +88,14 @@ export function MaterialsWorkspace({
   const searchedMaterials = useMemo(() => filterMaterials(query), [filterMaterials, query]);
   const filteredMaterials = useMemo(() => {
     // Text search already applies Settings → include archived; don't hide those hits
-    // behind the default Active shelf. Shelf filter applies when browsing (empty query).
-    const byShelf = query.trim()
+    // behind the default Active browse filter. Archived checkbox applies when browsing.
+    const byArchive = query.trim()
       ? searchedMaterials
-      : filterMaterialsByArchiveState(searchedMaterials, shelfFilter);
+      : filterMaterialsByArchiveState(searchedMaterials, showArchived ? "archived" : "active");
     return activeSingleLibrary
-      ? filterMaterialsBySchema(byShelf, activeSingleLibrary.fieldSchema, schemaFilters)
-      : byShelf;
-  }, [activeSingleLibrary, query, schemaFilters, searchedMaterials, shelfFilter]);
+      ? filterMaterialsBySchema(byArchive, activeSingleLibrary.fieldSchema, schemaFilters)
+      : byArchive;
+  }, [activeSingleLibrary, query, schemaFilters, searchedMaterials, showArchived]);
 
   const listSchema = activeSingleLibrary?.fieldSchema ?? defaultFieldSchemaV1;
 
@@ -144,6 +143,8 @@ export function MaterialsWorkspace({
   // biome-ignore lint/correctness/useExhaustiveDependencies: changing library scope must clear its filters
   useEffect(() => {
     setSchemaFilters(emptyMaterialFilters);
+    setShowArchived(false);
+    setDraftShowArchived(false);
   }, [activeLibraryPath]);
 
   const libraryMaterials = useMemo(
@@ -239,11 +240,13 @@ export function MaterialsWorkspace({
 
   function openFilters() {
     setDraftFilters(schemaFilters);
+    setDraftShowArchived(showArchived);
     setFiltersOpen(true);
   }
 
   function applyFilters() {
     setSchemaFilters(draftFilters);
+    setShowArchived(draftShowArchived);
     setFiltersOpen(false);
   }
 
@@ -259,16 +262,6 @@ export function MaterialsWorkspace({
               placeholder={searchPlaceholder}
               className="min-w-[16rem]"
             />
-            <Select
-              aria-label="Material shelf"
-              value={shelfFilter}
-              className="w-36 shrink-0"
-              onChange={(event) => setShelfFilter(event.target.value as MaterialShelfFilter)}
-            >
-              <option value="active">Active</option>
-              <option value="archived">Archived</option>
-              <option value="all">All</option>
-            </Select>
             {activeSingleLibrary ? (
               <Button
                 type="button"
@@ -362,6 +355,8 @@ export function MaterialsWorkspace({
           materials={libraryMaterials}
           values={draftFilters}
           onChange={setDraftFilters}
+          showArchived={draftShowArchived}
+          onShowArchivedChange={setDraftShowArchived}
           onApply={applyFilters}
         />
       ) : null}
