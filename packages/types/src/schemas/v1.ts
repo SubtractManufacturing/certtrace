@@ -326,7 +326,7 @@ export const jobIdSchema = z
   .regex(JOB_ID_PATTERN, "Job id must be filesystem-safe");
 
 /** Shop-entered calendar date (YYYY-MM-DD). Not a created-at timestamp. */
-export const jobDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Job date must be YYYY-MM-DD");
+export const jobDateSchema = z.iso.date();
 
 /** Job metadata: system id/timestamps plus shop-facing job number, date, optional customer/notes. */
 export const jobMetadataV1Schema = z.object({

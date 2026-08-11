@@ -33,8 +33,11 @@ async function readMaterialMetadata(
   let raw: string;
   try {
     raw = await library.fs.readFile(metadataPath);
-  } catch {
-    throw new LibraryError(`Missing Material metadata at ${metadataPath}`);
+  } catch (error: unknown) {
+    if (isNotFoundError(error)) {
+      throw new LibraryError(`Missing Material metadata at ${metadataPath}`);
+    }
+    throw new LibraryError(`Unable to read Material metadata at ${metadataPath}: ${String(error)}`);
   }
 
   let parsed: unknown;
@@ -165,8 +168,12 @@ export async function listMaterialsForJob(
   for (const materialId of await listAssignedMaterialIds(library, jobId)) {
     try {
       materials.push(await readMaterialMetadata(library, materialId));
-    } catch {
-      // Skip dangling ids left by partial deletes or hand-edited libraries.
+    } catch (error) {
+      // Skip only confirmed missing Materials (dangling ids). Propagate I/O and parse errors.
+      if (error instanceof LibraryError && error.message.startsWith("Missing Material metadata")) {
+        continue;
+      }
+      throw error;
     }
   }
   return materials;

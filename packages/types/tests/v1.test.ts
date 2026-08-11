@@ -252,6 +252,17 @@ describe("jobMetadataV1Schema", () => {
       jobMetadataV1Schema.safeParse({
         version: SCHEMA_VERSION,
         id: "job_abc123",
+        jobNumber: "JO-1001",
+        jobDate: "2026-02-31",
+        createdAt: "2026-08-10T12:00:00.000Z",
+        updatedAt: "2026-08-10T12:00:00.000Z",
+      }).success,
+    ).toBe(false);
+
+    expect(
+      jobMetadataV1Schema.safeParse({
+        version: SCHEMA_VERSION,
+        id: "job_abc123",
         jobNumber: "",
         jobDate: "2026-08-10",
         createdAt: "2026-08-10T12:00:00.000Z",

@@ -41,11 +41,11 @@ export function DeleteJobDialog({
         <DialogHeader>
           <DialogTitle>Delete job {jobNumber}?</DialogTitle>
           <DialogDescription>
-            This permanently removes the Job from the library
-            {linkCount > 0
-              ? `, including ${linkCount === 1 ? "1 Job assignment" : `${linkCount} Job assignments`}`
-              : ""}
-            . This cannot be undone.
+            {`This permanently removes the Job from the library${
+              linkCount > 0
+                ? `, including ${linkCount === 1 ? "1 Job assignment" : `${linkCount} Job assignments`}`
+                : ""
+            }. This cannot be undone.`}
           </DialogDescription>
         </DialogHeader>
         {linkCount > 0 ? (

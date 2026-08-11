@@ -359,7 +359,18 @@ export function JobsWorkspace({
               <TableBody>
                 {filteredJobs.map((job) => (
                   <TableRow key={job.id} className="cursor-pointer" onClick={() => openEdit(job)}>
-                    <TableCell className="font-medium">{job.jobNumber}</TableCell>
+                    <TableCell className="font-medium">
+                      <button
+                        type="button"
+                        className="text-left underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openEdit(job);
+                        }}
+                      >
+                        {job.jobNumber}
+                      </button>
+                    </TableCell>
                     <TableCell>{job.jobDate}</TableCell>
                     <TableCell>{job.customer ?? "—"}</TableCell>
                     <TableCell>
