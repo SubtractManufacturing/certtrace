@@ -12,12 +12,13 @@ ${libraryName}/
   README.md           ← this file
   .certtrace/         ← library settings (do not delete)
   materials/          ← one folder per material with certs attached
+  jobs/               ← one folder per Job (metadata + optional assignments.json)
 \`\`\`
 
 ## Notes
 
 - Safe to copy or sync via Google Drive, OneDrive, Dropbox, or a network share
-- Open this folder in CertTrace to manage materials
+- Open this folder in CertTrace to manage materials and jobs
 - No cloud account required — everything stays on your disk
 
 [CertTrace on GitHub](https://github.com/SubtractManufacturing/certtrace)

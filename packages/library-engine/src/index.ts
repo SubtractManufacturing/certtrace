@@ -3,6 +3,7 @@ import { generateMaterialId } from "@certtrace/id-generator";
 import {
   CERTTRACE_DIR,
   FIELD_SCHEMA_JSON,
+  JOBS_DIR,
   joinPath,
   LABELS_DIR,
   LIBRARY_JSON,
@@ -18,6 +19,7 @@ import {
   WORD_LISTS_JSON,
 } from "@certtrace/types";
 import { LibraryError } from "./errors.js";
+import { removeMaterialFromAllJobAssignments } from "./job-assignments.js";
 import {
   buildCreateLibraryConfig,
   type CreateLibraryOptions,
@@ -57,6 +59,23 @@ export {
   validateMaterialValues,
 } from "./field-dependencies.js";
 export {
+  assignMaterialToJob,
+  listAssignedMaterialIds,
+  listJobsForMaterial,
+  listMaterialsForJob,
+  unassignMaterialFromJob,
+} from "./job-assignments.js";
+export {
+  createJob,
+  filterJobs,
+  getJob,
+  listJobCustomers,
+  listJobIds,
+  listJobs,
+  removeJob,
+  updateJob,
+} from "./jobs.js";
+export {
   type AddFieldOptionInput,
   type AddFieldOptionResult,
   addFieldOption,
@@ -87,10 +106,13 @@ export {
 export {
   filterableFields,
   filterableIdentifierKinds,
+  filterMaterialsByArchiveState,
   filterMaterialsBySchema,
+  type MaterialShelfFilter,
   sanitizeMaterialFilterFields,
 } from "./material-filters.js";
 export type {
+  CreateJobInput,
   CreateMaterialInput,
   LibraryPaths,
   MaterialFilterValues,
@@ -98,6 +120,7 @@ export type {
   RemoveSchemaDefinitionInput,
   SchemaDefinitionRemovalStrategy,
   SchemaDefinitionType,
+  UpdateJobInput,
   UpdateMaterialInput,
 } from "./types.js";
 
@@ -108,6 +131,7 @@ export function getLibraryPaths(root: string) {
     root,
     certtrace: joinPath(root, CERTTRACE_DIR),
     materials: joinPath(root, MATERIALS_DIR),
+    jobs: joinPath(root, JOBS_DIR),
     labels: joinPath(root, LABELS_DIR),
     libraryJson: joinPath(root, LIBRARY_JSON),
     namingRulesJson: joinPath(root, NAMING_RULES_JSON),
@@ -163,6 +187,7 @@ export async function createLibrary(
 
   await fs.mkdir(paths.certtrace, { recursive: true });
   await fs.mkdir(paths.materials, { recursive: true });
+  await fs.mkdir(paths.jobs, { recursive: true });
   await fs.mkdir(paths.labels, { recursive: true });
 
   const { config, namingRules, wordLists, fieldSchema } = buildCreateLibraryConfig(options);
@@ -338,6 +363,7 @@ export async function createMaterial(
     id,
     fields: input.fields ?? {},
     identifiers: input.identifiers ?? {},
+    archived: false,
     createdAt: now,
     updatedAt: now,
   });
@@ -368,6 +394,7 @@ export async function updateMaterial(
     },
     id: current.id,
     version: current.version,
+    archived: current.archived,
     createdAt: current.createdAt,
     updatedAt: new Date().toISOString(),
   };
@@ -380,12 +407,51 @@ export async function updateMaterial(
   return updated;
 }
 
-/** Permanently remove a material folder (metadata + attachments). */
+async function setMaterialArchived(
+  library: OpenLibraryResult,
+  materialId: string,
+  archived: boolean,
+): Promise<MaterialMetadataV1> {
+  const current = await getMaterial(library, materialId);
+  if (current.archived === archived) {
+    return current;
+  }
+
+  const updated: MaterialMetadataV1 = {
+    ...current,
+    archived,
+    updatedAt: new Date().toISOString(),
+  };
+  materialMetadataV1Schema.parse(updated);
+
+  const metadataPath = joinPath(library.paths.root, materialMetadataPath(materialId));
+  await writeJson(library.fs, metadataPath, updated);
+  return updated;
+}
+
+/** Mark a Material as Archived (restorable). Same Library folder and id. */
+export async function archiveMaterial(
+  library: OpenLibraryResult,
+  materialId: string,
+): Promise<MaterialMetadataV1> {
+  return setMaterialArchived(library, materialId, true);
+}
+
+/** Restore an Archived Material to active. */
+export async function unarchiveMaterial(
+  library: OpenLibraryResult,
+  materialId: string,
+): Promise<MaterialMetadataV1> {
+  return setMaterialArchived(library, materialId, false);
+}
+
+/** Permanently remove a material folder (metadata + attachments) and cascade Job assignments. */
 export async function removeMaterial(
   library: OpenLibraryResult,
   materialId: string,
 ): Promise<void> {
   await getMaterial(library, materialId);
+  await removeMaterialFromAllJobAssignments(library, materialId);
   await library.fs.remove(joinPath(library.paths.materials, materialId));
 }
 

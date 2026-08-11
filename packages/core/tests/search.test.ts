@@ -14,6 +14,7 @@ function sampleMaterial(overrides: Partial<MaterialMetadataV1> = {}): MaterialMe
     identifiers: {
       heat_number: "A4921",
     },
+    archived: false,
     createdAt: "2026-05-28T12:00:00.000Z",
     updatedAt: "2026-05-28T12:00:00.000Z",
     ...overrides,

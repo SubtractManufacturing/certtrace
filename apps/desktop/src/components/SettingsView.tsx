@@ -19,6 +19,7 @@ interface SettingsViewProps {
   theme: AppSettingsTheme;
   resolvedTheme: Theme;
   checkForUpdates: boolean;
+  includeArchivedMaterialsInSearch: boolean;
   defaultLibraryOnLaunch: DefaultLibraryOnLaunch;
   recentLibraries: RecentLibraryEntryV1[];
   checkingForUpdates: boolean;
@@ -30,6 +31,7 @@ interface SettingsViewProps {
   removingLibrary?: boolean;
   onThemeChange: (theme: AppSettingsTheme) => void;
   onCheckForUpdatesChange: (value: boolean) => void;
+  onIncludeArchivedMaterialsInSearchChange: (value: boolean) => void;
   onDefaultLibraryChange: (value: DefaultLibraryOnLaunch) => void;
   onAddLibrary: () => void;
   onCreateLibrary: () => void;
@@ -43,6 +45,7 @@ export function SettingsView({
   theme,
   resolvedTheme,
   checkForUpdates,
+  includeArchivedMaterialsInSearch,
   defaultLibraryOnLaunch,
   recentLibraries,
   checkingForUpdates,
@@ -54,6 +57,7 @@ export function SettingsView({
   removingLibrary = false,
   onThemeChange,
   onCheckForUpdatesChange,
+  onIncludeArchivedMaterialsInSearchChange,
   onDefaultLibraryChange,
   onAddLibrary,
   onCreateLibrary,
@@ -248,6 +252,28 @@ export function SettingsView({
             {hasCheckedForUpdates && !updateError && !checkingForUpdates && !updateAvailable ? (
               <p className="text-sm text-slate-500">You are on the latest version.</p>
             ) : null}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="text-lg font-semibold">Search</h2>
+          <div className="mt-4 flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="include-archived-search" className="text-sm font-medium">
+                Include archived materials in search
+              </Label>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                When off, text search only matches active materials. When on, search can return
+                archived materials even when browsing active stock. Use the Archived filter to
+                browse archived materials without a search query.
+              </p>
+            </div>
+            <Switch
+              id="include-archived-search"
+              className="shrink-0"
+              checked={includeArchivedMaterialsInSearch}
+              onCheckedChange={onIncludeArchivedMaterialsInSearchChange}
+            />
           </div>
         </section>
 

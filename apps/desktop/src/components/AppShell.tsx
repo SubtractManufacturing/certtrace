@@ -1,10 +1,15 @@
 import { cn, Separator } from "@certtrace/ui";
-import { Check, ChevronDown, Layers, Settings } from "lucide-react";
+import { Check, ChevronDown, ClipboardList, Layers, Settings } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ActiveLibraryPath } from "../hooks/useLibrarySession";
 import { AppLogo } from "./AppLogo";
 
-export type AppView = "materials" | "settings" | "library-settings" | "library-advanced-settings";
+export type AppView =
+  | "materials"
+  | "jobs"
+  | "settings"
+  | "library-settings"
+  | "library-advanced-settings";
 
 interface LibraryOption {
   path: string;
@@ -43,6 +48,12 @@ export function AppShell({
             icon={<Layers className="h-4 w-4" />}
             label="Materials"
             onClick={() => onViewChange("materials")}
+          />
+          <NavButton
+            active={activeView === "jobs"}
+            icon={<ClipboardList className="h-4 w-4" />}
+            label="Jobs"
+            onClick={() => onViewChange("jobs")}
           />
           <NavButton
             active={activeView === "settings"}

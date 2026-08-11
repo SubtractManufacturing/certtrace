@@ -4,8 +4,9 @@ import {
   getMaterialFolderPath,
   type OpenLibraryResult,
 } from "@certtrace/library-engine";
-import type { AttachedFile, MaterialMetadataV1 } from "@certtrace/types";
+import type { AttachedFile, JobMetadataV1, MaterialMetadataV1 } from "@certtrace/types";
 import {
+  Badge,
   Button,
   cn,
   Dialog,
@@ -19,8 +20,18 @@ import {
   Label,
   Select,
 } from "@certtrace/ui";
-import { FileText, FolderOpen, Pencil, Plus, Printer, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+  Archive,
+  ArchiveRestore,
+  FileText,
+  FolderOpen,
+  Pencil,
+  Plus,
+  Printer,
+  Trash2,
+  X,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import {
   attachFilesToMaterial,
   deleteAttachment,
@@ -31,10 +42,17 @@ import {
 import { openPathWithOpener } from "../lib/label-client";
 import {
   addLibraryFieldOption,
+  archiveMaterial,
+  assignMaterialToJob,
   deleteMaterial,
+  fetchJobs,
+  fetchJobsForMaterial,
   fetchMaterialAttachments,
+  unarchiveMaterial,
+  unassignMaterialFromJob,
   updateMaterialMetadata,
 } from "../lib/library-client";
+import { ArchiveMaterialDialog } from "./ArchiveMaterialDialog";
 import { DeleteMaterialDialog } from "./DeleteMaterialDialog";
 import { ErrorBanner } from "./ErrorBanner";
 import { LabelPreviewDialog } from "./LabelPreviewDialog";
@@ -43,6 +61,7 @@ import {
   MaterialSchemaForm,
   validateMaterialValues,
 } from "./MaterialSchemaForm";
+import { UnassignJobMaterialDialog } from "./UnassignJobMaterialDialog";
 
 interface PendingAttachment {
   sourcePath: string;
@@ -85,8 +104,14 @@ export function MaterialDetailPanel({
   const [renameFilename, setRenameFilename] = useState("");
   const [labelPreviewOpen, setLabelPreviewOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [linkedJobs, setLinkedJobs] = useState<JobMetadataV1[]>([]);
+  const [allJobs, setAllJobs] = useState<JobMetadataV1[]>([]);
+  const [assignJobId, setAssignJobId] = useState("");
+  const [unassignTarget, setUnassignTarget] = useState<JobMetadataV1 | null>(null);
+  const [deleteLinkedJobNumbers, setDeleteLinkedJobNumbers] = useState<string[]>([]);
 
   useEffect(() => {
     setDraft({ fields: material.fields, identifiers: material.identifiers });
@@ -95,10 +120,17 @@ export function MaterialDetailPanel({
   useEffect(() => {
     let cancelled = false;
 
-    void fetchMaterialAttachments(library, material.id)
-      .then((result) => {
+    void Promise.all([
+      fetchMaterialAttachments(library, material.id),
+      fetchJobsForMaterial(library, material.id),
+      fetchJobs(library),
+    ])
+      .then(([nextAttachments, nextLinkedJobs, nextJobs]) => {
         if (!cancelled) {
-          setAttachments(result);
+          setAttachments(nextAttachments);
+          setLinkedJobs(nextLinkedJobs);
+          setAllJobs(nextJobs);
+          setAssignJobId("");
         }
       })
       .catch((err) => {
@@ -111,6 +143,21 @@ export function MaterialDetailPanel({
       cancelled = true;
     };
   }, [library, material.id]);
+
+  const assignableJobs = useMemo(() => {
+    const linkedIds = new Set(linkedJobs.map((job) => job.id));
+    return allJobs.filter((job) => !linkedIds.has(job.id));
+  }, [allJobs, linkedJobs]);
+
+  async function refreshLinkedJobs() {
+    const [nextLinkedJobs, nextJobs] = await Promise.all([
+      fetchJobsForMaterial(library, material.id),
+      fetchJobs(library),
+    ]);
+    setLinkedJobs(nextLinkedJobs);
+    setAllJobs(nextJobs);
+    setAssignJobId("");
+  }
 
   function resetDraft() {
     setDraft({ fields: material.fields, identifiers: material.identifiers });
@@ -228,6 +275,21 @@ export function MaterialDetailPanel({
     }
   }
 
+  async function openDeleteMaterialDialog() {
+    setBusy(true);
+    setError(null);
+    try {
+      const jobs = await fetchJobsForMaterial(library, material.id);
+      setDeleteLinkedJobNumbers(jobs.map((job) => job.jobNumber));
+      setLinkedJobs(jobs);
+      setDeleteDialogOpen(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleDeleteMaterial() {
     setBusy(true);
     setError(null);
@@ -235,6 +297,67 @@ export function MaterialDetailPanel({
       await deleteMaterial(library, material.id);
       await onMaterialDeleted(material.id);
       setDeleteDialogOpen(false);
+      setDeleteLinkedJobNumbers([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleAssignJob() {
+    if (!assignJobId) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await assignMaterialToJob(library, assignJobId, material.id);
+      await refreshLinkedJobs();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleUnassignJob() {
+    if (!unassignTarget) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await unassignMaterialFromJob(library, unassignTarget.id, material.id);
+      setUnassignTarget(null);
+      await refreshLinkedJobs();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleArchiveMaterial() {
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await archiveMaterial(library, material.id);
+      onMaterialUpdated(updated);
+      setArchiveDialogOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleUnarchiveMaterial() {
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await unarchiveMaterial(library, material.id);
+      onMaterialUpdated(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -311,7 +434,10 @@ export function MaterialDetailPanel({
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="flex max-h-[min(90vh,100dvh-2rem)] w-full max-w-3xl flex-col gap-0 overflow-hidden lg:max-w-4xl">
           <DialogHeader className="shrink-0 px-6 pt-6">
-            <DialogTitle>{material.id}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <span>{material.id}</span>
+              {material.archived ? <Badge variant="secondary">Archived</Badge> : null}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-4">
@@ -404,6 +530,69 @@ export function MaterialDetailPanel({
             </section>
 
             <section>
+              <h3 className="text-sm font-semibold">Jobs</h3>
+              {linkedJobs.length === 0 ? (
+                <p className="mt-2 text-sm text-slate-500">No jobs assigned yet.</p>
+              ) : (
+                <ul className="mt-2 space-y-2">
+                  {linkedJobs.map((job) => (
+                    <li
+                      key={job.id}
+                      className="flex items-center justify-between gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"
+                    >
+                      <span className="truncate">
+                        <span className="font-medium">{job.jobNumber}</span>
+                        <span className="text-slate-500"> · {job.jobDate}</span>
+                        {job.customer ? (
+                          <span className="text-slate-500"> · {job.customer}</span>
+                        ) : null}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => setUnassignTarget(job)}
+                      >
+                        Unlink
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="mt-3 flex items-end gap-2">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Label htmlFor="assign-job">Assign job</Label>
+                  <Select
+                    id="assign-job"
+                    searchable
+                    searchPlaceholder="Search jobs…"
+                    value={assignJobId}
+                    disabled={busy || assignableJobs.length === 0}
+                    onChange={(event) => setAssignJobId(event.target.value)}
+                  >
+                    <option value="">
+                      {assignableJobs.length === 0 ? "No jobs available" : "Select a job…"}
+                    </option>
+                    {assignableJobs.map((job) => (
+                      <option key={job.id} value={job.id}>
+                        {job.jobNumber}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busy || !assignJobId}
+                  onClick={() => void handleAssignJob()}
+                >
+                  Assign
+                </Button>
+              </div>
+            </section>
+
+            <section>
               <h3 className="text-sm font-semibold">Label</h3>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                 Preview, export, or print a Label for this material.
@@ -441,10 +630,33 @@ export function MaterialDetailPanel({
                 disabled={busy}
                 aria-label="Delete material"
                 className="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
-                onClick={() => setDeleteDialogOpen(true)}
+                onClick={() => void openDeleteMaterialDialog()}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
+              {material.archived ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => void handleUnarchiveMaterial()}
+                >
+                  <ArchiveRestore className="mr-2 h-4 w-4" />
+                  Unarchive
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => setArchiveDialogOpen(true)}
+                >
+                  <Archive className="mr-2 h-4 w-4" />
+                  Archive
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="outline"
@@ -584,10 +796,33 @@ export function MaterialDetailPanel({
         open={deleteDialogOpen}
         materialId={material.id}
         attachmentCount={attachments.length}
+        linkedJobNumbers={deleteLinkedJobNumbers}
         busy={busy}
-        onClose={() => setDeleteDialogOpen(false)}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setDeleteLinkedJobNumbers([]);
+        }}
         onConfirm={() => void handleDeleteMaterial()}
       />
+
+      <ArchiveMaterialDialog
+        open={archiveDialogOpen}
+        materialId={material.id}
+        busy={busy}
+        onClose={() => setArchiveDialogOpen(false)}
+        onConfirm={() => void handleArchiveMaterial()}
+      />
+
+      {unassignTarget ? (
+        <UnassignJobMaterialDialog
+          open
+          jobNumber={unassignTarget.jobNumber}
+          materialId={material.id}
+          busy={busy}
+          onClose={() => setUnassignTarget(null)}
+          onConfirm={() => void handleUnassignJob()}
+        />
+      ) : null}
     </>
   );
 }

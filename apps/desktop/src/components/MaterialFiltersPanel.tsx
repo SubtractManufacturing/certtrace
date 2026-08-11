@@ -14,6 +14,8 @@ interface MaterialFiltersPanelProps {
   materials: MaterialMetadataV1[];
   values: MaterialFilterValues;
   onChange: (values: MaterialFilterValues) => void;
+  showArchived: boolean;
+  onShowArchivedChange: (showArchived: boolean) => void;
 }
 
 export const emptyMaterialFilters: MaterialFilterValues = {
@@ -26,15 +28,13 @@ export function MaterialFiltersPanel({
   materials,
   values,
   onChange,
+  showArchived,
+  onShowArchivedChange,
 }: MaterialFiltersPanelProps) {
   const fields = filterableFields(schema)
     .filter((field) => field.type !== "date")
     .filter((field) => isFieldVisible(field, values.fields));
-  const hasActiveFilters = Object.values(values.fields).some(Boolean);
-
-  if (fields.length === 0) {
-    return <p className="text-sm text-slate-500">No filters available for this library.</p>;
-  }
+  const hasActiveFilters = Object.values(values.fields).some(Boolean) || showArchived;
 
   function setField(key: string, value: string) {
     const nextFields = { ...values.fields };
@@ -51,6 +51,18 @@ export function MaterialFiltersPanel({
 
   return (
     <div className="space-y-4">
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          id="material-filter-archived"
+          type="checkbox"
+          aria-label="Show Archived"
+          className="h-4 w-4 rounded border-slate-300 text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-600 dark:bg-slate-950"
+          checked={showArchived}
+          onChange={(event) => onShowArchivedChange(event.target.checked)}
+        />
+        <span>Show Archived</span>
+      </label>
+
       {fields.map((field) => (
         <label key={field.key} className="block space-y-1.5 text-sm">
           <Label htmlFor={`material-filter-field-${field.key}`}>{field.label}</Label>
@@ -64,12 +76,19 @@ export function MaterialFiltersPanel({
         </label>
       ))}
 
+      {fields.length === 0 ? (
+        <p className="text-sm text-slate-500">No field filters available for this library.</p>
+      ) : null}
+
       {hasActiveFilters ? (
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => onChange(emptyMaterialFilters)}
+          onClick={() => {
+            onChange(emptyMaterialFilters);
+            onShowArchivedChange(false);
+          }}
         >
           Clear filters
         </Button>

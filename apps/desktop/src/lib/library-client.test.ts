@@ -1,18 +1,22 @@
 import {
   addFieldOption,
+  archiveMaterial as archiveMaterialInLibrary,
   createLibrary,
   openLibrary,
   removeSchemaDefinition,
+  unarchiveMaterial as unarchiveMaterialInLibrary,
   updateFieldSchema,
 } from "@certtrace/library-engine";
 import { open } from "@tauri-apps/plugin-dialog";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addLibraryFieldOption,
+  archiveMaterial,
   createLibraryWithOptions,
   deleteLibraryFolder,
   pickParentFolder,
   removeLibrarySchemaDefinition,
+  unarchiveMaterial,
   updateLibraryFieldSchema,
 } from "./library-client";
 import { allowLibraryDirectory } from "./library-scope";
@@ -23,13 +27,26 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 
 vi.mock("@certtrace/library-engine", () => ({
   addFieldOption: vi.fn(),
+  archiveMaterial: vi.fn(),
+  assignMaterialToJob: vi.fn(),
+  createJob: vi.fn(),
   createLibrary: vi.fn(),
   createMaterial: vi.fn(),
+  listAssignedMaterialIds: vi.fn(),
+  listJobCustomers: vi.fn(),
+  listJobs: vi.fn(),
+  listJobsForMaterial: vi.fn(),
   listMaterialAttachments: vi.fn(),
   listMaterials: vi.fn(),
+  listMaterialsForJob: vi.fn(),
   openLibrary: vi.fn(),
+  removeJob: vi.fn(),
+  removeMaterial: vi.fn(),
   removeSchemaDefinition: vi.fn(),
+  unarchiveMaterial: vi.fn(),
+  unassignMaterialFromJob: vi.fn(),
   updateFieldSchema: vi.fn(),
+  updateJob: vi.fn(),
   updateLibraryConfig: vi.fn(),
   updateMaterial: vi.fn(),
   updateNamingRules: vi.fn(),
@@ -178,5 +195,18 @@ describe("library-client", () => {
     await expect(deleteLibraryFolder("/Users/jacobm/Documents/Sandbox")).resolves.toBeUndefined();
 
     expect(remove).not.toHaveBeenCalled();
+  });
+
+  it("archives and unarchives materials through the library engine", async () => {
+    const library = { paths: { root: "/libraries/main" } } as never;
+    const archived = { id: "AL-falcon-101", archived: true } as never;
+    const active = { id: "AL-falcon-101", archived: false } as never;
+    vi.mocked(archiveMaterialInLibrary).mockResolvedValue(archived);
+    vi.mocked(unarchiveMaterialInLibrary).mockResolvedValue(active);
+
+    await expect(archiveMaterial(library, "AL-falcon-101")).resolves.toBe(archived);
+    await expect(unarchiveMaterial(library, "AL-falcon-101")).resolves.toBe(active);
+    expect(archiveMaterialInLibrary).toHaveBeenCalledWith(library, "AL-falcon-101");
+    expect(unarchiveMaterialInLibrary).toHaveBeenCalledWith(library, "AL-falcon-101");
   });
 });

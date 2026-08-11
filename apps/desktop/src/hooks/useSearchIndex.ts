@@ -13,12 +13,15 @@ export interface UseSearchIndexOptions {
   sessionLibraries: Map<string, OpenLibraryResult>;
   activeLibraryPath: string | "all" | null;
   recentLibraries: RecentLibraryEntryV1[];
+  /** When false (default), text search excludes Archived Materials. */
+  includeArchivedMaterialsInSearch?: boolean;
 }
 
 export function useSearchIndex({
   sessionLibraries,
   activeLibraryPath,
   recentLibraries,
+  includeArchivedMaterialsInSearch = false,
 }: UseSearchIndexOptions) {
   const [materialsByLibrary, setMaterialsByLibrary] = useState<Map<string, MaterialMetadataV1[]>>(
     () => new Map(),
@@ -121,19 +124,29 @@ export function useSearchIndex({
     return rows;
   }, [activeLibraryPath, materialsByLibrary, recentLibraries, sessionLibraries]);
 
-  const searchIndex = useMemo((): SearchIndex => {
-    return buildSearchIndex(indexedMaterials);
-  }, [indexedMaterials]);
+  const searchableMaterials = useMemo(
+    () =>
+      includeArchivedMaterialsInSearch
+        ? indexedMaterials
+        : indexedMaterials.filter((material) => !material.archived),
+    [includeArchivedMaterialsInSearch, indexedMaterials],
+  );
+
+  const searchIndex = useMemo(
+    (): SearchIndex => buildSearchIndex(searchableMaterials),
+    [searchableMaterials],
+  );
 
   const filterMaterials = useCallback(
     (query: string) => {
       if (!query.trim()) {
+        // Empty query browses the table; archive inclusion is the Archived filter's job.
         return indexedMaterials;
       }
       const matches = new Set(searchMaterials(searchIndex, query));
-      return indexedMaterials.filter((material) => matches.has(material));
+      return searchableMaterials.filter((material) => matches.has(material));
     },
-    [indexedMaterials, searchIndex],
+    [indexedMaterials, searchableMaterials, searchIndex],
   );
 
   return {

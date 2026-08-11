@@ -1,5 +1,14 @@
 import type { FieldSchemaV1 } from "@certtrace/types";
-import { cn, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@certtrace/ui";
+import {
+  Badge,
+  cn,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@certtrace/ui";
 import { ArrowDown, ArrowUp, ArrowUpDown, Paperclip } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { IndexedMaterial } from "../hooks/useSearchIndex";
@@ -100,6 +109,7 @@ export function MaterialTable({
                 key={attachmentKey}
                 className={cn(
                   "cursor-pointer",
+                  material.archived && "text-slate-500 dark:text-slate-400",
                   selectedMaterialId === material.id && "bg-slate-50 dark:bg-slate-800/60",
                 )}
                 onClick={() => onSelectMaterial(material)}
@@ -129,7 +139,12 @@ function renderCell(
 ) {
   switch (column.kind) {
     case "id":
-      return material.id;
+      return (
+        <span className="inline-flex items-center gap-2">
+          <span>{material.id}</span>
+          {material.archived ? <Badge variant="secondary">Archived</Badge> : null}
+        </span>
+      );
     case "library":
       return material.libraryName;
     case "field": {

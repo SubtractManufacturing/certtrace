@@ -1,5 +1,6 @@
 import {
   type CreateMaterialInput,
+  filterMaterialsByArchiveState,
   filterMaterialsBySchema,
   type MaterialFilterValues,
   type OpenLibraryResult,
@@ -73,6 +74,8 @@ export function MaterialsWorkspace({
   const [schemaFilters, setSchemaFilters] = useState<MaterialFilterValues>(emptyMaterialFilters);
   const [draftFilters, setDraftFilters] = useState<MaterialFilterValues>(emptyMaterialFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [draftShowArchived, setDraftShowArchived] = useState(false);
   const searchInputId = "materials-search-input";
 
   const showLibraryColumn = activeLibraryPath === "all";
@@ -83,13 +86,16 @@ export function MaterialsWorkspace({
       : null;
 
   const searchedMaterials = useMemo(() => filterMaterials(query), [filterMaterials, query]);
-  const filteredMaterials = useMemo(
-    () =>
-      activeSingleLibrary
-        ? filterMaterialsBySchema(searchedMaterials, activeSingleLibrary.fieldSchema, schemaFilters)
-        : searchedMaterials,
-    [activeSingleLibrary, schemaFilters, searchedMaterials],
-  );
+  const filteredMaterials = useMemo(() => {
+    // Text search already applies Settings → include archived; don't hide those hits
+    // behind the default Active browse filter. Archived checkbox applies when browsing.
+    const byArchive = query.trim()
+      ? searchedMaterials
+      : filterMaterialsByArchiveState(searchedMaterials, showArchived ? "archived" : "active");
+    return activeSingleLibrary
+      ? filterMaterialsBySchema(byArchive, activeSingleLibrary.fieldSchema, schemaFilters)
+      : byArchive;
+  }, [activeSingleLibrary, query, schemaFilters, searchedMaterials, showArchived]);
 
   const listSchema = activeSingleLibrary?.fieldSchema ?? defaultFieldSchemaV1;
 
@@ -137,6 +143,8 @@ export function MaterialsWorkspace({
   // biome-ignore lint/correctness/useExhaustiveDependencies: changing library scope must clear its filters
   useEffect(() => {
     setSchemaFilters(emptyMaterialFilters);
+    setShowArchived(false);
+    setDraftShowArchived(false);
   }, [activeLibraryPath]);
 
   const libraryMaterials = useMemo(
@@ -232,11 +240,13 @@ export function MaterialsWorkspace({
 
   function openFilters() {
     setDraftFilters(schemaFilters);
+    setDraftShowArchived(showArchived);
     setFiltersOpen(true);
   }
 
   function applyFilters() {
     setSchemaFilters(draftFilters);
+    setShowArchived(draftShowArchived);
     setFiltersOpen(false);
   }
 
@@ -319,8 +329,11 @@ export function MaterialsWorkspace({
               setSelectedMaterial(null);
             }
           }}
-          onMaterialUpdated={async () => {
+          onMaterialUpdated={async (updated) => {
             await onRefreshLibrary(selectedMaterial.libraryPath);
+            setSelectedMaterial((current) =>
+              current ? { ...current, ...updated, libraryPath: current.libraryPath } : null,
+            );
           }}
           onEditLabelTemplates={() => {
             setSelectedMaterial(null);
@@ -342,6 +355,8 @@ export function MaterialsWorkspace({
           materials={libraryMaterials}
           values={draftFilters}
           onChange={setDraftFilters}
+          showArchived={draftShowArchived}
+          onShowArchivedChange={setDraftShowArchived}
           onApply={applyFilters}
         />
       ) : null}

@@ -5,6 +5,7 @@ import { AdvancedLibrarySettingsView } from "./components/AdvancedLibrarySetting
 import { AppShell, type AppView } from "./components/AppShell";
 import { CreateLibraryWizard } from "./components/CreateLibraryWizard";
 import { ErrorBanner } from "./components/ErrorBanner";
+import { JobsWorkspace } from "./components/JobsWorkspace";
 import { LibrarySettingsView } from "./components/LibrarySettingsView";
 import { MaterialsWorkspace } from "./components/MaterialsWorkspace";
 import { SettingsView } from "./components/SettingsView";
@@ -99,6 +100,7 @@ function App() {
     sessionLibraries: session.sessionLibraries,
     activeLibraryPath: session.activeLibraryPath,
     recentLibraries,
+    includeArchivedMaterialsInSearch: settings?.includeArchivedMaterialsInSearch ?? false,
   });
 
   const libraryPickerOptions = useMemo(
@@ -372,11 +374,20 @@ function App() {
           />
         ) : null}
 
+        {activeView === "jobs" ? (
+          <JobsWorkspace
+            sessionLibraries={session.sessionLibraries}
+            activeLibraryPath={session.activeLibraryPath}
+            error={error}
+          />
+        ) : null}
+
         {activeView === "settings" && settings ? (
           <SettingsView
             theme={settings.theme}
             resolvedTheme={resolvedTheme}
             checkForUpdates={settings.checkForUpdates}
+            includeArchivedMaterialsInSearch={settings.includeArchivedMaterialsInSearch}
             defaultLibraryOnLaunch={settings.defaultLibraryOnLaunch}
             recentLibraries={librariesForSettings}
             checkingForUpdates={updateCheck.checking}
@@ -388,6 +399,9 @@ function App() {
             removingLibrary={removingLibrary}
             onThemeChange={(theme) => void setTheme(theme)}
             onCheckForUpdatesChange={(value) => void updateSettings({ checkForUpdates: value })}
+            onIncludeArchivedMaterialsInSearchChange={(value) =>
+              void updateSettings({ includeArchivedMaterialsInSearch: value })
+            }
             onDefaultLibraryChange={(value) =>
               void updateSettings({ defaultLibraryOnLaunch: value })
             }

@@ -6,6 +6,7 @@ import { createNodeFileSystem } from "@certtrace/file-storage/node";
 import {
   CERTTRACE_DIR,
   FIELD_SCHEMA_JSON,
+  JOBS_DIR,
   LABELS_DIR,
   LIBRARY_JSON,
   LIBRARY_README,
@@ -129,6 +130,7 @@ describe("createLibrary", () => {
       expect(opened.paths.wordListsJson.endsWith(WORD_LISTS_JSON)).toBe(true);
       expect(opened.paths.fieldSchemaJson.endsWith(FIELD_SCHEMA_JSON)).toBe(true);
       expect(opened.paths.materials.endsWith(MATERIALS_DIR)).toBe(true);
+      expect(opened.paths.jobs.endsWith(JOBS_DIR)).toBe(true);
       expect(opened.paths.labels.endsWith(LABELS_DIR)).toBe(true);
     } finally {
       await rm(parentDir, { recursive: true, force: true });

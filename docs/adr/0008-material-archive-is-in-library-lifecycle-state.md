@@ -1,0 +1,3 @@
+# Material archive is an in-library lifecycle state
+
+Archiving means a Material is no longer active shop stock, but the record and attachments must remain findable for certs and audit. Archive is a restorable lifecycle state on the Material in the same Library (same id and paths). Day-to-day removal from the active shelf is archive; hard delete remains for mistakes and duplicates. Rejected: moving archived pieces into a separate archive Library (breaks stable identity, multi-library search, and later job links) and replacing delete with archive-only (duplicates and mis-entries still need permanent removal).

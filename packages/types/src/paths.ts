@@ -1,6 +1,7 @@
 /** On-disk layout for a CertTrace material library. */
 export const CERTTRACE_DIR = ".certtrace";
 export const MATERIALS_DIR = "materials";
+export const JOBS_DIR = "jobs";
 export const LABELS_DIR = `${CERTTRACE_DIR}/labels`;
 export const BACKUPS_DIR = `${CERTTRACE_DIR}/backups`;
 
@@ -14,6 +15,11 @@ export const LIBRARY_README = "README.md";
 export const materialDir = (materialId: string) => `${MATERIALS_DIR}/${materialId}`;
 export const materialMetadataPath = (materialId: string) =>
   `${materialDir(materialId)}/metadata.json`;
+
+export const jobDir = (jobId: string) => `${JOBS_DIR}/${jobId}`;
+export const jobMetadataPath = (jobId: string) => `${jobDir(jobId)}/metadata.json`;
+/** Sidecar listing Material ids historically assigned to a Job. */
+export const jobAssignmentsPath = (jobId: string) => `${jobDir(jobId)}/assignments.json`;
 
 /** Join path segments for library layout (browser + Node safe). */
 export function joinPath(base: string, ...parts: string[]): string {
@@ -52,6 +58,9 @@ export function libraryFolderName(displayName: string): string {
 /** Filesystem-safe material IDs (folder names). */
 export const MATERIAL_ID_PATTERN = /^[A-Za-z0-9._-]+$/;
 
+/** Filesystem-safe Job IDs (folder names). Distinct from the shop-facing job number. */
+export const JOB_ID_PATTERN = /^[A-Za-z0-9._-]+$/;
+
 export const LIBRARY_PATHS = [
   LIBRARY_JSON,
   NAMING_RULES_JSON,
@@ -59,4 +68,5 @@ export const LIBRARY_PATHS = [
   FIELD_SCHEMA_JSON,
   LABELS_DIR,
   MATERIALS_DIR,
+  JOBS_DIR,
 ] as const;

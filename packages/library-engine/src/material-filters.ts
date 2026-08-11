@@ -8,6 +8,20 @@ import type {
 import { sanitizeDependentFieldValues } from "./field-dependencies.js";
 import type { MaterialFilterValues } from "./types.js";
 
+/** Shelf filter for Materials list: Active (default), Archived, or All. */
+export type MaterialShelfFilter = "active" | "archived" | "all";
+
+export function filterMaterialsByArchiveState<T extends MaterialMetadataV1>(
+  materials: T[],
+  shelf: MaterialShelfFilter,
+): T[] {
+  if (shelf === "all") {
+    return materials;
+  }
+  const wantArchived = shelf === "archived";
+  return materials.filter((material) => material.archived === wantArchived);
+}
+
 export function filterableFields(schema: FieldSchemaV1): FieldDefinitionV1[] {
   return schema.fields.filter((field) => field.filterable && !field.disabled);
 }

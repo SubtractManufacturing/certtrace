@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   FIELD_SCHEMA_JSON,
+  JOBS_DIR,
   LIBRARY_JSON,
   MATERIALS_DIR,
   NAMING_RULES_JSON,
@@ -12,6 +13,7 @@ import {
 import {
   createLabelContentItem,
   fieldSchemaV1Schema,
+  jobMetadataV1Schema,
   LABEL_CONTENT_QR,
   labelTemplateSchema,
   libraryConfigV1Schema,
@@ -218,6 +220,58 @@ describe("materialMetadataV1Schema", () => {
   });
 });
 
+describe("jobMetadataV1Schema", () => {
+  it("validates a Job with required number and date", () => {
+    const parsed = jobMetadataV1Schema.parse({
+      version: SCHEMA_VERSION,
+      id: "job_abc123",
+      jobNumber: "JO-1001",
+      jobDate: "2026-08-10",
+      customer: "Acme Machining",
+      notes: "Rush order",
+      createdAt: "2026-08-10T12:00:00.000Z",
+      updatedAt: "2026-08-10T12:00:00.000Z",
+    });
+    expect(parsed.jobNumber).toBe("JO-1001");
+    expect(parsed.jobDate).toBe("2026-08-10");
+  });
+
+  it("rejects invalid job dates and empty job numbers", () => {
+    expect(
+      jobMetadataV1Schema.safeParse({
+        version: SCHEMA_VERSION,
+        id: "job_abc123",
+        jobNumber: "JO-1001",
+        jobDate: "2026-08-10T12:00:00.000Z",
+        createdAt: "2026-08-10T12:00:00.000Z",
+        updatedAt: "2026-08-10T12:00:00.000Z",
+      }).success,
+    ).toBe(false);
+
+    expect(
+      jobMetadataV1Schema.safeParse({
+        version: SCHEMA_VERSION,
+        id: "job_abc123",
+        jobNumber: "JO-1001",
+        jobDate: "2026-02-31",
+        createdAt: "2026-08-10T12:00:00.000Z",
+        updatedAt: "2026-08-10T12:00:00.000Z",
+      }).success,
+    ).toBe(false);
+
+    expect(
+      jobMetadataV1Schema.safeParse({
+        version: SCHEMA_VERSION,
+        id: "job_abc123",
+        jobNumber: "",
+        jobDate: "2026-08-10",
+        createdAt: "2026-08-10T12:00:00.000Z",
+        updatedAt: "2026-08-10T12:00:00.000Z",
+      }).success,
+    ).toBe(false);
+  });
+});
+
 describe("library folder contract", () => {
   it("documents expected top-level paths", () => {
     expect(LIBRARY_JSON).toBe(".certtrace/library.json");
@@ -225,5 +279,6 @@ describe("library folder contract", () => {
     expect(WORD_LISTS_JSON).toBe(".certtrace/word-lists.json");
     expect(FIELD_SCHEMA_JSON).toBe(".certtrace/field-schema.json");
     expect(MATERIALS_DIR).toBe("materials");
+    expect(JOBS_DIR).toBe("jobs");
   });
 });

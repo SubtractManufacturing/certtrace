@@ -26,6 +26,7 @@ const material: MaterialMetadataV1 = {
   identifiers: {
     heat_number: "A4921",
   },
+  archived: false,
   createdAt: "2026-05-28T12:00:00.000Z",
   updatedAt: "2026-05-28T12:00:00.000Z",
 };
@@ -35,6 +36,7 @@ const emptyMaterial: MaterialMetadataV1 = {
   id: "EMPTY-1",
   fields: {},
   identifiers: {},
+  archived: false,
   createdAt: "2026-05-28T12:00:00.000Z",
   updatedAt: "2026-05-28T12:00:00.000Z",
 };
