@@ -93,9 +93,7 @@ export function JobsWorkspace({
       : null;
 
   const [jobs, setJobs] = useState<JobMetadataV1[]>([]);
-  const [jobMaterialIds, setJobMaterialIds] = useState<
-    Record<string, string[]>
-  >({});
+  const [jobMaterialIds, setJobMaterialIds] = useState<Record<string, string[]>>({});
   const [customers, setCustomers] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -105,18 +103,13 @@ export function JobsWorkspace({
   const [form, setForm] = useState<JobFormState>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<JobMetadataV1 | null>(null);
-  const [deleteLinkedMaterialIds, setDeleteLinkedMaterialIds] = useState<
-    string[]
-  >([]);
+  const [deleteLinkedMaterialIds, setDeleteLinkedMaterialIds] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
-  const [linkedMaterials, setLinkedMaterials] = useState<MaterialMetadataV1[]>(
-    [],
-  );
+  const [linkedMaterials, setLinkedMaterials] = useState<MaterialMetadataV1[]>([]);
   const [allMaterials, setAllMaterials] = useState<MaterialMetadataV1[]>([]);
   const [assignMaterialId, setAssignMaterialId] = useState("");
   const [assigning, setAssigning] = useState(false);
-  const [unassignTarget, setUnassignTarget] =
-    useState<MaterialMetadataV1 | null>(null);
+  const [unassignTarget, setUnassignTarget] = useState<MaterialMetadataV1 | null>(null);
   const [unassigning, setUnassigning] = useState(false);
   const customerListId = "job-customer-suggestions";
 
@@ -136,10 +129,7 @@ export function JobsWorkspace({
       ]);
       const assignmentEntries = await Promise.all(
         nextJobs.map(async (job) => {
-          const materialIds = await fetchAssignedMaterialIds(
-            activeLibrary,
-            job.id,
-          );
+          const materialIds = await fetchAssignedMaterialIds(activeLibrary, job.id);
           return [job.id, materialIds] as const;
         }),
       );
@@ -178,10 +168,7 @@ export function JobsWorkspace({
     [activeLibrary],
   );
 
-  const filteredJobs = useMemo(
-    () => filterJobs(jobs, searchQuery),
-    [jobs, searchQuery],
-  );
+  const filteredJobs = useMemo(() => filterJobs(jobs, searchQuery), [jobs, searchQuery]);
 
   const assignableMaterials = useMemo(() => {
     const linkedIds = new Set(linkedMaterials.map((material) => material.id));
@@ -252,9 +239,7 @@ export function JobsWorkspace({
     }
     setLocalError(null);
     try {
-      setDeleteLinkedMaterialIds(
-        await fetchAssignedMaterialIds(activeLibrary, editingJob.id),
-      );
+      setDeleteLinkedMaterialIds(await fetchAssignedMaterialIds(activeLibrary, editingJob.id));
       setDeleteTarget(editingJob);
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : String(err));
@@ -305,11 +290,7 @@ export function JobsWorkspace({
     setUnassigning(true);
     setLocalError(null);
     try {
-      await unassignMaterialFromJob(
-        activeLibrary,
-        editingJob.id,
-        unassignTarget.id,
-      );
+      await unassignMaterialFromJob(activeLibrary, editingJob.id, unassignTarget.id);
       setUnassignTarget(null);
       await refreshLinkedMaterials(editingJob.id);
     } catch (err) {
@@ -377,20 +358,12 @@ export function JobsWorkspace({
               </TableHeader>
               <TableBody>
                 {filteredJobs.map((job) => (
-                  <TableRow
-                    key={job.id}
-                    className="cursor-pointer"
-                    onClick={() => openEdit(job)}
-                  >
-                    <TableCell className="font-medium">
-                      {job.jobNumber}
-                    </TableCell>
+                  <TableRow key={job.id} className="cursor-pointer" onClick={() => openEdit(job)}>
+                    <TableCell className="font-medium">{job.jobNumber}</TableCell>
                     <TableCell>{job.jobDate}</TableCell>
                     <TableCell>{job.customer ?? "—"}</TableCell>
                     <TableCell>
-                      <JobMaterialsCell
-                        materialIds={jobMaterialIds[job.id] ?? []}
-                      />
+                      <JobMaterialsCell materialIds={jobMaterialIds[job.id] ?? []} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -490,9 +463,7 @@ export function JobsWorkspace({
               <section className="space-y-2 border-t border-slate-200 pt-4 dark:border-slate-700">
                 <h3 className="text-sm font-semibold">Materials</h3>
                 {linkedMaterials.length === 0 ? (
-                  <p className="text-sm text-slate-500">
-                    No materials assigned yet.
-                  </p>
+                  <p className="text-sm text-slate-500">No materials assigned yet.</p>
                 ) : (
                   <ul className="space-y-2">
                     {linkedMaterials.map((material) => (
@@ -525,9 +496,7 @@ export function JobsWorkspace({
                       searchPlaceholder="Search materials…"
                       value={assignMaterialId}
                       disabled={assignableMaterials.length === 0 || assigning}
-                      onChange={(event) =>
-                        setAssignMaterialId(event.target.value)
-                      }
+                      onChange={(event) => setAssignMaterialId(event.target.value)}
                     >
                       <option value="">
                         {assignableMaterials.length === 0
@@ -573,18 +542,10 @@ export function JobsWorkspace({
               ) : null}
             </div>
             <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setFormOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>
                 Cancel
               </Button>
-              <Button
-                type="button"
-                disabled={submitting}
-                onClick={() => void handleSave()}
-              >
+              <Button type="button" disabled={submitting} onClick={() => void handleSave()}>
                 {editingJob ? "Save job" : "Add job"}
               </Button>
             </div>

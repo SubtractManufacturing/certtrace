@@ -92,9 +92,11 @@ describe("material archive", () => {
       expect(filterMaterialsByArchiveState(materials, "archived").map((m) => m.id)).toEqual([
         archived.id,
       ]);
-      expect(filterMaterialsByArchiveState(materials, "all").map((m) => m.id).sort()).toEqual(
-        [active.id, archived.id].sort(),
-      );
+      expect(
+        filterMaterialsByArchiveState(materials, "all")
+          .map((m) => m.id)
+          .sort(),
+      ).toEqual([active.id, archived.id].sort());
     } finally {
       await rm(parentDir, { recursive: true, force: true });
     }

@@ -5,11 +5,7 @@ import {
   type MaterialFilterValues,
   sanitizeMaterialFilterFields,
 } from "@certtrace/library-engine";
-import type {
-  FieldDefinitionV1,
-  FieldSchemaV1,
-  MaterialMetadataV1,
-} from "@certtrace/types";
+import type { FieldDefinitionV1, FieldSchemaV1, MaterialMetadataV1 } from "@certtrace/types";
 import { Button, Label, Select } from "@certtrace/ui";
 import { distinctMaterialFieldValues } from "../lib/material-filter-values";
 
@@ -38,8 +34,7 @@ export function MaterialFiltersPanel({
   const fields = filterableFields(schema)
     .filter((field) => field.type !== "date")
     .filter((field) => isFieldVisible(field, values.fields));
-  const hasActiveFilters =
-    Object.values(values.fields).some(Boolean) || showArchived;
+  const hasActiveFilters = Object.values(values.fields).some(Boolean) || showArchived;
 
   function setField(key: string, value: string) {
     const nextFields = { ...values.fields };
@@ -70,9 +65,7 @@ export function MaterialFiltersPanel({
 
       {fields.map((field) => (
         <label key={field.key} className="block space-y-1.5 text-sm">
-          <Label htmlFor={`material-filter-field-${field.key}`}>
-            {field.label}
-          </Label>
+          <Label htmlFor={`material-filter-field-${field.key}`}>{field.label}</Label>
           <FilterFieldSelect
             field={field}
             materials={materials}
@@ -84,9 +77,7 @@ export function MaterialFiltersPanel({
       ))}
 
       {fields.length === 0 ? (
-        <p className="text-sm text-slate-500">
-          No field filters available for this library.
-        </p>
+        <p className="text-sm text-slate-500">No field filters available for this library.</p>
       ) : null}
 
       {hasActiveFilters ? (

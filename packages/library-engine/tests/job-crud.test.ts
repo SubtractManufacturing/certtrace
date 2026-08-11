@@ -80,9 +80,9 @@ describe("job CRUD", () => {
       await expect(createJob(library, { jobNumber: "JO-1", jobDate: "" })).rejects.toBeInstanceOf(
         LibraryError,
       );
-      await expect(createJob(library, { jobNumber: "  ", jobDate: "2026-08-10" })).rejects.toBeInstanceOf(
-        LibraryError,
-      );
+      await expect(
+        createJob(library, { jobNumber: "  ", jobDate: "2026-08-10" }),
+      ).rejects.toBeInstanceOf(LibraryError);
       await expect(
         createJob(library, { jobNumber: "JO-1", jobDate: "2026-08-10T00:00:00.000Z" }),
       ).rejects.toBeInstanceOf(LibraryError);
@@ -112,9 +112,9 @@ describe("job CRUD", () => {
       ).rejects.toBeInstanceOf(LibraryError);
 
       const other = await createJob(library, { jobNumber: "JO-2", jobDate: "2026-08-03" });
-      await expect(
-        updateJob(library, other.id, { jobNumber: "JO-1" }),
-      ).rejects.toBeInstanceOf(LibraryError);
+      await expect(updateJob(library, other.id, { jobNumber: "JO-1" })).rejects.toBeInstanceOf(
+        LibraryError,
+      );
 
       const same = await updateJob(library, other.id, { jobNumber: " jo-2 " });
       expect(same.jobNumber).toBe("jo-2");
@@ -152,12 +152,11 @@ describe("job CRUD", () => {
       const jobs = await listJobs(library);
       const filtered = filterJobs(jobs, "acme");
       expect(filtered.map((job) => job.jobNumber).sort()).toEqual(["A", "B"]);
-      expect(filterJobs(jobs, "  ").map((job) => job.jobNumber).sort()).toEqual([
-        "A",
-        "B",
-        "C",
-        "D",
-      ]);
+      expect(
+        filterJobs(jobs, "  ")
+          .map((job) => job.jobNumber)
+          .sort(),
+      ).toEqual(["A", "B", "C", "D"]);
       expect(filterJobs(jobs, "beta").map((job) => job.jobNumber)).toEqual(["C"]);
       expect(filterJobs(jobs, "D").map((job) => job.jobNumber)).toEqual(["D"]);
     } finally {

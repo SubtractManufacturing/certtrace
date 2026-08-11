@@ -121,10 +121,12 @@ describe("useSearchIndex", () => {
 
     await waitFor(() => expect(result.current.indexedMaterials).toHaveLength(2));
 
-    expect(result.current.filterMaterials("").map((entry) => entry.id).sort()).toEqual([
-      "AL-active-101",
-      "AL-archived-102",
-    ]);
+    expect(
+      result.current
+        .filterMaterials("")
+        .map((entry) => entry.id)
+        .sort(),
+    ).toEqual(["AL-active-101", "AL-archived-102"]);
     expect(result.current.filterMaterials("HEAT-ACTIVE")).toHaveLength(1);
     expect(result.current.filterMaterials("HEAT-ARCHIVED")).toHaveLength(0);
   });

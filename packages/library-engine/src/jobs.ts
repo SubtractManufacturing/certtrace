@@ -228,4 +228,3 @@ export function filterJobs(jobs: JobMetadataV1[], query: string): JobMetadataV1[
     return haystacks.some((value) => value.toLowerCase().includes(needle));
   });
 }
-

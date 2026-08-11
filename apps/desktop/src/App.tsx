@@ -5,8 +5,8 @@ import { AdvancedLibrarySettingsView } from "./components/AdvancedLibrarySetting
 import { AppShell, type AppView } from "./components/AppShell";
 import { CreateLibraryWizard } from "./components/CreateLibraryWizard";
 import { ErrorBanner } from "./components/ErrorBanner";
-import { LibrarySettingsView } from "./components/LibrarySettingsView";
 import { JobsWorkspace } from "./components/JobsWorkspace";
+import { LibrarySettingsView } from "./components/LibrarySettingsView";
 import { MaterialsWorkspace } from "./components/MaterialsWorkspace";
 import { SettingsView } from "./components/SettingsView";
 import { UpdateAvailableDialog } from "./components/UpdateAvailableBanner";
