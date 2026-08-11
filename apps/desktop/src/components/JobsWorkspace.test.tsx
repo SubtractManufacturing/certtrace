@@ -109,7 +109,7 @@ describe("JobsWorkspace", () => {
     expect(screen.queryByText("Notes")).toBeNull();
     expect(screen.queryByText("Actions")).toBeNull();
 
-    await user.type(screen.getByPlaceholderText("Search Jobs"), "acme");
+    await user.type(screen.getByPlaceholderText("Search Jobs..."), "acme");
     expect(screen.getByText("JO-1001")).toBeTruthy();
     expect(screen.queryByText("JO-1002")).toBeNull();
   });

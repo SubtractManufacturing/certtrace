@@ -142,7 +142,7 @@ describe("MaterialsWorkspace", () => {
     expect(within(screen.getByRole("table")).queryByText("AL-river-102")).toBeNull();
 
     await openFilters();
-    await user.click(screen.getByLabelText("Archived"));
+    await user.click(screen.getByLabelText("Show Archived"));
     await user.click(screen.getByRole("button", { name: /apply filters/i }));
 
     expect(within(screen.getByRole("table")).getByText("AL-river-102")).toBeTruthy();
