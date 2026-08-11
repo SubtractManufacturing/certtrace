@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.4](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.3...desktop-v0.0.4) (2026-08-11)
+
+
+### Features
+
+* Material archive and Jobs with historical assignments ([#113](https://github.com/SubtractManufacturing/certtrace/issues/113)) ([d9a1ae2](https://github.com/SubtractManufacturing/certtrace/commit/d9a1ae2d4e458a99c3eaf2d3901837f6b55ccf97))
+* **release:** Authenticode-sign Windows installers via Azure Artifact Signing ([ac1d21b](https://github.com/SubtractManufacturing/certtrace/commit/ac1d21b5d0bf11fc5387ea7859852c177447d077))
+
 ## [0.0.3](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.2...desktop-v0.0.3) (2026-07-31)
 
 
