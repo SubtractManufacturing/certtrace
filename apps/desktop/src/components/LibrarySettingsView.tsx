@@ -1,7 +1,9 @@
 import type { OpenLibraryResult } from "@certtrace/library-engine";
-import { cn } from "@certtrace/ui";
+import type { LibraryDefaultUnit } from "@certtrace/types";
+import { cn, Label, Select } from "@certtrace/ui";
 import { ChevronDown, ChevronRight, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
+import { updateLibraryConfigPartial } from "../lib/library-client";
 import { LabelTemplatesEditor } from "./LabelTemplatesEditor";
 import { MaterialTableColumnsEditor } from "./MaterialTableColumnsEditor";
 
@@ -38,6 +40,29 @@ export function LibrarySettingsView({
         </header>
 
         <div className="space-y-4">
+          <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <h2 className="text-lg font-semibold">Measurements</h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              Choose inch, millimetre, or follow the install default for new Size entry.
+            </p>
+            <div className="mt-4 max-w-xs">
+              <Label htmlFor="library-default-unit">Default unit</Label>
+              <Select
+                id="library-default-unit"
+                className="mt-1"
+                value={library.config.defaultUnit}
+                onChange={(event) => {
+                  const defaultUnit = event.target.value as LibraryDefaultUnit;
+                  void updateLibraryConfigPartial(library, { defaultUnit }).then(onLibraryUpdated);
+                }}
+              >
+                <option value="app">App default</option>
+                <option value="in">Inch</option>
+                <option value="mm">Millimetre</option>
+              </Select>
+            </div>
+          </section>
+
           <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold">Material columns</h2>

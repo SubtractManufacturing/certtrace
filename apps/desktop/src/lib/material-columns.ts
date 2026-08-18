@@ -1,5 +1,6 @@
 import {
   type FieldSchemaV1,
+  formatMaterialSize,
   type MaterialTableColumnV1,
   materialTableColumnIdentity,
 } from "@certtrace/types";
@@ -8,6 +9,7 @@ export type MaterialColumnKind =
   | "id"
   | "field"
   | "identifier"
+  | "size"
   | "identifiers"
   | "attachments"
   | "library";
@@ -53,6 +55,7 @@ export function materialColumnOptions(schema: FieldSchemaV1): MaterialColumnOpti
       label: kind.label,
     })),
     { column: { kind: "attachments" }, label: "Attachment count" },
+    { column: { kind: "size" }, label: "Size" },
     { column: { kind: "identifiers" }, label: "Identifiers (compact)" },
   ];
 }
@@ -92,6 +95,9 @@ function resolveMaterialColumns(
       }
       case "attachments":
         columns.push({ kind: "attachments", key: "attachments", label: "Attachments" });
+        break;
+      case "size":
+        columns.push({ kind: "size", key: "size", label: "Size" });
         break;
       case "identifiers":
         if (schema.identifierKinds.length > 0) {

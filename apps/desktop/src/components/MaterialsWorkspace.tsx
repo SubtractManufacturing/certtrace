@@ -5,7 +5,7 @@ import {
   type MaterialFilterValues,
   type OpenLibraryResult,
 } from "@certtrace/library-engine";
-import { defaultFieldSchemaV1, type MaterialMetadataV1 } from "@certtrace/types";
+import { defaultFieldSchemaV1, resolveSizeUnit, type MaterialMetadataV1, type SizeUnit } from "@certtrace/types";
 import {
   Button,
   Dialog,
@@ -47,6 +47,7 @@ interface MaterialsWorkspaceProps {
   filterMaterials: (query: string) => IndexedMaterial[];
   onEnsureLibrary?: (path: string) => Promise<OpenLibraryResult | undefined>;
   onEditLabelTemplates?: (libraryPath: string) => void;
+  installDefaultUnit?: SizeUnit;
 }
 
 const emptyFormValues: MaterialFormValues = { fields: {}, identifiers: {} };
@@ -61,6 +62,7 @@ export function MaterialsWorkspace({
   filterMaterials,
   onEnsureLibrary,
   onEditLabelTemplates,
+  installDefaultUnit = "in",
 }: MaterialsWorkspaceProps) {
   const [query, setQuery] = useState("");
   const [selectedMaterial, setSelectedMaterial] = useState<IndexedMaterial | null>(null);
@@ -84,6 +86,9 @@ export function MaterialsWorkspace({
     activeLibraryPath && activeLibraryPath !== "all"
       ? (sessionLibraries.get(activeLibraryPath) ?? null)
       : null;
+  const resolvedDefaultUnit = activeSingleLibrary
+    ? resolveSizeUnit(activeSingleLibrary.config.defaultUnit, installDefaultUnit)
+    : installDefaultUnit;
 
   const searchedMaterials = useMemo(() => filterMaterials(query), [filterMaterials, query]);
   const filteredMaterials = useMemo(() => {
@@ -223,6 +228,7 @@ export function MaterialsWorkspace({
       const input: CreateMaterialInput = {
         fields: formValues.fields,
         identifiers: formValues.identifiers,
+        sizeUnit: formValues.sizeUnit,
       };
       const created = await addMaterial(library, input);
       await onRefreshLibrary(activeLibraryPath);
@@ -323,6 +329,10 @@ export function MaterialsWorkspace({
         <MaterialDetailPanel
           library={activeLibrary}
           material={selectedMaterial}
+          resolvedDefaultUnit={resolveSizeUnit(
+            activeLibrary.config.defaultUnit,
+            installDefaultUnit,
+          )}
           open={Boolean(selectedMaterial)}
           onOpenChange={(open) => {
             if (!open) {
@@ -382,6 +392,7 @@ export function MaterialsWorkspace({
                 values={formValues}
                 onChange={setFormValues}
                 onAddOption={(input) => addLibraryFieldOption(activeSingleLibrary, input)}
+                resolvedDefaultUnit={resolvedDefaultUnit}
                 idPrefix="add-material"
               />
             ) : null}

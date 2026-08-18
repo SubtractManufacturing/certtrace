@@ -25,6 +25,7 @@ describe("app settings", () => {
       const settings = await readAppSettings(fs, settingsDir);
       expect(settings).toEqual(createDefaultAppSettingsV1());
       expect(settings.includeArchivedMaterialsInSearch).toBe(false);
+      expect(settings.defaultUnit).toBe("in");
     } finally {
       await rm(settingsDir, { recursive: true, force: true });
     }

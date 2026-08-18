@@ -4,6 +4,7 @@ import type {
   FieldValueV1,
   LibraryConfigV1,
   NamingRulesV1,
+  SizeUnit,
   WordListsV1,
 } from "@certtrace/types";
 
@@ -31,11 +32,15 @@ export interface OpenLibraryResult {
 export interface CreateMaterialInput {
   fields?: Record<string, FieldValueV1>;
   identifiers?: Record<string, string>;
+  sizeUnit?: SizeUnit;
 }
 
 export interface UpdateMaterialInput {
   fields?: Record<string, FieldValueV1>;
   identifiers?: Record<string, string>;
+  sizeUnit?: SizeUnit | null;
+  /** When true, `fields` replaces the stored field bag instead of merging. */
+  replaceFields?: boolean;
 }
 
 export interface CreateJobInput {

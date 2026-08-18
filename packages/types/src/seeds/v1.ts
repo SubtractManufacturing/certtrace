@@ -3,14 +3,23 @@ import {
   type FieldSchemaV1,
   LABEL_CONTENT_MATERIAL_ID,
   LABEL_CONTENT_QR,
+  LABEL_CONTENT_SIZE,
   type LabelTemplate,
   type LibraryConfigV1,
   type NamingRulesV1,
   SCHEMA_VERSION,
   type WordListsV1,
 } from "../schemas/v1.js";
+import { SHIPPED_DIMENSION_KEYS, SHIPPED_SHAPE_PACKING } from "../size.js";
 
-/** Stable ids for shipped starter Label Templates (ordinary data — editable/deletable). */
+const DIMENSION_FIELD_LABELS: Record<(typeof SHIPPED_DIMENSION_KEYS)[number], string> = {
+  thickness: "Thickness",
+  diameter: "Diameter",
+  width: "Width",
+  height: "Height",
+  od: "OD",
+  wall: "Wall",
+};
 export const STARTER_LABEL_TEMPLATE_4X6_ID = "starter-4x6" as const;
 export const STARTER_LABEL_TEMPLATE_LETTER_ID = "starter-letter" as const;
 export const STARTER_LABEL_TEMPLATE_3X1_ID = "starter-3x1" as const;
@@ -19,6 +28,7 @@ const STARTER_LABEL_CONTENT_KEYS = [
   "family",
   "alloy",
   "temper",
+  LABEL_CONTENT_SIZE,
   LABEL_CONTENT_MATERIAL_ID,
   LABEL_CONTENT_QR,
 ] as const;
@@ -136,6 +146,7 @@ export function createDefaultLibraryConfigV1(name: string): LibraryConfigV1 {
     labelTemplates,
     defaultLabelTemplateId: STARTER_LABEL_TEMPLATE_4X6_ID,
     searchAllFields: false,
+    defaultUnit: "app",
   };
 }
 
@@ -229,15 +240,23 @@ export const defaultFieldSchemaV1: FieldSchemaV1 = {
       required: false,
       filterable: true,
       options: [
-        { id: "round_bar", label: "Round bar" },
-        { id: "square_bar", label: "Square bar" },
-        { id: "hex_bar", label: "Hexagonal bar" },
-        { id: "round_tube", label: "Round tube" },
-        { id: "rect_tube", label: "Rectangular tube" },
-        { id: "plate", label: "Plate" },
-        { id: "sheet", label: "Sheet" },
+        { id: "plate", label: "Plate", ...SHIPPED_SHAPE_PACKING.plate },
+        { id: "sheet", label: "Sheet", ...SHIPPED_SHAPE_PACKING.sheet },
+        { id: "round_bar", label: "Round bar", ...SHIPPED_SHAPE_PACKING.round_bar },
+        { id: "square_bar", label: "Square bar", ...SHIPPED_SHAPE_PACKING.square_bar },
+        { id: "rect_bar", label: "Rectangle bar", ...SHIPPED_SHAPE_PACKING.rect_bar },
+        { id: "hex_bar", label: "Hexagonal bar", ...SHIPPED_SHAPE_PACKING.hex_bar },
+        { id: "round_tube", label: "Round tube", ...SHIPPED_SHAPE_PACKING.round_tube },
+        { id: "rect_tube", label: "Rectangular tube", ...SHIPPED_SHAPE_PACKING.rect_tube },
       ],
     },
+    ...SHIPPED_DIMENSION_KEYS.map((key) => ({
+      key,
+      label: DIMENSION_FIELD_LABELS[key],
+      type: "number" as const,
+      required: false,
+      filterable: false,
+    })),
     {
       key: "supplier",
       label: "Supplier",

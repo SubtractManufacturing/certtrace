@@ -4,6 +4,7 @@ import {
   LABEL_CONTENT_BARCODE,
   LABEL_CONTENT_MATERIAL_ID,
   LABEL_CONTENT_QR,
+  LABEL_CONTENT_SIZE,
   type LabelContentItem,
   type MaterialMetadataV1,
   SCHEMA_VERSION,
@@ -46,6 +47,7 @@ export function createSampleLabelMaterial(): MaterialMetadataV1 {
 /** Core slots always offered, then every Field and Identifier kind from the schema. */
 export function labelContentOptions(fieldSchema: FieldSchemaV1): LabelContentOption[] {
   const core: LabelContentOption[] = [
+    { key: LABEL_CONTENT_SIZE, label: "Size" },
     { key: LABEL_CONTENT_MATERIAL_ID, label: "Material id" },
     { key: LABEL_CONTENT_QR, label: "QR" },
     { key: LABEL_CONTENT_BARCODE, label: "Barcode" },

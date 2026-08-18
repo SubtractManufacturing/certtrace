@@ -16,10 +16,12 @@ import {
   materialMetadataV1Schema,
   NAMING_RULES_JSON,
   SCHEMA_VERSION,
+  isShippedDimensionKey,
   WORD_LISTS_JSON,
 } from "@certtrace/types";
 import { LibraryError } from "./errors.js";
 import { removeMaterialFromAllJobAssignments } from "./job-assignments.js";
+import { sanitizeMaterialSize } from "./material-size.js";
 import {
   buildCreateLibraryConfig,
   type CreateLibraryOptions,
@@ -52,6 +54,18 @@ export {
   renameMaterialAttachment,
 } from "./attachments.js";
 export { LibraryError } from "./errors.js";
+export {
+  compareMaterialSize,
+  formatMaterialSize,
+  getShapeDimensionKeys,
+  getShapeField,
+  getShapeOption,
+  getShapeSizePattern,
+  hasFilledShapeDimensions,
+  isDimensionFieldKey,
+  materialSizeSortKey,
+  sanitizeMaterialSize,
+} from "./material-size.js";
 export {
   availableFieldOptions,
   isFieldVisible,
@@ -357,12 +371,19 @@ export async function createMaterial(
     materialOption,
   });
 
+  const mergedFields = input.fields ?? {};
+  const sanitized = sanitizeMaterialSize(library.fieldSchema, {
+    fields: mergedFields,
+    sizeUnit: input.sizeUnit,
+  });
+
   const now = new Date().toISOString();
   const metadata = materialMetadataV1Schema.parse({
     version: SCHEMA_VERSION,
     id,
-    fields: input.fields ?? {},
+    fields: sanitized.fields,
     identifiers: input.identifiers ?? {},
+    sizeUnit: sanitized.sizeUnit,
     archived: false,
     createdAt: now,
     updatedAt: now,
@@ -382,16 +403,31 @@ export async function updateMaterial(
 ): Promise<MaterialMetadataV1> {
   const current = await getMaterial(library, materialId);
   assertNoDisabledDefinitionChanges(library, input.fields, input.identifiers, current);
+  const mergedFields = input.replaceFields
+    ? (input.fields ?? {})
+    : {
+        ...current.fields,
+        ...input.fields,
+      };
+  const nextSizeUnit =
+    input.sizeUnit === null
+      ? undefined
+      : input.sizeUnit !== undefined
+        ? input.sizeUnit
+        : current.sizeUnit;
+  const sanitized = sanitizeMaterialSize(library.fieldSchema, {
+    fields: mergedFields,
+    sizeUnit: nextSizeUnit,
+  });
+
   const updated: MaterialMetadataV1 = {
     ...current,
-    fields: {
-      ...current.fields,
-      ...input.fields,
-    },
+    fields: sanitized.fields,
     identifiers: {
       ...current.identifiers,
       ...input.identifiers,
     },
+    sizeUnit: sanitized.sizeUnit,
     id: current.id,
     version: current.version,
     archived: current.archived,
@@ -466,6 +502,12 @@ export async function removeSchemaDefinition(
   const source = collection.find((definition) => definition.key === input.key);
   if (!source) {
     throw new LibraryError(`Schema ${input.definitionType} "${input.key}" was not found.`);
+  }
+
+  if (input.definitionType === "field" && isShippedDimensionKey(input.key)) {
+    throw new LibraryError(
+      `Shipped dimension field "${input.key}" cannot be deleted, disabled, or replaced.`,
+    );
   }
 
   if (input.strategy.type === "disable") {

@@ -1,4 +1,6 @@
+import { compareMaterialSize } from "@certtrace/library-engine";
 import type { FieldSchemaV1 } from "@certtrace/types";
+import { formatMaterialSize } from "@certtrace/types";
 import {
   Badge,
   cn,
@@ -61,7 +63,14 @@ export function MaterialTable({
 
   const sortedMaterials = useMemo(() => {
     const copy = [...materials];
+    const sizeSort = sortKey === "size";
     copy.sort((left, right) => {
+      if (sizeSort) {
+        const schemaForLeft = (resolveSchema ?? (() => schema))(left.libraryPath);
+        const schemaForRight = (resolveSchema ?? (() => schema))(right.libraryPath);
+        const comparison = compareMaterialSize(schemaForLeft, left, right);
+        return sortDirection === "asc" ? comparison : -comparison;
+      }
       const leftValue = cellSortValue(left, sortKey, columns, resolveSchema ?? (() => schema));
       const rightValue = cellSortValue(right, sortKey, columns, resolveSchema ?? (() => schema));
       const comparison = leftValue.localeCompare(rightValue);
@@ -157,6 +166,10 @@ function renderCell(
       const cue = formatIdentifiersCue(schema, material.identifiers);
       return cue || "—";
     }
+    case "size": {
+      const display = formatMaterialSize(schema, material);
+      return display || "—";
+    }
     case "attachments":
       return attachmentCount > 0 ? (
         <span className="inline-flex items-center gap-1 text-slate-500">
@@ -189,6 +202,9 @@ function cellSortValue(
   }
   if (column.kind === "identifier") {
     return material.identifiers[column.key] ?? "";
+  }
+  if (column.kind === "size") {
+    return formatMaterialSize(schema, material);
   }
   if (column.kind === "identifiers") {
     return formatIdentifiersCue(schema, material.identifiers);

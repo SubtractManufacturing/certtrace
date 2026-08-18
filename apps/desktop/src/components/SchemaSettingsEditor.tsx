@@ -67,28 +67,65 @@ function FieldOptionsEditor({ field, onChange }: FieldOptionsEditorProps) {
     <div className="space-y-2 rounded-md bg-slate-50 p-3 dark:bg-slate-950">
       <p className="text-sm font-medium">Options</p>
       {field.options?.map((option) => (
-        <div key={option.id} className="grid gap-2 sm:grid-cols-[1fr_8rem_8rem]">
-          <Input
-            aria-label={`Option label ${option.id} for field ${field.key}`}
-            value={option.label}
-            onChange={(event) =>
-              updateOption(option.id, (current) => ({ ...current, label: event.target.value }))
-            }
-          />
-          <Input
-            aria-label={`Option short code ${option.id} for field ${field.key}`}
-            placeholder="Short code"
-            value={option.shortCode ?? ""}
-            onChange={(event) =>
-              updateOption(option.id, (current) => {
-                const shortCode = event.target.value;
-                return shortCode
-                  ? { ...current, shortCode }
-                  : { id: current.id, label: current.label };
-              })
-            }
-          />
-          <Input value={option.id} readOnly className="font-mono" aria-label="Stable option id" />
+        <div key={option.id} className="space-y-2 rounded-md border border-slate-200 p-3 dark:border-slate-700">
+          <div className="grid gap-2 sm:grid-cols-[1fr_8rem_8rem]">
+            <Input
+              aria-label={`Option label ${option.id} for field ${field.key}`}
+              value={option.label}
+              onChange={(event) =>
+                updateOption(option.id, (current) => ({ ...current, label: event.target.value }))
+              }
+            />
+            <Input
+              aria-label={`Option short code ${option.id} for field ${field.key}`}
+              placeholder="Short code"
+              value={option.shortCode ?? ""}
+              onChange={(event) =>
+                updateOption(option.id, (current) => {
+                  const shortCode = event.target.value;
+                  return shortCode
+                    ? { ...current, shortCode }
+                    : { id: current.id, label: current.label };
+                })
+              }
+            />
+            <Input value={option.id} readOnly className="font-mono" aria-label="Stable option id" />
+          </div>
+          {field.key === "shape" ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Dimension keys</Label>
+                <Input
+                  value={(option.dimensionKeys ?? []).join(", ")}
+                  placeholder="width, height"
+                  onChange={(event) => {
+                    const dimensionKeys = event.target.value
+                      .split(",")
+                      .map((entry) => entry.trim())
+                      .filter(Boolean);
+                    updateOption(option.id, (current) => ({
+                      ...current,
+                      dimensionKeys: dimensionKeys.length > 0 ? dimensionKeys : undefined,
+                    }));
+                  }}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Size pattern</Label>
+                <Input
+                  value={option.sizePattern ?? ""}
+                  placeholder="{width} x {height} {unit}"
+                  onChange={(event) => {
+                    const sizePattern = event.target.value.trim();
+                    updateOption(option.id, (current) => ({
+                      ...current,
+                      sizePattern: sizePattern || undefined,
+                    }));
+                  }}
+                />
+              </div>
+            </div>
+          ) : null}
         </div>
       ))}
       <div className="flex gap-2">

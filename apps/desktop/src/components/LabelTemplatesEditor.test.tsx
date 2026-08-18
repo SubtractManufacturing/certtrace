@@ -226,12 +226,14 @@ describe("LabelTemplatesEditor", () => {
     expect(screen.getByRole("button", { name: /^Save$/i })).toBeTruthy();
 
     await chooseSelectOption(screen.getByLabelText(/Label size/i), "Custom");
-    const width = screen.getByLabelText(/Width/i);
-    const height = screen.getByLabelText(/Height/i);
-    await userEvent.clear(width);
-    await userEvent.type(width, "100mm");
-    await userEvent.clear(height);
-    await userEvent.type(height, "150");
+    const width = document.getElementById("label-template-width");
+    const height = document.getElementById("label-template-height");
+    expect(width).toBeTruthy();
+    expect(height).toBeTruthy();
+    await userEvent.clear(width!);
+    await userEvent.type(width!, "100mm");
+    await userEvent.clear(height!);
+    await userEvent.type(height!, "150");
 
     expect(getSelectValue(screen.getByLabelText(/Display unit/i))).toBe("mm");
 
@@ -270,6 +272,7 @@ describe("LabelTemplatesEditor", () => {
     expect(saved?.content.map((item) => item.key)).toEqual([
       "family",
       "alloy",
+      "size",
       "material_id",
       "qr",
       "barcode",

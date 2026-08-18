@@ -40,6 +40,7 @@ describe("label template seeding and migration", () => {
         "family",
         "alloy",
         "temper",
+        "size",
         "material_id",
         "qr",
       ]);
@@ -73,7 +74,7 @@ describe("label template seeding and migration", () => {
       searchAllFields: true,
     });
 
-    expect(migrated.version).toBe(3);
+    expect(migrated.version).toBe(4);
     expect(migrated.defaultLabelTemplateId).toBe(STARTER_LABEL_TEMPLATE_4X6_ID);
     expect(migrated.labelTemplates).toEqual(createStarterLabelTemplates());
     expect(migrated).not.toHaveProperty("labelTemplate");
@@ -97,7 +98,7 @@ describe("label template seeding and migration", () => {
       searchAllFields: false,
     });
 
-    expect(migrated.version).toBe(3);
+    expect(migrated.version).toBe(4);
     expect(migrated.labelTemplates[0]?.content).toEqual([
       createLabelContentItem("family"),
       createLabelContentItem("material_id"),
@@ -109,12 +110,13 @@ describe("label template seeding and migration", () => {
 describe("label template invariants", () => {
   const starters = createStarterLabelTemplates();
   const base = {
-    version: 3 as const,
+    version: 4 as const,
     name: "Shop",
     idStrategy: "numeric",
     labelTemplates: starters,
     defaultLabelTemplateId: STARTER_LABEL_TEMPLATE_4X6_ID,
     searchAllFields: false,
+    defaultUnit: "app" as const,
   };
 
   it("cannot delete the last label template", () => {
@@ -169,7 +171,7 @@ describe("openLibrary migrates legacy library.json", () => {
     const fs = createNodeFileSystem();
     const library = await openLibrary(fs, join(fixturesRoot, "empty"));
 
-    expect(library.config.version).toBe(3);
+    expect(library.config.version).toBe(4);
     expect(library.config.defaultLabelTemplateId).toBe(STARTER_LABEL_TEMPLATE_4X6_ID);
     expect(library.config.labelTemplates.map((t) => t.id)).toContain(
       STARTER_LABEL_TEMPLATE_LETTER_ID,
