@@ -7,7 +7,7 @@ Desktop app for CNC job shops to track physical stock pieces and their certifica
 ### Stock & libraries
 
 **Material**:
-One physical piece (or remnant) of stock that can be labeled, stored, and certified. The unit of identity in CertTrace — one material ID refers to one piece, not a lot, PO line, or heat.
+One physical piece (or remnant) of stock that can be labeled, stored, and certified. The unit of identity in CertTrace — one material ID refers to one piece, not a lot, PO line, or heat. A material may have a shape and a size; neither is required.
 _Avoid_: Lot, receipt, PO line, inventory item (when meaning the CertTrace record)
 
 **Library**:
@@ -29,8 +29,8 @@ The heat-treat / condition state of the piece — e.g. T6511, H900, Annealed, No
 _Avoid_: Heat (alone), Condition (unless a shop renames the field), Heat number
 
 **Shape**:
-The stock form — e.g. round bar, square bar, round tube, rectangular tube, hexagonal bar. Size/dimension templates keyed off shape are a later concern.
-_Avoid_: Form, profile (unless a shop renames the field)
+The form factor of a material, stored as a field — plate, round bar, square bar, tube, and the like. Each shape option names the dimensions and size pattern that apply.
+_Avoid_: Form, profile, material type, size type, measurement method (unless a shop renames the field)
 
 **Supplier**:
 Who the piece was purchased from — e.g. McMaster, Boedecker.
@@ -48,6 +48,24 @@ The date the piece arrived.
 **Archived**:
 A Material lifecycle state meaning the physical piece is no longer active stock in the shop. The Material remains in the same Library with the same identity, identifiers, and attachments, and can be restored to active. Distinct from deletion (permanent removal) and from Storage Location.
 _Avoid_: Soft-delete (as the product name for this), Inactive, Retired (unless speaking loosely), Archive library (a separate Library used only as a graveyard)
+
+### Size
+
+**Dimension**:
+A named length — thickness, diameter, width, height, OD, wall — stored as a number field. Several shapes may list the same dimension. Shipped dimension fields cannot be deleted; a shop may add more and delete those.
+_Avoid_: Size type
+
+**Size**:
+The measured cross-section of one material. A size has exactly one unit, shared by all of its dimensions, and may leave some dimensions empty. Size is not a catalog entry and is not remaining length.
+_Avoid_: Stock size, SKU, dimensions catalog, label stock size
+
+**Size pattern**:
+The written form of a size for a shape, used on labels and in the materials list. Each shape has one pattern the shop may edit.
+_Avoid_: Size format, size template
+
+**Unit**:
+Inch or millimetre. Preset by the app, not a field. A size keeps the unit it was entered in; labels and lists show that unit. Each install has a default unit (shipped as inch). Each library chooses inch, millimetre, or App default.
+_Avoid_: Metric, imperial, size_unit field
 
 ### Identifiers
 
