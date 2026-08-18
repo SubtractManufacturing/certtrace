@@ -33,12 +33,16 @@ export interface CreateMaterialInput {
   fields?: Record<string, FieldValueV1>;
   identifiers?: Record<string, string>;
   sizeUnit?: SizeUnit;
+  /** Explicit unit suffix per dimension key; conflicting suffixes are rejected. */
+  dimensionUnits?: Record<string, SizeUnit>;
 }
 
 export interface UpdateMaterialInput {
   fields?: Record<string, FieldValueV1>;
   identifiers?: Record<string, string>;
   sizeUnit?: SizeUnit | null;
+  /** Explicit unit suffix per dimension key; conflicting suffixes are rejected. */
+  dimensionUnits?: Record<string, SizeUnit>;
   /** When true, `fields` replaces the stored field bag instead of merging. */
   replaceFields?: boolean;
 }

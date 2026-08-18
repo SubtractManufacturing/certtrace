@@ -7,10 +7,12 @@ import { describe, expect, it } from "vitest";
 import {
   createLibrary,
   createMaterial,
+  createFieldDefinition,
   formatMaterialSize as formatFromEngine,
   getMaterial,
   openLibrary,
   removeSchemaDefinition,
+  updateFieldSchema,
   updateMaterial,
 } from "../src/index.js";
 
@@ -142,6 +144,41 @@ describe("material Size on disk", () => {
     }
   });
 
+  it("rejects conflicting unit suffixes on one Size", async () => {
+    const fs = createNodeFileSystem();
+    const parentDir = await mkdtemp(join(tmpdir(), "certtrace-size-"));
+
+    try {
+      const library = await createLibrary(fs, parentDir, "Size Shop");
+      await expect(
+        createMaterial(library, {
+          fields: { family: "aluminum", shape: "rect_bar", width: 2, height: 50 },
+          sizeUnit: "in",
+          dimensionUnits: { width: "in", height: "mm" },
+        }),
+      ).rejects.toThrow(/mixed units/i);
+    } finally {
+      await rm(parentDir, { recursive: true, force: true });
+    }
+  });
+
+  it("uses an explicit dimension suffix as the Size unit", async () => {
+    const fs = createNodeFileSystem();
+    const parentDir = await mkdtemp(join(tmpdir(), "certtrace-size-"));
+
+    try {
+      const library = await createLibrary(fs, parentDir, "Size Shop");
+      const created = await createMaterial(library, {
+        fields: { family: "aluminum", shape: "square_bar", width: 12 },
+        dimensionUnits: { width: "mm" },
+      });
+      expect(created.sizeUnit).toBe("mm");
+      expect(formatMaterialSize(library.fieldSchema, created)).toBe("12 x 12 mm");
+    } finally {
+      await rm(parentDir, { recursive: true, force: true });
+    }
+  });
+
   it("refuses to delete shipped dimension fields", async () => {
     const fs = createNodeFileSystem();
     const parentDir = await mkdtemp(join(tmpdir(), "certtrace-size-"));
@@ -155,6 +192,131 @@ describe("material Size on disk", () => {
           strategy: { type: "delete" },
         }),
       ).rejects.toThrow(/cannot be deleted/i);
+    } finally {
+      await rm(parentDir, { recursive: true, force: true });
+    }
+  });
+
+  it("clears Shape and Size on materials when a Shape option is removed", async () => {
+    const fs = createNodeFileSystem();
+    const parentDir = await mkdtemp(join(tmpdir(), "certtrace-size-"));
+
+    try {
+      const library = await createLibrary(fs, parentDir, "Size Shop");
+      const hex = await createMaterial(library, {
+        fields: { family: "aluminum", shape: "hex_bar", width: 1 },
+        sizeUnit: "in",
+      });
+      const plate = await createMaterial(library, {
+        fields: { family: "aluminum", shape: "plate", thickness: 0.5 },
+        sizeUnit: "in",
+      });
+
+      await updateFieldSchema(library, {
+        ...library.fieldSchema,
+        fields: library.fieldSchema.fields.map((field) =>
+          field.key === "shape"
+            ? { ...field, options: field.options?.filter((option) => option.id !== "hex_bar") }
+            : field,
+        ),
+      });
+
+      const reopened = await openLibrary(fs, library.paths.root);
+      const hexFetched = await getMaterial(reopened, hex.id);
+      expect(hexFetched.fields.shape).toBeUndefined();
+      expect(hexFetched.fields.width).toBeUndefined();
+      expect(hexFetched.sizeUnit).toBeUndefined();
+
+      const plateFetched = await getMaterial(reopened, plate.id);
+      expect(plateFetched.fields.shape).toBe("plate");
+      expect(plateFetched.fields.thickness).toBe(0.5);
+      expect(plateFetched.sizeUnit).toBe("in");
+      expect(
+        reopened.fieldSchema.fields
+          .find((field) => field.key === "shape")
+          ?.options?.some((option) => option.id === "hex_bar"),
+      ).toBe(false);
+    } finally {
+      await rm(parentDir, { recursive: true, force: true });
+    }
+  });
+
+  it("strips a custom dimension from Shape options, patterns, and Materials", async () => {
+    const fs = createNodeFileSystem();
+    const parentDir = await mkdtemp(join(tmpdir(), "certtrace-size-"));
+
+    try {
+      const library = await createLibrary(fs, parentDir, "Size Shop");
+      const legA = createFieldDefinition(library.fieldSchema, "Leg A", "number");
+      await updateFieldSchema(library, {
+        ...library.fieldSchema,
+        fields: [
+          ...library.fieldSchema.fields.map((field) => {
+            if (field.key !== "shape") {
+              return field;
+            }
+            return {
+              ...field,
+              options: [
+                ...(field.options ?? []).map((option) =>
+                  option.id === "square_bar"
+                    ? {
+                        ...option,
+                        dimensionKeys: [...(option.dimensionKeys ?? []), "leg_a"],
+                        sizePattern: "{width} x {width} x {leg_a} {unit}",
+                      }
+                    : option,
+                ),
+                {
+                  id: "angle",
+                  label: "Angle",
+                  dimensionKeys: ["leg_a"],
+                  sizePattern: "{leg_a} {unit}",
+                },
+              ],
+            };
+          }),
+          legA,
+        ],
+      });
+
+      const square = await createMaterial(library, {
+        fields: { family: "aluminum", shape: "square_bar", width: 2, leg_a: 0.25 },
+        sizeUnit: "in",
+      });
+      const angle = await createMaterial(library, {
+        fields: { family: "aluminum", shape: "angle", leg_a: 1 },
+        sizeUnit: "in",
+      });
+
+      await removeSchemaDefinition(library, {
+        definitionType: "field",
+        key: "leg_a",
+        strategy: { type: "delete" },
+      });
+
+      const reopened = await openLibrary(fs, library.paths.root);
+      expect(reopened.fieldSchema.fields.some((field) => field.key === "leg_a")).toBe(false);
+
+      const shapeOptions = reopened.fieldSchema.fields.find((field) => field.key === "shape")
+        ?.options;
+      const squareOption = shapeOptions?.find((option) => option.id === "square_bar");
+      const angleOption = shapeOptions?.find((option) => option.id === "angle");
+      expect(squareOption?.dimensionKeys).toEqual(["width"]);
+      expect(squareOption?.sizePattern).toBe("{width} x {width} {unit}");
+      expect(angleOption?.dimensionKeys).toBeUndefined();
+      expect(angleOption?.sizePattern).toBeUndefined();
+
+      const squareFetched = await getMaterial(reopened, square.id);
+      expect(squareFetched.fields.leg_a).toBeUndefined();
+      expect(squareFetched.fields.width).toBe(2);
+      expect(squareFetched.sizeUnit).toBe("in");
+      expect(formatMaterialSize(reopened.fieldSchema, squareFetched)).toBe("2 x 2 in");
+
+      const angleFetched = await getMaterial(reopened, angle.id);
+      expect(angleFetched.fields.leg_a).toBeUndefined();
+      expect(angleFetched.fields.shape).toBe("angle");
+      expect(angleFetched.sizeUnit).toBeUndefined();
     } finally {
       await rm(parentDir, { recursive: true, force: true });
     }

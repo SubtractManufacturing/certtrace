@@ -2,8 +2,10 @@ import {
   type FieldSchemaV1,
   type FieldValueV1,
   formatMaterialSize,
+  isShippedDimensionKey,
   type MaterialMetadataV1,
   type SizeUnit,
+  stripTokenFromSizePattern,
 } from "@certtrace/types";
 import { LibraryError } from "./errors.js";
 
@@ -29,9 +31,58 @@ export function getShapeSizePattern(schema: FieldSchemaV1, shapeOptionId: string
   return getShapeOption(schema, shapeOptionId)?.sizePattern;
 }
 
+/** Remove a dimension key from every Shape option's packing and Size pattern. */
+export function stripDimensionKeyFromShapeOptions(
+  schema: FieldSchemaV1,
+  key: string,
+): FieldSchemaV1 {
+  if (!getShapeField(schema)) {
+    return schema;
+  }
+
+  return {
+    ...schema,
+    fields: schema.fields.map((field) => {
+      if (field.key !== SHAPE_FIELD_KEY) {
+        return field;
+      }
+      return {
+        ...field,
+        options: field.options?.map((option) => {
+          const listed = option.dimensionKeys?.includes(key) ?? false;
+          const inPattern = option.sizePattern?.includes(`{${key}}`) ?? false;
+          if (!listed && !inPattern) {
+            return option;
+          }
+          const dimensionKeys = option.dimensionKeys?.filter((entry) => entry !== key);
+          const sizePattern = option.sizePattern
+            ? stripTokenFromSizePattern(option.sizePattern, key)
+            : undefined;
+          return {
+            ...option,
+            dimensionKeys: dimensionKeys && dimensionKeys.length > 0 ? dimensionKeys : undefined,
+            sizePattern: sizePattern ? sizePattern : undefined,
+          };
+        }),
+      };
+    }),
+  };
+}
+
 export function isDimensionFieldKey(schema: FieldSchemaV1, key: string): boolean {
   const field = schema.fields.find((entry) => entry.key === key);
   return field?.type === "number" && getAllDimensionKeys(schema).has(key);
+}
+
+/** Number fields shops can list on a Shape: shipped dimensions plus any already packed. */
+export function listReusableDimensionFields(schema: FieldSchemaV1): FieldSchemaV1["fields"] {
+  const listed = getAllDimensionKeys(schema);
+  return schema.fields.filter(
+    (field) =>
+      !field.disabled &&
+      field.type === "number" &&
+      (isShippedDimensionKey(field.key) || listed.has(field.key)),
+  );
 }
 
 function getAllDimensionKeys(schema: FieldSchemaV1): Set<string> {
@@ -74,6 +125,7 @@ export { formatMaterialSize } from "@certtrace/types";
 export interface SanitizeMaterialSizeInput {
   fields: Record<string, FieldValueV1>;
   sizeUnit?: SizeUnit;
+  dimensionUnits?: Record<string, SizeUnit>;
 }
 
 export interface SanitizeMaterialSizeResult {
@@ -114,11 +166,28 @@ export function sanitizeMaterialSize(
     return { fields, sizeUnit: undefined };
   }
 
-  if (!input.sizeUnit) {
+  const suffixUnits = new Set<SizeUnit>();
+  for (const key of Object.keys(dimensionValues)) {
+    const hinted = input.dimensionUnits?.[key];
+    if (hinted) {
+      suffixUnits.add(hinted);
+    }
+  }
+  if (suffixUnits.size > 1) {
+    throw new LibraryError("Mixed units are not allowed on one Size.");
+  }
+
+  const suffixUnit = [...suffixUnits][0];
+  if (suffixUnit && input.sizeUnit && suffixUnit !== input.sizeUnit) {
+    throw new LibraryError("Mixed units are not allowed on one Size.");
+  }
+
+  const sizeUnit = suffixUnit ?? input.sizeUnit;
+  if (!sizeUnit) {
     throw new LibraryError("Size requires a unit when any dimension is filled.");
   }
 
-  return { fields, sizeUnit: input.sizeUnit };
+  return { fields, sizeUnit };
 }
 
 export function clearShapeAndSize(
@@ -188,14 +257,10 @@ export function materialSizeSortKey(
   });
 }
 
-export function compareMaterialSize(
-  schema: FieldSchemaV1,
-  left: Pick<MaterialMetadataV1, "fields" | "sizeUnit">,
-  right: Pick<MaterialMetadataV1, "fields" | "sizeUnit">,
+export function compareSizeSortKeys(
+  leftKey: number[] | undefined,
+  rightKey: number[] | undefined,
 ): number {
-  const leftKey = materialSizeSortKey(schema, left);
-  const rightKey = materialSizeSortKey(schema, right);
-
   if (leftKey === undefined && rightKey === undefined) {
     return 0;
   }
@@ -215,4 +280,12 @@ export function compareMaterialSize(
     }
   }
   return 0;
+}
+
+export function compareMaterialSize(
+  schema: FieldSchemaV1,
+  left: Pick<MaterialMetadataV1, "fields" | "sizeUnit">,
+  right: Pick<MaterialMetadataV1, "fields" | "sizeUnit">,
+): number {
+  return compareSizeSortKeys(materialSizeSortKey(schema, left), materialSizeSortKey(schema, right));
 }

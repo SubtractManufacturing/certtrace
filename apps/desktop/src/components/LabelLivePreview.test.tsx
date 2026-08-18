@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { LabelLivePreview } from "./LabelLivePreview";
 
 const material = {
-  version: 3 as const,
+  version: 4 as const,
   id: "AL-falcon-104",
   fields: {
     family: "aluminum",

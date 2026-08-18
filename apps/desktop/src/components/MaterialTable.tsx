@@ -1,4 +1,4 @@
-import { compareMaterialSize } from "@certtrace/library-engine";
+import { compareSizeSortKeys, materialSizeSortKey } from "@certtrace/library-engine";
 import type { FieldSchemaV1 } from "@certtrace/types";
 import { formatMaterialSize } from "@certtrace/types";
 import {
@@ -68,7 +68,10 @@ export function MaterialTable({
       if (sizeSort) {
         const schemaForLeft = (resolveSchema ?? (() => schema))(left.libraryPath);
         const schemaForRight = (resolveSchema ?? (() => schema))(right.libraryPath);
-        const comparison = compareMaterialSize(schemaForLeft, left, right);
+        const comparison = compareSizeSortKeys(
+          materialSizeSortKey(schemaForLeft, left),
+          materialSizeSortKey(schemaForRight, right),
+        );
         return sortDirection === "asc" ? comparison : -comparison;
       }
       const leftValue = cellSortValue(left, sortKey, columns, resolveSchema ?? (() => schema));

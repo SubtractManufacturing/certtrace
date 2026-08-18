@@ -1,12 +1,16 @@
 import type { RemoveSchemaDefinitionInput } from "@certtrace/library-engine";
 import { defaultFieldSchemaV1 } from "@certtrace/types";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { chooseSelectOption } from "../test/select-helpers";
 import { SchemaSettingsEditor } from "./SchemaSettingsEditor";
 
-function renderEditor(onRemoveDefinition?: (input: RemoveSchemaDefinitionInput) => Promise<void>) {
+function renderEditor(options?: {
+  onRemoveDefinition?: (input: RemoveSchemaDefinitionInput) => Promise<void>;
+  onRemoveShapeOption?: (optionId: string) => Promise<void>;
+  onCountShapeOptionMaterials?: (optionId: string) => Promise<number>;
+}) {
   const onChange = vi.fn();
 
   function Harness() {
@@ -18,7 +22,9 @@ function renderEditor(onRemoveDefinition?: (input: RemoveSchemaDefinitionInput) 
           onChange(next);
           setSchema(next);
         }}
-        onRemoveDefinition={onRemoveDefinition}
+        onRemoveDefinition={options?.onRemoveDefinition}
+        onRemoveShapeOption={options?.onRemoveShapeOption}
+        onCountShapeOptionMaterials={options?.onCountShapeOptionMaterials}
       />
     );
   }
@@ -165,7 +171,7 @@ describe("SchemaSettingsEditor", { timeout: 20_000 }, () => {
 
   it("offers user-facing removal choices and disables new field entries", async () => {
     const onRemoveDefinition = vi.fn().mockResolvedValue(undefined);
-    renderEditor(onRemoveDefinition);
+    renderEditor({ onRemoveDefinition });
 
     fireEvent.click(screen.getByRole("button", { name: "Remove Supplier" }));
 
@@ -186,7 +192,7 @@ describe("SchemaSettingsEditor", { timeout: 20_000 }, () => {
 
   it("requires the definition name before deleting all values", async () => {
     const onRemoveDefinition = vi.fn().mockResolvedValue(undefined);
-    renderEditor(onRemoveDefinition);
+    renderEditor({ onRemoveDefinition });
 
     fireEvent.click(screen.getByRole("button", { name: "Remove Notes" }));
     const deleteButton = screen.getByRole("button", { name: "Delete all values" });
@@ -204,7 +210,7 @@ describe("SchemaSettingsEditor", { timeout: 20_000 }, () => {
 
   it("replaces an identifier kind with another kind", async () => {
     const onRemoveDefinition = vi.fn().mockResolvedValue(undefined);
-    renderEditor(onRemoveDefinition);
+    renderEditor({ onRemoveDefinition });
 
     fireEvent.click(screen.getByRole("button", { name: "Remove Heat Number" }));
     await chooseSelectOption(screen.getByLabelText("Replacement for Heat Number"), "Lot Number");
@@ -215,5 +221,91 @@ describe("SchemaSettingsEditor", { timeout: 20_000 }, () => {
       key: "heat_number",
       strategy: { type: "replace", targetKey: "lot_number" },
     });
+  });
+
+  it("packs a reusable dimension onto a Shape option", async () => {
+    const onChange = renderEditor();
+
+    fireEvent.click(screen.getByLabelText("Use Height on Square bar"));
+
+    const shape = onChange.mock.calls
+      .at(-1)?.[0]
+      .fields.find((field: { key: string }) => field.key === "shape");
+    expect(shape.options.find((option: { id: string }) => option.id === "square_bar")).toMatchObject({
+      dimensionKeys: ["width", "height"],
+      sizePattern: "{width} x {width} {unit}",
+    });
+  });
+
+  it("starts a new Shape option unpacked", async () => {
+    const onChange = renderEditor();
+
+    setInputValue(screen.getByLabelText("New option label for field shape"), "Angle");
+    fireEvent.click(screen.getByRole("button", { name: "Add option to Shape" }));
+
+    const shape = onChange.mock.calls
+      .at(-1)?.[0]
+      .fields.find((field: { key: string }) => field.key === "shape");
+    expect(shape.options.at(-1)).toEqual({ id: "angle", label: "Angle" });
+  });
+
+  it("creates a dimension Field from the Shape editor and lists it on that option", async () => {
+    const onChange = renderEditor();
+
+    setInputValue(screen.getByLabelText("New dimension field for Square bar"), "Leg A");
+    fireEvent.click(screen.getByRole("button", { name: "Add dimension field to Square bar" }));
+
+    const updated = onChange.mock.calls.at(-1)?.[0];
+    expect(updated.fields.at(-1)).toMatchObject({
+      key: "leg_a",
+      label: "Leg A",
+      type: "number",
+    });
+    const square = updated.fields
+      .find((field: { key: string }) => field.key === "shape")
+      .options.find((option: { id: string }) => option.id === "square_bar");
+    expect(square.dimensionKeys).toEqual(["width", "leg_a"]);
+  });
+
+  it("does not offer removal for shipped dimension fields", async () => {
+    renderEditor({ onRemoveDefinition: vi.fn().mockResolvedValue(undefined) });
+
+    expect(screen.queryByRole("button", { name: "Remove Width" })).toBeNull();
+    expect(screen.getAllByText("Shipped dimension fields cannot be deleted").length).toBeGreaterThan(
+      0,
+    );
+  });
+
+  it("confirms Shape option delete with material count", async () => {
+    const onRemoveShapeOption = vi.fn().mockResolvedValue(undefined);
+    const onCountShapeOptionMaterials = vi.fn().mockResolvedValue(2);
+    renderEditor({ onRemoveShapeOption, onCountShapeOptionMaterials });
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Hexagonal bar option" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Delete Hexagonal bar? This clears Shape and Size on 2 materials."),
+      ).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Delete option" }));
+
+    expect(onRemoveShapeOption).toHaveBeenCalledWith("hex_bar");
+  });
+
+  it("warns which Shapes list a custom dimension before delete", async () => {
+    const onRemoveDefinition = vi.fn().mockResolvedValue(undefined);
+    const onChange = renderEditor({ onRemoveDefinition });
+
+    setInputValue(screen.getByLabelText("New dimension field for Square bar"), "Leg A");
+    fireEvent.click(screen.getByRole("button", { name: "Add dimension field to Square bar" }));
+    expect(onChange).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Leg A" }));
+    expect(
+      screen.getByText(
+        "Listed on Square bar. Delete strips it from those Shape options, Size patterns, and Materials.",
+      ),
+    ).toBeTruthy();
   });
 });

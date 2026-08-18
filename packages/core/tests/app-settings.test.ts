@@ -67,6 +67,34 @@ describe("app settings", () => {
     }
   });
 
+  it("defaults defaultUnit to inch for legacy settings files", async () => {
+    const fs = createNodeFileSystem();
+    const settingsDir = await mkdtemp(join(tmpdir(), "certtrace-settings-"));
+
+    try {
+      await fs.writeFile(
+        `${settingsDir}/settings.json`,
+        `${JSON.stringify(
+          {
+            version: 1,
+            theme: "system",
+            recentLibraries: [],
+            checkForUpdates: true,
+            defaultLibraryOnLaunch: null,
+            includeArchivedMaterialsInSearch: false,
+          },
+          null,
+          2,
+        )}\n`,
+      );
+
+      const settings = await readAppSettings(fs, settingsDir);
+      expect(settings.defaultUnit).toBe("in");
+    } finally {
+      await rm(settingsDir, { recursive: true, force: true });
+    }
+  });
+
   it("returns defaults when read throws a Windows Tauri missing-path string", async () => {
     const fs: FileSystem = {
       mkdir: async () => undefined,

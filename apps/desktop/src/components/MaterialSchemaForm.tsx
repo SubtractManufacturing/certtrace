@@ -10,7 +10,6 @@ import {
   validateMaterialValues,
 } from "@certtrace/library-engine";
 import type { FieldSchemaV1, FieldValueV1, SizeUnit } from "@certtrace/types";
-import { resolveSizeUnit } from "@certtrace/types";
 import { Button, Input, Label, Select, Textarea } from "@certtrace/ui";
 import { Plus } from "lucide-react";
 import { useState } from "react";
@@ -79,7 +78,7 @@ export function MaterialSchemaForm({
     });
   }
 
-  function setField(key: string, value: FieldValueV1 | undefined, currentSchema: FieldSchemaV1 = schema) {
+  function setField(key: string, value: FieldValueV1 | undefined) {
     const fields = { ...values.fields };
     if (value === undefined || value === "") {
       delete fields[key];
@@ -207,7 +206,7 @@ export function MaterialSchemaForm({
       const nextValue = multiSelect
         ? [...(Array.isArray(current) ? current : []), result.option.id]
         : result.option.id;
-      setField(fieldKey, nextValue, result.fieldSchema);
+      setField(fieldKey, nextValue);
       resetAddOptionState(fieldKey);
       setOpenSelectField(null);
     } catch (err) {

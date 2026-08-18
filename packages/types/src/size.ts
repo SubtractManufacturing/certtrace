@@ -160,20 +160,38 @@ export function renderSizePattern(
 
   result = result.replaceAll("{unit}", formatUnitSuffix(unit));
 
-  result = result
-    .replace(/\s+x\s+x\s+/gi, " x ")
-    .replace(/^\s*x\s+/i, "")
-    .replace(/\s+x\s*$/i, "")
-    .replace(/\s{2,}/g, " ")
-    .replace(/\s+$/g, "")
-    .replace(/^\s+/g, "")
-    .trim();
+  result = collapseSizePatternSeparators(result);
 
   if (result.includes("{")) {
     return "";
   }
 
   return result;
+}
+
+/** Remove `{key}` from a Size pattern and collapse leftover `x` / spaces. */
+export function stripTokenFromSizePattern(pattern: string, key: string): string {
+  let result = pattern.replaceAll(`{${key}}`, "");
+  result = collapseSizePatternSeparators(result);
+  const dimensionTokens = [...result.matchAll(/\{([^}]+)\}/g)]
+    .map((match) => match[1])
+    .filter((token) => token !== "unit");
+  if (dimensionTokens.length === 0) {
+    return "";
+  }
+  return result;
+}
+
+function collapseSizePatternSeparators(result: string): string {
+  return result
+    .replace(/\s+x\s+x\s+/gi, " x ")
+    .replace(/^\s*x\s+/i, "")
+    .replace(/\s+x\s*$/i, "")
+    .replace(/\s+x\s+\{unit\}/gi, " {unit}")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+$/g, "")
+    .replace(/^\s+/g, "")
+    .trim();
 }
 
 const SHAPE_FIELD_KEY = "shape";

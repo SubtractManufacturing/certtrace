@@ -2,9 +2,14 @@ import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createNodeFileSystem } from "@certtrace/file-storage/node";
+import { defaultFieldSchemaV1, SHIPPED_SHAPE_PACKING } from "@certtrace/types";
 import { describe, expect, it } from "vitest";
 import { LibraryError, listMaterialIds, openLibrary } from "../src/index.js";
-import { migrateLibraryConfig, migrateMaterialMetadata } from "../src/migrations/index.js";
+import {
+  migrateFieldSchema,
+  migrateLibraryConfig,
+  migrateMaterialMetadata,
+} from "../src/migrations/index.js";
 
 const fixturesRoot = join(dirname(fileURLToPath(import.meta.url)), "../../../fixtures/libraries");
 
@@ -56,5 +61,49 @@ describe("schema migrations", () => {
 
     expect(library.config.name).toBe("Empty Library");
     expect(await listMaterialIds(library)).toEqual([]);
+  });
+
+  it("packs shipped Shape option ids only and leaves custom options unpacked", () => {
+    const seed = structuredClone(defaultFieldSchemaV1);
+    const shapeField = seed.fields.find((field) => field.key === "shape");
+    const v3 = {
+      ...seed,
+      version: 3,
+      fields: seed.fields
+        .filter(
+          (field) =>
+            field.key !== "thickness" &&
+            field.key !== "diameter" &&
+            field.key !== "width" &&
+            field.key !== "height" &&
+            field.key !== "od" &&
+            field.key !== "wall",
+        )
+        .map((field) => {
+          if (field.key !== "shape") {
+            return field;
+          }
+          return {
+            ...field,
+            options: [
+              ...(shapeField?.options ?? [])
+                .filter((option) => option.id !== "rect_bar")
+                .map((option) => ({ id: option.id, label: option.label })),
+              { id: "angle", label: "Angle" },
+            ],
+          };
+        }),
+    };
+
+    const migrated = migrateFieldSchema(v3);
+    const options = migrated.fields.find((field) => field.key === "shape")?.options ?? [];
+    const plate = options.find((option) => option.id === "plate");
+    const angle = options.find((option) => option.id === "angle");
+    const rectBar = options.find((option) => option.id === "rect_bar");
+
+    expect(plate).toMatchObject(SHIPPED_SHAPE_PACKING.plate);
+    expect(rectBar).toMatchObject(SHIPPED_SHAPE_PACKING.rect_bar);
+    expect(angle).toEqual({ id: "angle", label: "Angle" });
+    expect(migrated.fields.some((field) => field.key === "width")).toBe(true);
   });
 });

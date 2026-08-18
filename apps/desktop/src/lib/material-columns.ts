@@ -1,6 +1,5 @@
 import {
   type FieldSchemaV1,
-  formatMaterialSize,
   type MaterialTableColumnV1,
   materialTableColumnIdentity,
 } from "@certtrace/types";
