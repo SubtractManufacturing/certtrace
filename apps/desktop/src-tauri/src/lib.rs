@@ -1,7 +1,9 @@
+mod library_archive;
 mod open_local;
 mod print;
 mod watch;
 
+use library_archive::ArchiveState;
 use tauri::Manager;
 use tauri_plugin_fs::FsExt;
 use watch::{start_library_watch, stop_library_watch, sync_library_watch, WatchState};
@@ -32,6 +34,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(WatchState::new())
+        .manage(ArchiveState::new())
         .setup(|app| {
             let handle = app.handle();
             allow_app_directory(handle, app.path().app_data_dir());
@@ -45,6 +48,11 @@ pub fn run() {
             open_local::open_local_path,
             open_local::reveal_local_path,
             print::print_pdf_file,
+            library_archive::cancel_library_archive,
+            library_archive::list_zip_entries,
+            library_archive::read_zip_entry_text,
+            library_archive::unzip_library_dir,
+            library_archive::zip_library_dir,
             start_library_watch,
             stop_library_watch,
             sync_library_watch
