@@ -65,4 +65,10 @@ export {
   sheetPanelClassName,
   useOverlayPresence,
 } from "./lib/overlay-motion.js";
+export {
+  clearOverlayDismissLayersForTests,
+  hasOverlayDismissLayers,
+  registerOverlayDismissLayer,
+  type OverlayDismissLayer,
+} from "./lib/overlay-dismiss-stack.js";
 export { cn } from "./lib/utils.js";

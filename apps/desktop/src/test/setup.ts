@@ -1,4 +1,5 @@
 import { cleanup } from "@testing-library/react";
+import { clearOverlayDismissLayersForTests } from "@certtrace/ui";
 import { afterEach } from "vitest";
 
 class ResizeObserverMock {
@@ -11,4 +12,5 @@ globalThis.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserv
 
 afterEach(() => {
   cleanup();
+  clearOverlayDismissLayersForTests();
 });
