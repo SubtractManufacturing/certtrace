@@ -83,12 +83,15 @@ describe("WelcomeView", () => {
     expect(createButton.className).toContain("h-11");
     expect(createButton.className).toContain("bg-sky-500");
     expect(openButton.className).toContain("w-full");
-    expect(openButton.className).toContain("max-w-sm");
+    expect(openButton.className).toContain("text-center");
     expect(openButton.className).toContain("text-xs");
     expect(openButton.className).toContain("text-slate-500");
     expect(openButton.className).toContain("hover:underline");
     expect(openButton.className).not.toContain("hover:bg");
     expect(restoreButton.className).toBe(openButton.className);
+    expect(openButton.parentElement).toBe(restoreButton.parentElement);
+    expect(openButton.parentElement?.className).toContain("grid-cols-2");
+    expect(openButton.parentElement?.className).toContain("max-w-sm");
   });
 
   it("shows a theme toggle in the welcome chrome", async () => {
