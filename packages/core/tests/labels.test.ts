@@ -221,8 +221,28 @@ describe("generateLabelPdf", () => {
     });
     expect(sizedResult.lines[0]?.[0]).toEqual({
       key: LABEL_CONTENT_SIZE,
-      label: "Dimensions",
+      label: "Size",
       value: "2 x 2 in",
     });
+  });
+
+  it("renders an individual dimension Field as an ordinary label line", async () => {
+    const template: LabelTemplate = {
+      ...starter4x6(),
+      content: [createLabelContentItem("width")],
+    };
+    const sizedMaterial: MaterialMetadataV1 = {
+      ...material,
+      fields: { ...material.fields, shape: "square_bar", width: 2 },
+      sizeUnit: "in",
+    };
+
+    const result = await generateLabelPdf({
+      template,
+      materials: [sizedMaterial],
+      fieldSchema: defaultFieldSchemaV1,
+    });
+
+    expect(result.lines[0]).toEqual([{ key: "width", label: "Width", value: "2" }]);
   });
 });

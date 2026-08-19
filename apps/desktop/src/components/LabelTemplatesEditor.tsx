@@ -37,7 +37,7 @@ import {
 import { Pencil, Plus, Star, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatDimensionInput, parseDimensionInput } from "../lib/label-dimensions";
-import { createSampleLabelMaterial, sanitizeLabelTemplateContent } from "../lib/label-template-content";
+import { createSampleLabelMaterial } from "../lib/label-template-content";
 import { fetchMaterials, updateLibraryConfigPartial } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { LabelLivePreview } from "./LabelLivePreview";
@@ -47,6 +47,7 @@ const SAMPLE_PREVIEW_VALUE = "__sample__";
 
 interface LabelTemplatesEditorProps {
   library: OpenLibraryResult;
+  defaultDisplayUnit?: LabelDisplayUnit;
   onLibraryUpdated: (library: OpenLibraryResult) => void;
   onRefreshLibrary: () => Promise<void>;
 }
@@ -57,12 +58,13 @@ function newTemplateId(): string {
   return `label-${crypto.randomUUID()}`;
 }
 
-function createBlankTemplate(): LabelTemplate {
+function createBlankTemplate(displayUnit: LabelDisplayUnit): LabelTemplate {
   const starter = createStarterLabelTemplates()[0]!;
   return {
     ...structuredClone(starter),
     id: newTemplateId(),
     name: "New template",
+    displayUnit,
   };
 }
 
@@ -77,6 +79,7 @@ function templateSizeLabel(template: LabelTemplate): string {
 
 export function LabelTemplatesEditor({
   library,
+  defaultDisplayUnit = "in",
   onLibraryUpdated,
   onRefreshLibrary,
 }: LabelTemplatesEditorProps) {
@@ -150,16 +153,12 @@ export function LabelTemplatesEditor({
 
   function openCreate() {
     setError(null);
-    const draft = createBlankTemplate();
-    draft.content = sanitizeLabelTemplateContent(library.fieldSchema, draft.content);
-    setEditor({ kind: "create", draft });
+    setEditor({ kind: "create", draft: createBlankTemplate(defaultDisplayUnit) });
   }
 
   function openEdit(template: LabelTemplate) {
     setError(null);
-    const draft = structuredClone(template);
-    draft.content = sanitizeLabelTemplateContent(library.fieldSchema, draft.content);
-    setEditor({ kind: "edit", draft });
+    setEditor({ kind: "edit", draft: structuredClone(template) });
   }
 
   function closeEditor() {
@@ -275,11 +274,7 @@ export function LabelTemplatesEditor({
     setBusy(true);
     setModalError(null);
     try {
-      const draft = {
-        ...editor.draft,
-        content: sanitizeLabelTemplateContent(library.fieldSchema, editor.draft.content),
-      };
-      const validated = labelTemplateSchema.parse(draft);
+      const validated = labelTemplateSchema.parse(editor.draft);
       const next =
         editor.kind === "create"
           ? addLabelTemplate(library.config, validated)

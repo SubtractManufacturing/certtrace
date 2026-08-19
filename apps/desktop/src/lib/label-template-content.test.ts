@@ -15,11 +15,10 @@ import {
   labelContentOptions,
   patchContentItem,
   reorderContentItems,
-  sanitizeLabelTemplateContent,
 } from "./label-template-content";
 
 describe("labelContentOptions", () => {
-  it("offers core slots plus non-dimension Fields and Identifier kinds", () => {
+  it("offers core slots plus Fields and Identifier kinds", () => {
     const options = labelContentOptions(defaultFieldSchemaV1);
     const keys = options.map((option) => option.key);
 
@@ -32,16 +31,16 @@ describe("labelContentOptions", () => {
         "family",
         "alloy",
         "temper",
+        "width",
+        "height",
+        "thickness",
         "heat_number",
         "lot_number",
         "purchase_order",
       ]),
     );
-    expect(keys).not.toContain("width");
-    expect(keys).not.toContain("height");
-    expect(keys).not.toContain("thickness");
     expect(options.find((option) => option.key === "family")?.label).toBe("Material");
-    expect(options.find((option) => option.key === LABEL_CONTENT_SIZE)?.label).toBe("Dimensions");
+    expect(options.find((option) => option.key === LABEL_CONTENT_SIZE)?.label).toBe("Size");
     expect(options.find((option) => option.key === LABEL_CONTENT_MATERIAL_ID)?.label).toBe(
       "Material id",
     );
@@ -74,18 +73,6 @@ describe("labelContentOptions", () => {
     expect(keys.filter((key) => key === LABEL_CONTENT_QR)).toHaveLength(1);
     expect(keys.filter((key) => key === LABEL_CONTENT_BARCODE)).toHaveLength(1);
     expect(options.find((option) => option.key === LABEL_CONTENT_QR)?.label).toBe("QR");
-  });
-});
-
-describe("sanitizeLabelTemplateContent", () => {
-  it("removes individual dimension fields and adds Dimensions when needed", () => {
-    const content = [
-      createLabelContentItem("family"),
-      createLabelContentItem("width"),
-      createLabelContentItem("height"),
-    ];
-    const sanitized = sanitizeLabelTemplateContent(defaultFieldSchemaV1, content);
-    expect(sanitized.map((item) => item.key)).toEqual(["family", LABEL_CONTENT_SIZE]);
   });
 });
 

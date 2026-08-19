@@ -1,8 +1,4 @@
-import {
-  formatDimensionValue,
-  parseDimensionValue,
-  type SizeUnit,
-} from "@certtrace/types";
+import { formatDimensionValue, parseDimensionValue, type SizeUnit } from "@certtrace/types";
 
 export function formatDimensionInput(value: number | undefined): string {
   if (value === undefined || !Number.isFinite(value)) {

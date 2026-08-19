@@ -327,4 +327,32 @@ describe("MaterialSchemaForm", () => {
     expect(screen.getByLabelText("Width").parentElement?.textContent).toContain("in");
     expect(screen.getByLabelText("Height").parentElement?.textContent).toContain("in");
   });
+
+  it("clears shared dimension values when Shape changes", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    function Harness() {
+      const [values, setValues] = useState<MaterialFormValues>({
+        fields: { shape: "square_bar", width: 2 },
+        identifiers: {},
+        sizeUnit: "in",
+      });
+      return (
+        <MaterialSchemaForm
+          schema={defaultFieldSchemaV1}
+          values={values}
+          onChange={setValues}
+          resolvedDefaultUnit="in"
+        />
+      );
+    }
+
+    render(<Harness />);
+    expect((screen.getByLabelText("Width") as HTMLInputElement).value).toBe("2");
+
+    await chooseSelectOption(screen.getByLabelText("Shape"), "Rectangle bar");
+
+    expect((screen.getByLabelText("Width") as HTMLInputElement).value).toBe("");
+    expect(screen.getByLabelText("Height")).toBeTruthy();
+  });
 });

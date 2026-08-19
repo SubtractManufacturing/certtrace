@@ -75,6 +75,21 @@ describe("LabelTemplatesEditor", () => {
     ).toBe(false);
   });
 
+  it("uses the resolved default unit for a new template's paper-size display", async () => {
+    render(
+      <LabelTemplatesEditor
+        library={sampleLibrary()}
+        defaultDisplayUnit="mm"
+        onLibraryUpdated={() => undefined}
+        onRefreshLibrary={async () => undefined}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Add template/i }));
+
+    expect(getSelectValue(screen.getByLabelText("Display unit"))).toBe("mm");
+  });
+
   it("creates a Label Template from the modal and can set it as default in the list", async () => {
     let library = sampleLibrary();
     const onLibraryUpdated = vi.fn((updated: OpenLibraryResult) => {
@@ -248,7 +263,7 @@ describe("LabelTemplatesEditor", () => {
     }
   });
 
-  it("offers Dimensions instead of individual dimension field slots", async () => {
+  it("offers Size and individual dimension Field slots", async () => {
     render(
       <LabelTemplatesEditor
         library={sampleLibrary()}
@@ -259,10 +274,10 @@ describe("LabelTemplatesEditor", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Edit 4×6 in/i }));
 
-    expect(screen.getByLabelText(/Include Dimensions/i)).toBeTruthy();
-    expect(screen.queryByLabelText(/Include Width/i)).toBeNull();
-    expect(screen.queryByLabelText(/Include Height/i)).toBeNull();
-    expect(screen.queryByLabelText(/Include Thickness/i)).toBeNull();
+    expect(screen.getByLabelText(/Include Size/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Include Width/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Include Height/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Include Thickness/i)).toBeTruthy();
   });
 
   it("toggles content slots and edits align/size on enabled rows", async () => {

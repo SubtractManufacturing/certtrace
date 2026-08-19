@@ -162,9 +162,7 @@ export function SizePatternEditor({ pattern, values, onChange }: SizePatternEdit
     (source: string): Node[] => {
       const parts = parseSizePattern(source, knownKeys);
       return parts.map((part) =>
-        part.kind === "token"
-          ? makeChipEl(part.key)
-          : document.createTextNode(part.value),
+        part.kind === "token" ? makeChipEl(part.key) : document.createTextNode(part.value),
       );
     },
     [knownKeys, makeChipEl],
@@ -216,18 +214,15 @@ export function SizePatternEditor({ pattern, values, onChange }: SizePatternEdit
     });
   }, []);
 
-  const selectChip = useCallback(
-    (chip: HTMLElement) => {
-      setSelectedChip((current) => {
-        if (current && current !== chip) {
-          current.classList.remove(...CHIP_SELECTED_CLASSES);
-        }
-        chip.classList.add(...CHIP_SELECTED_CLASSES);
-        return chip;
-      });
-    },
-    [],
-  );
+  const selectChip = useCallback((chip: HTMLElement) => {
+    setSelectedChip((current) => {
+      if (current && current !== chip) {
+        current.classList.remove(...CHIP_SELECTED_CLASSES);
+      }
+      chip.classList.add(...CHIP_SELECTED_CLASSES);
+      return chip;
+    });
+  }, []);
 
   const saveRange = useCallback(() => {
     const editor = editorRef.current;
@@ -239,7 +234,10 @@ export function SizePatternEditor({ pattern, values, onChange }: SizePatternEdit
       return;
     }
     const range = selection.getRangeAt(0);
-    if (!editor.contains(range.commonAncestorContainer) && range.commonAncestorContainer !== editor) {
+    if (
+      !editor.contains(range.commonAncestorContainer) &&
+      range.commonAncestorContainer !== editor
+    ) {
       return;
     }
     savedRangeRef.current = range.cloneRange();
@@ -251,7 +249,10 @@ export function SizePatternEditor({ pattern, values, onChange }: SizePatternEdit
       return null;
     }
     let range = savedRangeRef.current;
-    if (!range || (!editor.contains(range.commonAncestorContainer) && range.commonAncestorContainer !== editor)) {
+    if (
+      !range ||
+      (!editor.contains(range.commonAncestorContainer) && range.commonAncestorContainer !== editor)
+    ) {
       range = document.createRange();
       range.selectNodeContents(editor);
       range.collapse(false);
@@ -467,15 +468,14 @@ export function SizePatternEditor({ pattern, values, onChange }: SizePatternEdit
       const offset = range.startOffset;
       const before =
         container === editor
-          ? editor.childNodes[offset - 1] ?? null
+          ? (editor.childNodes[offset - 1] ?? null)
           : container.nodeType === Node.TEXT_NODE && offset === 0
             ? container.previousSibling
             : null;
       const after =
         container === editor
-          ? editor.childNodes[offset] ?? null
-          : container.nodeType === Node.TEXT_NODE &&
-              offset === (container.textContent?.length ?? 0)
+          ? (editor.childNodes[offset] ?? null)
+          : container.nodeType === Node.TEXT_NODE && offset === (container.textContent?.length ?? 0)
             ? container.nextSibling
             : null;
       if (after instanceof HTMLElement && after !== draggingChip) {
@@ -511,7 +511,11 @@ export function SizePatternEditor({ pattern, values, onChange }: SizePatternEdit
     return { left: bestLeft, top: bestTop, height: bestHeight };
   }
 
-  function findDropTarget(x: number, y: number, draggingChip: HTMLElement): {
+  function findDropTarget(
+    x: number,
+    y: number,
+    draggingChip: HTMLElement,
+  ): {
     parent: HTMLElement;
     before: Node | null;
   } | null {
@@ -581,6 +585,7 @@ export function SizePatternEditor({ pattern, values, onChange }: SizePatternEdit
     setDrag(session);
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: listeners intentionally bind once per chip; mutable drag state is read from dragRef.
   useEffect(() => {
     if (!drag) {
       return;
@@ -591,10 +596,7 @@ export function SizePatternEditor({ pattern, values, onChange }: SizePatternEdit
       if (!session || event.pointerId !== session.pointerId) {
         return;
       }
-      const distance = Math.hypot(
-        event.clientX - session.startX,
-        event.clientY - session.startY,
-      );
+      const distance = Math.hypot(event.clientX - session.startX, event.clientY - session.startY);
       if (!session.active && distance >= DRAG_THRESHOLD) {
         session.active = true;
         session.chip.style.opacity = "0.4";
@@ -660,10 +662,6 @@ export function SizePatternEditor({ pattern, values, onChange }: SizePatternEdit
       window.removeEventListener("pointerup", endDrag);
       window.removeEventListener("pointercancel", endDrag);
     };
-    // Effect only needs to run when a drag starts/ends. The chip element identity
-    // is stable across the "activate" transition, so this dep prevents unnecessary
-    // re-subscription while the pointer moves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drag?.chip]);
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
@@ -689,7 +687,7 @@ export function SizePatternEditor({ pattern, values, onChange }: SizePatternEdit
   return (
     <div className="space-y-1.5">
       <p id={labelId} className="text-sm font-medium">
-        Label Template
+        Size pattern
       </p>
       <p className="text-xs text-slate-500 dark:text-slate-400">
         This is what appears on labels and in the list. Add values, type text between them, and drag
@@ -724,7 +722,7 @@ export function SizePatternEditor({ pattern, values, onChange }: SizePatternEdit
             type="button"
             variant="ghost"
             size="sm"
-            aria-label="Add value to Size layout"
+            aria-label="Add value to Size pattern"
             aria-expanded={menuOpen}
             onMouseDown={(event) => {
               event.preventDefault();

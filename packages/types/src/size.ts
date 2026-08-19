@@ -67,7 +67,7 @@ export interface ParsedDimensionValue {
  */
 export function parseDimensionValue(
   raw: string,
-  resolvedUnit: SizeUnit,
+  _resolvedUnit: SizeUnit,
 ): ParsedDimensionValue | null {
   const trimmed = raw.trim();
   if (!trimmed) {

@@ -57,6 +57,12 @@ export {
   useTheme,
 } from "./components/theme-provider.js";
 export {
+  clearOverlayDismissLayersForTests,
+  hasOverlayDismissLayers,
+  type OverlayDismissLayer,
+  registerOverlayDismissLayer,
+} from "./lib/overlay-dismiss-stack.js";
+export {
   dialogPanelClassName,
   OVERLAY_TRANSITION_MS,
   type OverlayMotionState,
@@ -65,10 +71,4 @@ export {
   sheetPanelClassName,
   useOverlayPresence,
 } from "./lib/overlay-motion.js";
-export {
-  clearOverlayDismissLayersForTests,
-  hasOverlayDismissLayers,
-  registerOverlayDismissLayer,
-  type OverlayDismissLayer,
-} from "./lib/overlay-dismiss-stack.js";
 export { cn } from "./lib/utils.js";

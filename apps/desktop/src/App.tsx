@@ -420,6 +420,7 @@ function App() {
         {activeView === "library-settings" && settingsLibraryForMenu ? (
           <LibrarySettingsView
             library={settingsLibraryForMenu}
+            installDefaultUnit={settings?.defaultUnit ?? "in"}
             expandLabelTemplates={expandLabelTemplates}
             onOpenAdvancedSettings={() => setActiveView("library-advanced-settings")}
             onLibraryUpdated={(library) => session.updateLibraryInSession(library)}

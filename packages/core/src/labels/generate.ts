@@ -1,7 +1,6 @@
 import {
   type FieldSchemaV1,
   formatMaterialSize,
-  isShippedDimensionKey,
   LABEL_CONTENT_BARCODE,
   LABEL_CONTENT_MATERIAL_ID,
   LABEL_CONTENT_QR,
@@ -100,7 +99,7 @@ function contentLabel(fieldSchema: FieldSchemaV1, key: string): string {
     return "Material id";
   }
   if (key === LABEL_CONTENT_SIZE) {
-    return "Dimensions";
+    return "Size";
   }
   if (key === LABEL_CONTENT_QR) {
     return "QR";
@@ -172,10 +171,6 @@ export function resolveLabelLayout(
       };
       lines.push(line);
       slots.push({ kind: "text", line, align, size });
-      continue;
-    }
-
-    if (isShippedDimensionKey(key)) {
       continue;
     }
 

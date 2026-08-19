@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { formatFieldValue, formatIdentifiersCue } from "./material-display";
 
 const schema: FieldSchemaV1 = {
-    version: 4,
+  version: 4,
   fields: [
     {
       key: "family",

@@ -13,7 +13,10 @@ describe("overlay-dismiss-stack", () => {
     const dismissTop = vi.fn();
     const dismissBottom = vi.fn();
 
-    registerOverlayDismissLayer({ dismiss: dismissBottom, shouldDismissOnPointerDown: () => false });
+    registerOverlayDismissLayer({
+      dismiss: dismissBottom,
+      shouldDismissOnPointerDown: () => false,
+    });
     registerOverlayDismissLayer({ dismiss: dismissTop, shouldDismissOnPointerDown: () => false });
 
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));

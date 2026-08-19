@@ -132,19 +132,17 @@ export function MaterialSchemaForm({
         return;
       }
 
-      const hadFilled = hasFilledShapeDimensions(schema, values.fields);
-      const allowed = new Set(getShapeDimensionKeys(schema, nextShapeId));
-      for (const dimensionKey of allDimensionKeys(schema)) {
-        if (!allowed.has(dimensionKey)) {
-          delete fields[dimensionKey];
+      if (nextShapeId !== shapeId) {
+        if (hasFilledShapeDimensions(schema, values.fields)) {
+          const confirmed = window.confirm(
+            "Changing Shape clears dimension values. Keep the current unit and continue?",
+          );
+          if (!confirmed) {
+            return;
+          }
         }
-      }
-      if (hadFilled && nextShapeId !== shapeId) {
-        const confirmed = window.confirm(
-          "Changing Shape clears dimension values. Keep the current unit and continue?",
-        );
-        if (!confirmed) {
-          return;
+        for (const dimensionKey of allDimensionKeys(schema)) {
+          delete fields[dimensionKey];
         }
       }
       setDimensionDrafts({});

@@ -1,7 +1,6 @@
 import {
   type FieldSchemaV1,
   type FieldValueV1,
-  formatMaterialSize,
   isShippedDimensionKey,
   type MaterialMetadataV1,
   type SizeUnit,
@@ -85,7 +84,7 @@ export function listReusableDimensionFields(schema: FieldSchemaV1): FieldSchemaV
   );
 }
 
-function getAllDimensionKeys(schema: FieldSchemaV1): Set<string> {
+export function getAllDimensionKeys(schema: FieldSchemaV1): Set<string> {
   const keys = new Set<string>();
   const shapeField = getShapeField(schema);
   for (const option of shapeField?.options ?? []) {
@@ -260,6 +259,7 @@ export function materialSizeSortKey(
 export function compareSizeSortKeys(
   leftKey: number[] | undefined,
   rightKey: number[] | undefined,
+  direction: "asc" | "desc" = "asc",
 ): number {
   if (leftKey === undefined && rightKey === undefined) {
     return 0;
@@ -276,7 +276,8 @@ export function compareSizeSortKeys(
     const leftValue = leftKey[index] ?? Number.POSITIVE_INFINITY;
     const rightValue = rightKey[index] ?? Number.POSITIVE_INFINITY;
     if (leftValue !== rightValue) {
-      return leftValue - rightValue;
+      const comparison = leftValue - rightValue;
+      return direction === "asc" ? comparison : -comparison;
     }
   }
   return 0;

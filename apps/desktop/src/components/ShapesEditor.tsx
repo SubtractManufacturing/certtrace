@@ -56,16 +56,18 @@ type EditorMode = {
 
 type PendingShapeDelete = { optionId: string; optionLabel: string; count: number | null };
 
-type PendingDimensionDelete = { key: string; label: string };
+type PendingDimensionDelete = {
+  key: string;
+  label: string;
+  shapeLabels: string[];
+  materialCount: number | null;
+};
 
 function lockedDimensionKeys(optionId: string): string[] {
   return SHIPPED_SHAPE_PACKING[optionId]?.dimensionKeys ?? [];
 }
 
-function knownDimensionKeys(
-  option: FieldOptionV1,
-  fields: FieldDefinitionV1[],
-): string[] {
+function knownDimensionKeys(option: FieldOptionV1, fields: FieldDefinitionV1[]): string[] {
   const fieldByKey = new Map(fields.map((field) => [field.key, field] as const));
   return (option.dimensionKeys ?? []).filter((key) => fieldByKey.has(key));
 }
@@ -359,6 +361,34 @@ export function ShapesEditor({ library, onLibraryUpdated, onRefreshLibrary }: Sh
     });
   }
 
+  async function openDimensionDelete(key: string, label: string) {
+    const shapeLabels = (getShapeField(draftSchema)?.options ?? [])
+      .filter((option) => option.dimensionKeys?.includes(key))
+      .map((option) => option.label);
+    const isUnsavedField = editor?.newFields.some((field) => field.key === key) ?? false;
+    setModalError(null);
+    setPendingDimensionDelete({
+      key,
+      label,
+      shapeLabels,
+      materialCount: isUnsavedField ? 0 : null,
+    });
+    if (isUnsavedField) {
+      return;
+    }
+    try {
+      const materials = await fetchMaterials(library);
+      const materialCount = materials.filter(
+        (material) => material.fields[key] !== undefined,
+      ).length;
+      setPendingDimensionDelete((current) =>
+        current?.key === key ? { ...current, materialCount } : current,
+      );
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   async function confirmDeleteDimension() {
     if (!pendingDimensionDelete) {
       return;
@@ -399,6 +429,16 @@ export function ShapesEditor({ library, onLibraryUpdated, onRefreshLibrary }: Sh
     pendingDelete?.count == null
       ? "materials that used it"
       : `${pendingDelete.count} material${pendingDelete.count === 1 ? "" : "s"}`;
+  const dimensionShapeText =
+    pendingDimensionDelete?.shapeLabels.length === 0
+      ? "no Shapes"
+      : (pendingDimensionDelete?.shapeLabels.join(", ") ?? "");
+  const dimensionMaterialText =
+    pendingDimensionDelete?.materialCount == null
+      ? "Loading affected Material count…"
+      : `${pendingDimensionDelete.materialCount} Material${
+          pendingDimensionDelete.materialCount === 1 ? "" : "s"
+        }`;
   const selectedDimensionValues = (draft?.dimensionKeys ?? [])
     .map((key) => {
       const field = reusableDimensions.find((dimension) => dimension.key === key);
@@ -602,9 +642,7 @@ export function ShapesEditor({ library, onLibraryUpdated, onRefreshLibrary }: Sh
                               variant="ghost"
                               size="sm"
                               aria-label={`Delete ${label}`}
-                              onClick={() =>
-                                setPendingDimensionDelete({ key: dimension.key, label })
-                              }
+                              onClick={() => void openDimensionDelete(dimension.key, label)}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
@@ -760,8 +798,9 @@ export function ShapesEditor({ library, onLibraryUpdated, onRefreshLibrary }: Sh
           <DialogHeader>
             <DialogTitle>Delete {pendingDimensionDelete?.label}?</DialogTitle>
             <DialogDescription>
-              This removes the dimension from Shapes, Size patterns, and Materials that used it.
-              Shipped dimensions cannot be deleted.
+              Used by {dimensionShapeText} and {dimensionMaterialText}. This removes the dimension
+              from those Shapes, their Size patterns, and affected Materials. Shipped dimensions
+              cannot be deleted.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -773,7 +812,11 @@ export function ShapesEditor({ library, onLibraryUpdated, onRefreshLibrary }: Sh
             >
               Cancel
             </Button>
-            <Button type="button" disabled={busy} onClick={() => void confirmDeleteDimension()}>
+            <Button
+              type="button"
+              disabled={busy || pendingDimensionDelete?.materialCount == null}
+              onClick={() => void confirmDeleteDimension()}
+            >
               Delete dimension
             </Button>
           </DialogFooter>

@@ -30,6 +30,7 @@ import {
 } from "./library-config.js";
 import {
   clearShapeAndSize,
+  getAllDimensionKeys,
   getShapeField,
   sanitizeMaterialSize,
   stripDimensionKeyFromShapeOptions,
@@ -481,12 +482,20 @@ export async function updateMaterial(
 ): Promise<MaterialMetadataV1> {
   const current = await getMaterial(library, materialId);
   assertNoDisabledDefinitionChanges(library, input.fields, input.identifiers, current);
-  const mergedFields = input.replaceFields
-    ? (input.fields ?? {})
-    : {
-        ...current.fields,
-        ...input.fields,
-      };
+  const baseFields = input.replaceFields ? {} : { ...current.fields };
+  const shapeWasSupplied = input.fields && Object.hasOwn(input.fields, "shape");
+  const currentShape = typeof current.fields.shape === "string" ? current.fields.shape : undefined;
+  const nextShape =
+    typeof input.fields?.shape === "string" && input.fields.shape.length > 0
+      ? input.fields.shape
+      : undefined;
+  const shapeChanged = Boolean(shapeWasSupplied && nextShape !== currentShape);
+  if (!input.replaceFields && shapeChanged) {
+    for (const key of getAllDimensionKeys(library.fieldSchema)) {
+      delete baseFields[key];
+    }
+  }
+  const mergedFields = { ...baseFields, ...input.fields };
   const nextSizeUnit =
     input.sizeUnit === null
       ? undefined
@@ -506,7 +515,7 @@ export async function updateMaterial(
       ...current.identifiers,
       ...input.identifiers,
     },
-    sizeUnit: sanitized.sizeUnit,
+    sizeUnit: sanitized.sizeUnit ?? (shapeChanged && nextShape ? nextSizeUnit : undefined),
     id: current.id,
     version: current.version,
     archived: current.archived,

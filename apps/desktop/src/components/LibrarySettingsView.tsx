@@ -1,5 +1,5 @@
 import type { OpenLibraryResult } from "@certtrace/library-engine";
-import type { LibraryDefaultUnit } from "@certtrace/types";
+import { type LibraryDefaultUnit, resolveSizeUnit, type SizeUnit } from "@certtrace/types";
 import { cn, Label, Select } from "@certtrace/ui";
 import { ChevronDown, ChevronRight, Wrench } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
@@ -10,6 +10,7 @@ import { ShapesEditor } from "./ShapesEditor";
 
 interface LibrarySettingsViewProps {
   library: OpenLibraryResult;
+  installDefaultUnit?: SizeUnit;
   expandLabelTemplates?: boolean;
   onOpenAdvancedSettings: () => void;
   onLibraryUpdated: (library: OpenLibraryResult) => void;
@@ -69,6 +70,7 @@ function CollapsibleSettingsSection({
 
 export function LibrarySettingsView({
   library,
+  installDefaultUnit = "in",
   expandLabelTemplates = false,
   onOpenAdvancedSettings,
   onLibraryUpdated,
@@ -151,6 +153,7 @@ export function LibrarySettingsView({
           >
             <LabelTemplatesEditor
               library={library}
+              defaultDisplayUnit={resolveSizeUnit(library.config.defaultUnit, installDefaultUnit)}
               onLibraryUpdated={onLibraryUpdated}
               onRefreshLibrary={onRefreshLibrary}
             />

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRef, useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { AnchoredMenu } from "./AnchoredMenu";
 
 function ExampleMenu() {
@@ -9,7 +9,12 @@ function ExampleMenu() {
   const [open, setOpen] = useState(false);
   return (
     <div>
-      <button type="button" ref={anchorRef} aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+      <button
+        type="button"
+        ref={anchorRef}
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
         Open menu
       </button>
       <button type="button">Outside</button>
@@ -24,10 +29,14 @@ describe("AnchoredMenu", () => {
   it("closes when clicking outside the menu", async () => {
     render(<ExampleMenu />);
     await userEvent.click(screen.getByRole("button", { name: "Open menu" }));
-    expect(screen.getByRole("button", { name: "Open menu" }).getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("button", { name: "Open menu" }).getAttribute("aria-expanded")).toBe(
+      "true",
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Outside" }));
 
-    expect(screen.getByRole("button", { name: "Open menu" }).getAttribute("aria-expanded")).toBe("false");
+    expect(screen.getByRole("button", { name: "Open menu" }).getAttribute("aria-expanded")).toBe(
+      "false",
+    );
   });
 });

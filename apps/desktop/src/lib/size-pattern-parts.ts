@@ -1,6 +1,4 @@
-export type SizePatternPart =
-  | { kind: "token"; key: string }
-  | { kind: "text"; value: string };
+export type SizePatternPart = { kind: "token"; key: string } | { kind: "text"; value: string };
 
 const TOKEN_RE = /\{([A-Za-z][A-Za-z0-9_]*)\}/g;
 

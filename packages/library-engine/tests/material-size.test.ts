@@ -5,9 +5,10 @@ import { createNodeFileSystem } from "@certtrace/file-storage/node";
 import { formatDimensionValue, formatMaterialSize, parseDimensionValue } from "@certtrace/types";
 import { describe, expect, it } from "vitest";
 import {
+  compareSizeSortKeys,
+  createFieldDefinition,
   createLibrary,
   createMaterial,
-  createFieldDefinition,
   formatMaterialSize as formatFromEngine,
   getMaterial,
   openLibrary,
@@ -15,6 +16,17 @@ import {
   updateFieldSchema,
   updateMaterial,
 } from "../src/index.js";
+
+describe("Size sorting", () => {
+  it("keeps empty Sizes last in both directions", () => {
+    expect(compareSizeSortKeys([25.4], undefined, "asc")).toBeLessThan(0);
+    expect(compareSizeSortKeys([25.4], undefined, "desc")).toBeLessThan(0);
+    expect(compareSizeSortKeys(undefined, [25.4], "asc")).toBeGreaterThan(0);
+    expect(compareSizeSortKeys(undefined, [25.4], "desc")).toBeGreaterThan(0);
+    expect(compareSizeSortKeys([25.4], [50.8], "asc")).toBeLessThan(0);
+    expect(compareSizeSortKeys([25.4], [50.8], "desc")).toBeGreaterThan(0);
+  });
+});
 
 describe("size parse and format", () => {
   it("parses bare numbers, fractions, and suffixes", () => {
@@ -123,6 +135,13 @@ describe("material Size on disk", () => {
       expect(updated.fields.thickness).toBeUndefined();
       expect(updated.fields.width).toBe(2);
       expect(updated.sizeUnit).toBe("in");
+
+      const changedAgain = await updateMaterial(library, created.id, {
+        fields: { shape: "rect_bar" },
+      });
+      expect(changedAgain.fields.width).toBeUndefined();
+      expect(changedAgain.fields.shape).toBe("rect_bar");
+      expect(changedAgain.sizeUnit).toBe("in");
     } finally {
       await rm(parentDir, { recursive: true, force: true });
     }
@@ -298,8 +317,9 @@ describe("material Size on disk", () => {
       const reopened = await openLibrary(fs, library.paths.root);
       expect(reopened.fieldSchema.fields.some((field) => field.key === "leg_a")).toBe(false);
 
-      const shapeOptions = reopened.fieldSchema.fields.find((field) => field.key === "shape")
-        ?.options;
+      const shapeOptions = reopened.fieldSchema.fields.find(
+        (field) => field.key === "shape",
+      )?.options;
       const squareOption = shapeOptions?.find((option) => option.id === "square_bar");
       const angleOption = shapeOptions?.find((option) => option.id === "angle");
       expect(squareOption?.dimensionKeys).toEqual(["width"]);

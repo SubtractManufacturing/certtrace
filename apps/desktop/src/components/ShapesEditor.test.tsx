@@ -173,6 +173,7 @@ describe("ShapesEditor", () => {
   });
 
   it("deletes a custom dimension from the dimensions list", async () => {
+    vi.mocked(fetchMaterials).mockResolvedValue([{ fields: { leg_a: 3 } }] as never);
     const schema = structuredClone(defaultFieldSchemaV1);
     schema.fields.push({
       key: "leg_a",
@@ -199,6 +200,7 @@ describe("ShapesEditor", () => {
     await openDimensions("Square bar");
     expect(screen.queryByRole("button", { name: "Delete Width" })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Delete Leg A" }));
+    expect(await screen.findByText(/Used by Square bar and 1 Material\./)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Delete dimension" }));
 
     await waitFor(() => {
@@ -288,7 +290,7 @@ describe("ShapesEditor", () => {
     );
   });
 
-  it("adds a Height chip to the Size layout via the plus menu", async () => {
+  it("adds a Height chip to the Size pattern via the plus menu", async () => {
     let library = sampleLibrary();
     const onLibraryUpdated = vi.fn((updated: OpenLibraryResult) => {
       library = updated;
@@ -303,9 +305,9 @@ describe("ShapesEditor", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: "Edit Square bar" }));
-    expect(screen.getByText("Label Template")).toBeTruthy();
+    expect(screen.getByText("Size pattern")).toBeTruthy();
 
-    const editor = screen.getByRole("textbox", { name: "Label Template" });
+    const editor = screen.getByRole("textbox", { name: "Size pattern" });
     editor.focus();
     const endRange = document.createRange();
     endRange.selectNodeContents(editor);
@@ -314,7 +316,7 @@ describe("ShapesEditor", () => {
     window.getSelection()?.addRange(endRange);
     fireEvent.keyUp(editor, { key: "End" });
 
-    await userEvent.click(screen.getByRole("button", { name: "Add value to Size layout" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add value to Size pattern" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Height" }));
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
 

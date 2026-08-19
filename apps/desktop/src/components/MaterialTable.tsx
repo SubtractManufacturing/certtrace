@@ -71,8 +71,9 @@ export function MaterialTable({
         const comparison = compareSizeSortKeys(
           materialSizeSortKey(schemaForLeft, left),
           materialSizeSortKey(schemaForRight, right),
+          sortDirection,
         );
-        return sortDirection === "asc" ? comparison : -comparison;
+        return comparison;
       }
       const leftValue = cellSortValue(left, sortKey, columns, resolveSchema ?? (() => schema));
       const rightValue = cellSortValue(right, sortKey, columns, resolveSchema ?? (() => schema));

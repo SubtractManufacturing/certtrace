@@ -9,7 +9,7 @@ const values = [
 ];
 
 function getEditor(): HTMLDivElement {
-  return screen.getByRole("textbox", { name: "Label Template" }) as HTMLDivElement;
+  return screen.getByRole("textbox", { name: "Size pattern" }) as HTMLDivElement;
 }
 
 function placeCaretAtEnd(editor: HTMLElement) {
@@ -77,7 +77,7 @@ describe("SizePatternEditor", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "Add value to Size layout" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add value to Size pattern" }));
     expect(screen.getByRole("menuitem", { name: "Width" })).toBeTruthy();
     expect(screen.getByRole("menuitem", { name: "Unit" })).toBeTruthy();
   });
@@ -90,7 +90,7 @@ describe("SizePatternEditor", () => {
     editor.focus();
     placeCaretAtEnd(editor);
 
-    await userEvent.click(screen.getByRole("button", { name: "Add value to Size layout" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add value to Size pattern" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Width" }));
 
     expect(editor.querySelector<HTMLElement>('[data-key="width"]')).toBeTruthy();
