@@ -14,6 +14,14 @@ _Avoid_: Lot, receipt, PO line, inventory item (when meaning the CertTrace recor
 A filesystem folder that holds a set of materials, their attachments, and that library's configuration (fields, identifier kinds, naming rules, word lists).
 _Avoid_: Database, project, workspace (for this concept)
 
+**Library backup**:
+A portable ZIP file that is a complete copy of one Library's shop records — every Material (including Archived), Attachment, Job, and that library's configuration.
+_Avoid_: Archive (for this file), Export (unless speaking loosely)
+
+**Library restore**:
+An independent copy of a Library created by unpacking a Library backup into a new folder named after that Library, under a parent folder the shop chooses. Same name, material IDs, jobs, and attachments as the source; not linked to it, and never written into an existing path.
+_Avoid_: Import (unless speaking loosely), Unarchive, Overwrite in place, Clone (as a linked or synced copy)
+
 ### Classification fields
 
 **Family**:
@@ -46,8 +54,8 @@ Where the piece lives in the shop — e.g. Rack B2.
 The date the piece arrived.
 
 **Archived**:
-A Material lifecycle state meaning the physical piece is no longer active stock in the shop. The Material remains in the same Library with the same identity, identifiers, and attachments, and can be restored to active. Distinct from deletion (permanent removal) and from Storage Location.
-_Avoid_: Soft-delete (as the product name for this), Inactive, Retired (unless speaking loosely), Archive library (a separate Library used only as a graveyard)
+A Material lifecycle state meaning the physical piece is no longer active stock in the shop. The Material remains in the same Library with the same identity, identifiers, and attachments, and can be unarchived to active. Distinct from deletion (permanent removal), from Storage Location, and from Library restore.
+_Avoid_: Soft-delete (as the product name for this), Inactive, Retired (unless speaking loosely), Archive library (a separate Library used only as a graveyard), Restore (for this action — that is Library restore)
 
 ### Size
 
@@ -64,7 +72,7 @@ The written form of a size for a shape, used on labels and in the materials list
 _Avoid_: Size format, size template
 
 **Unit**:
-Inch or millimetre. Preset by the app, not a field. A size keeps the unit it was entered in; labels and lists show that unit. Each install has a default unit (shipped as inch). Each library chooses inch, millimetre, or App default.
+Inch or millimeter. Preset by the app, not a field. A size keeps the unit it was entered in; labels and lists show that unit. Each install has a default unit (shipped as inch). Each library chooses inch, millimeter, or App default.
 _Avoid_: Metric, imperial, size_unit field
 
 ### Identifiers
