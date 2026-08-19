@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::fs::{self, File};
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State};
@@ -201,7 +201,15 @@ fn append_safe(dest: &Path, relative: &str) -> Result<PathBuf, String> {
         if part.is_empty() || part == "." {
             continue;
         }
-        if part == ".." {
+        // Reject `..`, drive prefixes (`C:`), and any non-normal component so
+        // `PathBuf::push` cannot replace `dest` on Windows.
+        if part == ".." || part.contains(':') {
+            return Err(INVALID_ZIP_PATH.to_string());
+        }
+        if Path::new(part)
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_)))
+        {
             return Err(INVALID_ZIP_PATH.to_string());
         }
         out.push(part);
@@ -518,6 +526,29 @@ mod tests {
             let options =
                 SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
             zip.start_file("../evil.txt", options).unwrap();
+            zip.write_all(b"pwned").unwrap();
+            zip.finish().unwrap();
+        }
+
+        let dest = dir.path().join("dest");
+        let error = unzip_library_dir_sync(&zip_path, &dest, "", &AtomicBool::new(false), None)
+            .unwrap_err();
+
+        assert_eq!(error, INVALID_ZIP_PATH);
+        assert!(!dest.exists());
+        assert!(!dir.path().join("evil.txt").exists());
+    }
+
+    #[test]
+    fn unzip_rejects_windows_drive_prefix_and_removes_dest() {
+        let dir = tempfile::tempdir().unwrap();
+        let zip_path = dir.path().join("evil.zip");
+        {
+            let file = File::create(&zip_path).unwrap();
+            let mut zip = ZipWriter::new(file);
+            let options =
+                SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
+            zip.start_file("C:/evil.txt", options).unwrap();
             zip.write_all(b"pwned").unwrap();
             zip.finish().unwrap();
         }
