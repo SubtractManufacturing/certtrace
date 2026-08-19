@@ -72,8 +72,12 @@ export function findLibraryRootPrefix(entryPaths: string[]): string {
     }
   }
 
-  const [first, ...rest] = prefixSets.map((prefixes) => prefixes[0]!);
-  if (rest.some((prefix) => prefix !== first)) {
+  const prefixes = prefixSets.map((set) => set[0]);
+  const first = prefixes[0];
+  if (first === undefined) {
+    throw new LibraryError(ZIP_NOT_A_LIBRARY);
+  }
+  if (prefixes.some((prefix) => prefix !== first)) {
     throw new LibraryError(ZIP_NOT_A_LIBRARY);
   }
 
