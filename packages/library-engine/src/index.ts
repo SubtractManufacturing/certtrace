@@ -76,6 +76,15 @@ export {
   updateJob,
 } from "./jobs.js";
 export {
+  assertRestoreDestinationFree,
+  findLibraryRootPrefix,
+  libraryBackupSuggestedFileName,
+  libraryRestoreDestination,
+  normalizeZipPath,
+  parseLibraryNameFromConfigJson,
+  shouldIncludeInLibraryBackup,
+} from "./library-backup.js";
+export {
   type AddFieldOptionInput,
   type AddFieldOptionResult,
   addFieldOption,
