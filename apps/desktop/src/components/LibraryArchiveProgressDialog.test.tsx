@@ -15,6 +15,10 @@ describe("LibraryArchiveProgressDialog", () => {
 
     expect(screen.getByText("Preparing…")).toBeTruthy();
     expect(screen.queryByText(/Copying \d+ of \d+ files/)).toBeNull();
+    const preparingBar = screen.getByRole("progressbar", { name: "Preparing…" });
+    expect(preparingBar.getAttribute("aria-valuemin")).toBe("0");
+    expect(preparingBar.getAttribute("aria-valuemax")).toBe("100");
+    expect(preparingBar.hasAttribute("aria-valuenow")).toBe(false);
   });
 
   it("shows Copying N of M files and the current path", () => {
@@ -28,6 +32,8 @@ describe("LibraryArchiveProgressDialog", () => {
 
     expect(screen.getByText("Copying 3 of 10 files")).toBeTruthy();
     expect(screen.getByText("materials/AL-1/cert.pdf")).toBeTruthy();
+    const progressBar = screen.getByRole("progressbar", { name: "Copying 3 of 10 files" });
+    expect(progressBar.getAttribute("aria-valuenow")).toBe("30");
   });
 
   it("cancels from the dialog button, not overlay dismiss", async () => {

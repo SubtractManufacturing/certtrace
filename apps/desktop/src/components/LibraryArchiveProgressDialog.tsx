@@ -38,8 +38,8 @@ export function LibraryArchiveProgressDialog({
           className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
           role="progressbar"
           aria-valuemin={0}
-          aria-valuemax={preparing ? 0 : 100}
-          aria-valuenow={preparing ? 0 : percent}
+          aria-valuemax={100}
+          aria-valuenow={preparing ? undefined : percent}
           aria-label={status}
         >
           <div
