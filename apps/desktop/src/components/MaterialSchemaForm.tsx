@@ -10,9 +10,9 @@ import {
   validateMaterialValues,
 } from "@certtrace/library-engine";
 import type { FieldSchemaV1, FieldValueV1, SizeUnit } from "@certtrace/types";
-import { Button, Input, Label, Select, Textarea } from "@certtrace/ui";
+import { Button, cn, Input, Label, Select, Textarea } from "@certtrace/ui";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { formatDimensionInput, parseSizeDimensionInput } from "../lib/size-input";
 
 export { validateMaterialValues };
@@ -33,11 +33,47 @@ interface MaterialSchemaFormProps {
   idPrefix?: string;
 }
 
-function isDimensionField(
-  schema: FieldSchemaV1,
-  field: FieldSchemaV1["fields"][number],
-): boolean {
+function isDimensionField(schema: FieldSchemaV1, field: FieldSchemaV1["fields"][number]): boolean {
   return isDimensionFieldKey(schema, field.key);
+}
+
+function SizeUnitToggle({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: SizeUnit;
+  onChange: (unit: SizeUnit) => void;
+}) {
+  return (
+    <div
+      className="inline-flex shrink-0 rounded-full border border-slate-200 p-0.5 dark:border-slate-700"
+      role="group"
+      aria-label="Size unit"
+    >
+      {(["in", "mm"] as const).map((unit) => {
+        const selected = value === unit;
+        return (
+          <button
+            key={unit}
+            id={unit === value ? id : undefined}
+            type="button"
+            aria-pressed={selected}
+            className={cn(
+              "rounded-full px-2 py-0.5 text-xs font-medium",
+              selected
+                ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+                : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
+            )}
+            onClick={() => onChange(unit)}
+          >
+            {unit}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 function allDimensionKeys(schema: FieldSchemaV1): Set<string> {
@@ -68,7 +104,6 @@ export function MaterialSchemaForm({
   const [sizeInputError, setSizeInputError] = useState<string | null>(null);
 
   const shapeId = typeof values.fields.shape === "string" ? values.fields.shape : undefined;
-  const activeDimensionKeys = new Set(getShapeDimensionKeys(schema, shapeId));
 
   function emit(nextFields: Record<string, FieldValueV1>, nextSizeUnit?: SizeUnit) {
     onChange({
@@ -289,17 +324,56 @@ export function MaterialSchemaForm({
     );
   }
 
+  const sizeUnit = values.sizeUnit ?? resolvedDefaultUnit;
+  const sizeDimensionFields = getShapeDimensionKeys(schema, shapeId)
+    .map((key) => schema.fields.find((field) => field.key === key))
+    .filter((field): field is FieldSchemaV1["fields"][number] => Boolean(field));
+
+  function renderSizeDimensionField(field: FieldSchemaV1["fields"][number]) {
+    const inputId = `${idPrefix}-${field.key}`;
+    return (
+      <div key={field.key} className="space-y-1 text-sm">
+        <Label htmlFor={inputId} className="block whitespace-nowrap">
+          {field.label}
+        </Label>
+        <div className="relative w-[4.75rem]">
+          <Input
+            id={inputId}
+            type="text"
+            inputMode="decimal"
+            disabled={field.disabled}
+            className="w-[4.75rem] px-2 pr-7"
+            value={dimensionDisplayValue(field.key)}
+            onChange={(event) =>
+              setDimensionDrafts((current) => ({ ...current, [field.key]: event.target.value }))
+            }
+            onBlur={(event) => commitDimensionInput(field.key, event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                commitDimensionInput(field.key, event.currentTarget.value);
+              }
+            }}
+          />
+          <span className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center text-xs text-slate-500 dark:text-slate-400">
+            {sizeUnit}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {schema.fields.map((field) => {
-        if (isDimensionField(schema, field) && !activeDimensionKeys.has(field.key)) {
+        if (isDimensionField(schema, field)) {
           return null;
         }
 
         const raw = values.fields[field.key];
         if (
           (field.disabled && raw === undefined) ||
-          (!field.disabled && !isDimensionField(schema, field) && !isFieldVisible(field, values.fields))
+          (!field.disabled && !isFieldVisible(field, values.fields))
         ) {
           return null;
         }
@@ -325,8 +399,8 @@ export function MaterialSchemaForm({
         }
 
         if (field.type === "single_select") {
-          return (
-            <div key={field.key} className="space-y-1 text-sm">
+          const select = (
+            <>
               <Label htmlFor={inputId}>{field.label}</Label>
               <Select
                 id={inputId}
@@ -348,7 +422,33 @@ export function MaterialSchemaForm({
                   </option>
                 ))}
               </Select>
-            </div>
+            </>
+          );
+
+          if (field.key !== "shape" || sizeDimensionFields.length === 0) {
+            return (
+              <div key={field.key} className="space-y-1 text-sm">
+                {select}
+              </div>
+            );
+          }
+
+          return (
+            <Fragment key={field.key}>
+              <div className="space-y-1 text-sm">{select}</div>
+              <div className="flex min-w-0 flex-wrap items-end gap-x-2 gap-y-2">
+                {sizeDimensionFields.map((dimensionField) =>
+                  renderSizeDimensionField(dimensionField),
+                )}
+                <div className="flex h-9 items-center">
+                  <SizeUnitToggle
+                    id={`${idPrefix}-size-unit`}
+                    value={sizeUnit}
+                    onChange={(nextUnit) => onChange({ ...values, sizeUnit: nextUnit })}
+                  />
+                </div>
+              </div>
+            </Fragment>
           );
         }
 
@@ -378,31 +478,6 @@ export function MaterialSchemaForm({
           );
         }
 
-        if (isDimensionField(schema, field)) {
-          return (
-            <div key={field.key} className="space-y-1 text-sm">
-              <Label htmlFor={inputId}>{field.label}</Label>
-              <Input
-                id={inputId}
-                type="text"
-                inputMode="decimal"
-                disabled={field.disabled}
-                value={dimensionDisplayValue(field.key)}
-                onChange={(event) =>
-                  setDimensionDrafts((current) => ({ ...current, [field.key]: event.target.value }))
-                }
-                onBlur={(event) => commitDimensionInput(field.key, event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    commitDimensionInput(field.key, event.currentTarget.value);
-                  }
-                }}
-              />
-            </div>
-          );
-        }
-
         const inputType =
           field.type === "date" ? "date" : field.type === "number" ? "number" : "text";
 
@@ -427,26 +502,9 @@ export function MaterialSchemaForm({
         );
       })}
 
-      {shapeId && activeDimensionKeys.size > 0 ? (
-        <div className="space-y-1 text-sm">
-          <Label htmlFor={`${idPrefix}-size-unit`}>Size unit</Label>
-          <Select
-            id={`${idPrefix}-size-unit`}
-            value={values.sizeUnit ?? resolvedDefaultUnit}
-            onChange={(event) =>
-              onChange({
-                ...values,
-                sizeUnit: event.target.value as SizeUnit,
-              })
-            }
-          >
-            <option value="in">Inch</option>
-            <option value="mm">Millimetre</option>
-          </Select>
-        </div>
+      {sizeInputError ? (
+        <p className="text-sm text-red-600 sm:col-span-2">{sizeInputError}</p>
       ) : null}
-
-      {sizeInputError ? <p className="text-sm text-red-600 sm:col-span-2">{sizeInputError}</p> : null}
 
       {schema.identifierKinds.map((kind) => {
         const value = values.identifiers[kind.key];

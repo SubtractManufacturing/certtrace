@@ -296,4 +296,35 @@ describe("MaterialSchemaForm", () => {
     expect((screen.getByLabelText("Legacy Grade") as HTMLInputElement).disabled).toBe(true);
     expect((screen.getByLabelText("Legacy Number") as HTMLInputElement).disabled).toBe(true);
   });
+
+  it("packs Shape dimensions into one compact group with an in/mm chip", async () => {
+    function Harness() {
+      const [values, setValues] = useState<MaterialFormValues>({
+        fields: {},
+        identifiers: {},
+      });
+      return (
+        <MaterialSchemaForm
+          schema={defaultFieldSchemaV1}
+          values={values}
+          onChange={setValues}
+          resolvedDefaultUnit="in"
+        />
+      );
+    }
+
+    render(<Harness />);
+
+    await chooseSelectOption(screen.getByLabelText("Shape"), "Rectangle bar");
+
+    expect(screen.getByLabelText("Width")).toBeTruthy();
+    expect(screen.getByLabelText("Height")).toBeTruthy();
+    expect(screen.queryByRole("combobox", { name: "Size unit" })).toBeNull();
+    expect(screen.queryByText("Millimetre")).toBeNull();
+    expect(screen.getByRole("group", { name: "Size unit" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "mm" }).getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByRole("button", { name: "in" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByLabelText("Width").parentElement?.textContent).toContain("in");
+    expect(screen.getByLabelText("Height").parentElement?.textContent).toContain("in");
+  });
 });
