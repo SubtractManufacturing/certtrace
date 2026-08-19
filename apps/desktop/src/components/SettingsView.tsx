@@ -199,9 +199,9 @@ export function SettingsView({
         </section>
 
         <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="text-lg font-semibold">Measurements</h2>
+          <h2 className="text-lg font-semibold">Units</h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Default unit for new Size entry and label paper-size display.
+            Default across app, some libraries may impose their own unit defaults
           </p>
           <div className="mt-4 max-w-xs">
             <Label htmlFor="default-unit">Default unit</Label>
@@ -212,7 +212,7 @@ export function SettingsView({
               onChange={(event) => onDefaultUnitChange(event.target.value as SizeUnit)}
             >
               <option value="in">Inch</option>
-              <option value="mm">Millimetre</option>
+              <option value="mm">Millimeter</option>
             </Select>
           </div>
         </section>
