@@ -109,6 +109,14 @@ A file stored with a material (cert PDF, photo, etc.).
 A library-defined label for what an attachment is — e.g. MTR, Heat cert, COC, Other. Descriptive only; kinds do not enforce that a material must have certain files.
 _Avoid_: File type (when meaning cert role — that is pdf/png/etc.), Document type
 
+**Naming rule**:
+A library-owned recipe for composing new material IDs from tokens such as word-list picks, numbers, dates, or option short codes. Each library has one active naming rule used when creating a material.
+_Avoid_: Identifier (for this — those are heat/lot/PO), Identifier kind
+
+**Word list**:
+A named category of words a naming rule can pick from when generating a material ID — e.g. adjectives, colors, animals.
+_Avoid_: Dictionary, vocabulary
+
 **Option short code**:
 An optional compact code on a select option (e.g. Aluminum → `AL`) used by material ID templates. When a template asks for that field's token and no short code is set, the option's display name is used instead.
 _Avoid_: Material code (as a separate free-floating concept), Prefix (unless speaking loosely)

@@ -2,7 +2,7 @@ import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createNodeFileSystem } from "@certtrace/file-storage/node";
-import { materialMetadataPath } from "@certtrace/types";
+import { materialMetadataPath, SCHEMA_VERSION } from "@certtrace/types";
 import { describe, expect, it } from "vitest";
 import {
   attachFiles,
@@ -16,7 +16,7 @@ import {
 } from "../src/index.js";
 
 describe("material CRUD", () => {
-  it("derives the material token from the selected Family option", async () => {
+  it("creates a unique adjective-color-animal material id", async () => {
     const fs = createNodeFileSystem();
     const parentDir = await mkdtemp(join(tmpdir(), "certtrace-material-"));
 
@@ -26,7 +26,46 @@ describe("material CRUD", () => {
         fields: { family: "aluminum" },
       });
 
-      expect(created.id).toMatch(/^al-/);
+      expect(created.id).toMatch(/^[a-z]+-[a-z]+-[a-z]+$/);
+      expect(created.id.startsWith("al-")).toBe(false);
+    } finally {
+      await rm(parentDir, { recursive: true, force: true });
+    }
+  });
+
+  it("uses Family short code when the active naming rule includes {material}", async () => {
+    const fs = createNodeFileSystem();
+    const parentDir = await mkdtemp(join(tmpdir(), "certtrace-material-"));
+
+    try {
+      const library = await createLibrary(fs, parentDir, {
+        name: "Custom Id Shop",
+        idStrategy: "material-animal-number",
+        namingRules: {
+          version: SCHEMA_VERSION,
+          activeStrategyId: "material-animal-number",
+          strategies: [
+            {
+              id: "material-animal-number",
+              label: "Material + animal + number",
+              template: "{material}-{word:animals}-{number}",
+              numberPad: 3,
+              case: "lower",
+            },
+          ],
+        },
+        wordLists: {
+          version: SCHEMA_VERSION,
+          lists: {
+            animals: { label: "Animals", words: ["panda"] },
+          },
+        },
+      });
+      const created = await createMaterial(library, {
+        fields: { family: "aluminum" },
+      });
+
+      expect(created.id).toBe("al-panda-001");
     } finally {
       await rm(parentDir, { recursive: true, force: true });
     }
@@ -52,7 +91,7 @@ describe("material CRUD", () => {
         },
       });
 
-      expect(created.id).toMatch(/^al-/);
+      expect(created.id).toMatch(/^[a-z]+-[a-z]+-[a-z]+$/);
       expect(created.fields.family).toBe("aluminum");
       expect(created.identifiers.heat_number).toBe("A4921");
 

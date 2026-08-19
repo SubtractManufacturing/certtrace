@@ -11,6 +11,12 @@ import {
   type WordListsV1,
 } from "../schemas/v1.js";
 import { SHIPPED_DIMENSION_KEYS, SHIPPED_SHAPE_PACKING } from "../size.js";
+import { DEFAULT_ADJECTIVES, DEFAULT_ANIMALS, DEFAULT_COLORS } from "./default-words.js";
+
+export { DEFAULT_ADJECTIVES, DEFAULT_ANIMALS, DEFAULT_COLORS } from "./default-words.js";
+
+/** Shipped naming rule for new libraries. Existing libraries keep their own copy. */
+export const DEFAULT_ID_STRATEGY_ID = "adjective-color-animal" as const;
 
 const DIMENSION_FIELD_LABELS: Record<(typeof SHIPPED_DIMENSION_KEYS)[number], string> = {
   thickness: "Thickness",
@@ -66,72 +72,29 @@ export function createStarterLabelTemplates(): LabelTemplate[] {
 export const defaultWordListsV1: WordListsV1 = {
   version: SCHEMA_VERSION,
   lists: {
-    animals: {
-      label: "Animals",
-      words: ["falcon", "river", "hammer", "oak"],
-    },
     adjectives: {
       label: "Adjectives",
-      words: ["blue", "swift", "prime"],
+      words: [...DEFAULT_ADJECTIVES],
     },
     colors: {
       label: "Colors",
-      words: ["red", "slate", "amber"],
+      words: [...DEFAULT_COLORS],
     },
-    cities: {
-      label: "Cities",
-      words: ["denver", "toledo", "austin"],
+    animals: {
+      label: "Animals",
+      words: [...DEFAULT_ANIMALS],
     },
   },
 };
 
 export const defaultNamingRulesV1: NamingRulesV1 = {
   version: SCHEMA_VERSION,
-  activeStrategyId: "material-animal-number",
+  activeStrategyId: DEFAULT_ID_STRATEGY_ID,
   strategies: [
     {
-      id: "numeric",
-      label: "Numeric only",
-      template: "{number}",
-      numberStart: 10001,
-      numberPad: 0,
-    },
-    {
-      id: "prefix-numeric",
-      label: "Prefix + numeric",
-      template: "{material}-{number}",
-      numberPad: 0,
-    },
-    {
-      id: "date-based",
-      label: "Date-based",
-      template: "{material}-{year}{month}{day}-{number}",
-      numberPad: 3,
-    },
-    {
-      id: "word-pair",
-      label: "Word pair",
-      template: "{word:adjectives}-{word:animals}",
-      case: "lower",
-    },
-    {
-      id: "three-word",
-      label: "Three word",
-      template: "{word:adjectives}.{word:animals}.{word:cities}",
-      case: "lower",
-    },
-    {
-      id: "animal-number",
-      label: "Animal + number",
-      template: "{word:animals}-{number}",
-      numberPad: 3,
-      case: "lower",
-    },
-    {
-      id: "material-animal-number",
-      label: "Material + animal + number",
-      template: "{material}-{word:animals}-{number}",
-      numberPad: 3,
+      id: DEFAULT_ID_STRATEGY_ID,
+      label: "Adjective + color + animal",
+      template: "{word:adjectives}-{word:colors}-{word:animals}",
       case: "lower",
     },
   ],

@@ -45,9 +45,11 @@ describe("createLibrary", () => {
       expect(readme).toContain("Main Shop Materials");
 
       const reopened = await openLibrary(fs, library.paths.root);
-      expect(reopened.config.idStrategy).toBe("material-animal-number");
-      expect(reopened.namingRules.strategies.length).toBeGreaterThan(0);
-      expect(Object.keys(reopened.wordLists.lists)).toContain("animals");
+      expect(reopened.config.idStrategy).toBe("adjective-color-animal");
+      expect(reopened.namingRules.strategies.map((strategy) => strategy.id)).toEqual([
+        "adjective-color-animal",
+      ]);
+      expect(Object.keys(reopened.wordLists.lists)).toEqual(["adjectives", "colors", "animals"]);
       expect(reopened.fieldSchema.fields.map((field) => field.key)).toEqual([
         "family",
         "alloy",
