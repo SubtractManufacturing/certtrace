@@ -32,6 +32,7 @@ describe("LibrarySettingsView", () => {
         onOpenAdvancedSettings={() => undefined}
         onLibraryUpdated={() => undefined}
         onRefreshLibrary={async () => undefined}
+        onBackupLibrary={() => undefined}
       />,
     );
 
@@ -60,6 +61,7 @@ describe("LibrarySettingsView", () => {
         onOpenAdvancedSettings={() => undefined}
         onLibraryUpdated={() => undefined}
         onRefreshLibrary={async () => undefined}
+        onBackupLibrary={() => undefined}
       />,
     );
 
@@ -74,6 +76,7 @@ describe("LibrarySettingsView", () => {
         onOpenAdvancedSettings={() => undefined}
         onLibraryUpdated={() => undefined}
         onRefreshLibrary={async () => undefined}
+        onBackupLibrary={() => undefined}
       />,
     );
 
@@ -94,6 +97,7 @@ describe("LibrarySettingsView", () => {
         onOpenAdvancedSettings={() => undefined}
         onLibraryUpdated={() => undefined}
         onRefreshLibrary={async () => undefined}
+        onBackupLibrary={() => undefined}
       />,
     );
 
@@ -110,6 +114,7 @@ describe("LibrarySettingsView", () => {
         onOpenAdvancedSettings={() => undefined}
         onLibraryUpdated={() => undefined}
         onRefreshLibrary={async () => undefined}
+        onBackupLibrary={() => undefined}
       />,
     );
 
@@ -118,5 +123,21 @@ describe("LibrarySettingsView", () => {
         .getByRole("button", { name: /Collapse Label Templates/i })
         .getAttribute("aria-expanded"),
     ).toBe("true");
+  });
+
+  it("backs up the library from the settings header", async () => {
+    const onBackupLibrary = vi.fn();
+    render(
+      <LibrarySettingsView
+        library={sampleLibrary}
+        onOpenAdvancedSettings={() => undefined}
+        onLibraryUpdated={() => undefined}
+        onRefreshLibrary={async () => undefined}
+        onBackupLibrary={onBackupLibrary}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Backup library" }));
+    expect(onBackupLibrary).toHaveBeenCalled();
   });
 });

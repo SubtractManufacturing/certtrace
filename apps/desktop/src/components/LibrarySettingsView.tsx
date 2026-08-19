@@ -1,5 +1,5 @@
 import type { OpenLibraryResult } from "@certtrace/library-engine";
-import { cn } from "@certtrace/ui";
+import { Button, cn } from "@certtrace/ui";
 import { ChevronDown, ChevronRight, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 import { LabelTemplatesEditor } from "./LabelTemplatesEditor";
@@ -11,6 +11,7 @@ interface LibrarySettingsViewProps {
   onOpenAdvancedSettings: () => void;
   onLibraryUpdated: (library: OpenLibraryResult) => void;
   onRefreshLibrary: () => Promise<void>;
+  onBackupLibrary: () => void;
 }
 
 export function LibrarySettingsView({
@@ -19,6 +20,7 @@ export function LibrarySettingsView({
   onOpenAdvancedSettings,
   onLibraryUpdated,
   onRefreshLibrary,
+  onBackupLibrary,
 }: LibrarySettingsViewProps) {
   const [columnsExpanded, setColumnsExpanded] = useState(false);
   const [labelsExpanded, setLabelsExpanded] = useState(expandLabelTemplates);
@@ -32,9 +34,14 @@ export function LibrarySettingsView({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-auto">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-6">
-        <header>
-          <h1 className="text-2xl font-semibold">Library settings</h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{library.config.name}</p>
+        <header className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold">Library settings</h1>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{library.config.name}</p>
+          </div>
+          <Button type="button" variant="outline" onClick={onBackupLibrary}>
+            Backup library
+          </Button>
         </header>
 
         <div className="space-y-4">

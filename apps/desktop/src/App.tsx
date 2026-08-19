@@ -6,8 +6,10 @@ import { AppShell, type AppView } from "./components/AppShell";
 import { CreateLibraryWizard } from "./components/CreateLibraryWizard";
 import { ErrorBanner } from "./components/ErrorBanner";
 import { JobsWorkspace } from "./components/JobsWorkspace";
+import { LibraryArchiveProgressDialog } from "./components/LibraryArchiveProgressDialog";
 import { LibrarySettingsView } from "./components/LibrarySettingsView";
 import { MaterialsWorkspace } from "./components/MaterialsWorkspace";
+import { RestoreLibraryWizard } from "./components/RestoreLibraryWizard";
 import { SettingsView } from "./components/SettingsView";
 import { UpdateAvailableDialog } from "./components/UpdateAvailableBanner";
 import { WelcomeView } from "./components/WelcomeView";
@@ -16,7 +18,18 @@ import { type ActiveLibraryPath, useLibrarySession } from "./hooks/useLibrarySes
 import { useSearchIndex } from "./hooks/useSearchIndex";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
 import { forgetRecentLibrary } from "./lib/app-settings-client";
-import { deleteLibraryFolder, pickParentFolder } from "./lib/library-client";
+import {
+  cancelLibraryArchive,
+  type LibraryArchiveProgress,
+  onLibraryArchiveProgress,
+} from "./lib/library-archive-client";
+import {
+  backupLibraryAtPath,
+  deleteLibraryFolder,
+  pickLibraryBackupSavePath,
+  pickParentFolder,
+  restoreLibraryFromBackup,
+} from "./lib/library-client";
 import { onLibraryFsChanged, syncLibraryWatch } from "./lib/library-watch";
 
 async function bootstrapLibraries(
@@ -62,11 +75,15 @@ function App() {
   const session = useLibrarySession();
   const [activeView, setActiveView] = useState<AppView>("materials");
   const [showCreateWizard, setShowCreateWizard] = useState(false);
+  const [showRestoreWizard, setShowRestoreWizard] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bootstrapping, setBootstrapping] = useState(true);
   const [removingLibrary, setRemovingLibrary] = useState(false);
   const [expandLabelTemplates, setExpandLabelTemplates] = useState(false);
+  const [archiveRunning, setArchiveRunning] = useState(false);
+  const [archiveProgress, setArchiveProgress] = useState<LibraryArchiveProgress | null>(null);
+  const [archiveCancelling, setArchiveCancelling] = useState(false);
   const bootstrapAttempted = useRef(false);
 
   const updateCheck = useUpdateCheck({
@@ -183,6 +200,33 @@ function App() {
     };
   }, [refreshLibraryMaterials, session.refreshLibrary, session.sessionLibraries]);
 
+  useEffect(() => {
+    if (!archiveRunning) {
+      return;
+    }
+
+    let unlisten: (() => void) | undefined;
+    let mounted = true;
+
+    void (async () => {
+      const dispose = await onLibraryArchiveProgress((progress) => {
+        if (mounted) {
+          setArchiveProgress(progress);
+        }
+      });
+      if (mounted) {
+        unlisten = dispose;
+      } else {
+        dispose();
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      unlisten?.();
+    };
+  }, [archiveRunning]);
+
   async function handleOpenLibrary(path: string) {
     setBusy(true);
     setError(null);
@@ -288,6 +332,61 @@ function App() {
     }
   }
 
+  async function handleBackupLibrary(path: string) {
+    if (archiveRunning) {
+      return;
+    }
+    setError(null);
+    try {
+      const dest = await pickLibraryBackupSavePath(path);
+      if (!dest) {
+        return;
+      }
+      setArchiveRunning(true);
+      setArchiveProgress({ current: 0, total: 0, relativePath: "" });
+      await backupLibraryAtPath(path, dest);
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setArchiveRunning(false);
+      setArchiveProgress(null);
+      setArchiveCancelling(false);
+    }
+  }
+
+  async function handleRestoreLibrary(zipPath: string, parentDir: string) {
+    if (archiveRunning) {
+      return;
+    }
+    setError(null);
+    setArchiveRunning(true);
+    setArchiveProgress({ current: 0, total: 0, relativePath: "" });
+    try {
+      const library = await restoreLibraryFromBackup(zipPath, parentDir);
+      await session.openLibrary(library.paths.root);
+      await refreshSettings();
+      setActiveView("materials");
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : String(err));
+      throw err;
+    } finally {
+      setArchiveRunning(false);
+      setArchiveProgress(null);
+      setArchiveCancelling(false);
+    }
+  }
+
+  async function handleCancelArchive() {
+    setArchiveCancelling(true);
+    try {
+      await cancelLibraryArchive();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   if (settingsLoading || bootstrapping) {
     return (
       <ThemeProvider theme={resolvedTheme}>
@@ -302,9 +401,10 @@ function App() {
     return (
       <ThemeProvider theme={resolvedTheme} onThemeChange={(theme) => void setTheme(theme)}>
         <WelcomeView
-          busy={busy}
+          busy={busy || archiveRunning}
           onOpenLibrary={handleOpenLibrary}
           onStartCreateLibrary={() => setShowCreateWizard(true)}
+          onStartRestoreLibrary={() => setShowRestoreWizard(true)}
         />
         <CreateLibraryWizard
           open={showCreateWizard}
@@ -314,6 +414,18 @@ function App() {
             await handleCreateLibrary(parentDir, options);
             setShowCreateWizard(false);
           }}
+        />
+        <RestoreLibraryWizard
+          open={showRestoreWizard}
+          busy={archiveRunning}
+          onClose={() => setShowRestoreWizard(false)}
+          onRestore={handleRestoreLibrary}
+        />
+        <LibraryArchiveProgressDialog
+          open={archiveRunning}
+          progress={archiveProgress}
+          cancelling={archiveCancelling}
+          onCancel={() => void handleCancelArchive()}
         />
         {error || settingsError ? (
           <div className="fixed bottom-4 left-4 right-4 mx-auto max-w-lg">
@@ -407,6 +519,8 @@ function App() {
             }
             onAddLibrary={() => void handleAddLibraryFromSettings()}
             onCreateLibrary={() => setShowCreateWizard(true)}
+            onRestoreLibrary={() => setShowRestoreWizard(true)}
+            onBackupLibrary={(path) => void handleBackupLibrary(path)}
             onRemoveLibrary={(path, deleteFolder) => handleRemoveLibrary(path, deleteFolder)}
             onOpenLibrarySettings={(path) => void handleOpenLibrarySettings(path)}
             onCheckForUpdatesNow={() => void updateCheck.checkNow()}
@@ -421,6 +535,7 @@ function App() {
             onOpenAdvancedSettings={() => setActiveView("library-advanced-settings")}
             onLibraryUpdated={(library) => session.updateLibraryInSession(library)}
             onRefreshLibrary={() => refreshLibraryMaterials(settingsLibraryForMenu.paths.root)}
+            onBackupLibrary={() => void handleBackupLibrary(settingsLibraryForMenu.paths.root)}
           />
         ) : null}
 
@@ -440,6 +555,18 @@ function App() {
           await handleCreateLibrary(parentDir, options);
           setShowCreateWizard(false);
         }}
+      />
+      <RestoreLibraryWizard
+        open={showRestoreWizard}
+        busy={archiveRunning}
+        onClose={() => setShowRestoreWizard(false)}
+        onRestore={handleRestoreLibrary}
+      />
+      <LibraryArchiveProgressDialog
+        open={archiveRunning}
+        progress={archiveProgress}
+        cancelling={archiveCancelling}
+        onCancel={() => void handleCancelArchive()}
       />
 
       {updateCheck.updateInfo && updateCheck.canInstallInApp && !updateCheck.dismissed ? (
