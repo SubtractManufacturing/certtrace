@@ -15,11 +15,11 @@ A filesystem folder that holds a set of materials, their attachments, and that l
 _Avoid_: Database, project, workspace (for this concept)
 
 **Library backup**:
-A portable ZIP file that is a complete copy of one Library's shop records — every Material (including Archived), Attachment, Job, and that library's configuration.
+A portable ZIP file, kept outside the Library, that is a complete copy of one Library's shop records — every Material (including Archived), Attachment, Job, and that library's configuration.
 _Avoid_: Archive (for this file), Export (unless speaking loosely)
 
 **Library restore**:
-An independent copy of a Library created by unpacking a Library backup into a new folder named after that Library, under a parent folder the shop chooses. Same name, material IDs, jobs, and attachments as the source; not linked to it, and never written into an existing path.
+An independent copy of a Library created by unpacking a ZIP that is already a Library (same meaning as opening a folder) into a new folder named after that Library, under a parent folder the shop chooses. Same name, material IDs, jobs, and attachments as the source; not linked to it, and never written into an existing path.
 _Avoid_: Import (unless speaking loosely), Unarchive, Overwrite in place, Clone (as a linked or synced copy)
 
 ### Classification fields
