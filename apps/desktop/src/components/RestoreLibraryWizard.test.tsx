@@ -12,6 +12,7 @@ vi.mock("../lib/library-client", () => ({
 
 describe("RestoreLibraryWizard", () => {
   it("stays on the ZIP step when the chosen file is not a library", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.mocked(pickLibraryBackupZip).mockResolvedValue("/backups/notes.zip");
     vi.mocked(inspectLibraryBackup).mockRejectedValue(
       new Error("This ZIP is not a CertTrace library."),
@@ -23,9 +24,11 @@ describe("RestoreLibraryWizard", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Choose ZIP" }));
 
+    expect(consoleError).toHaveBeenCalled();
     expect(await screen.findByText("This ZIP is not a CertTrace library.")).toBeTruthy();
     expect(screen.getByText("Step 1 of 3 — ZIP")).toBeTruthy();
     expect(screen.getByRole<HTMLButtonElement>("button", { name: "Next" }).disabled).toBe(true);
+    consoleError.mockRestore();
   });
 
   it("shows the library name after a valid ZIP is inspected", async () => {

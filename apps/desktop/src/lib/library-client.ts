@@ -169,7 +169,11 @@ export async function restoreLibraryFromBackup(
     await unzipLibraryDir(zipPath, dest, inspected.prefix);
     return await openLibraryAtPath(dest);
   } catch (error) {
-    await deleteLibraryFolder(dest).catch(() => undefined);
+    try {
+      await deleteLibraryFolder(dest);
+    } catch (cleanupError) {
+      console.error(cleanupError);
+    }
     throw error;
   }
 }

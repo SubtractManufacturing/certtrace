@@ -201,10 +201,6 @@ function App() {
   }, [refreshLibraryMaterials, session.refreshLibrary, session.sessionLibraries]);
 
   useEffect(() => {
-    if (!archiveRunning) {
-      return;
-    }
-
     let unlisten: (() => void) | undefined;
     let mounted = true;
 
@@ -225,7 +221,7 @@ function App() {
       mounted = false;
       unlisten?.();
     };
-  }, [archiveRunning]);
+  }, []);
 
   async function handleOpenLibrary(path: string) {
     setBusy(true);

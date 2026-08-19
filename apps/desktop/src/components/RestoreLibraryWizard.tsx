@@ -61,6 +61,7 @@ export function RestoreLibraryWizard({
       setZipPath(picked);
       setLibraryName(inspected.name);
     } catch (err) {
+      console.error(err);
       setZipPath(null);
       setLibraryName(null);
       setError(err instanceof Error ? err.message : String(err));

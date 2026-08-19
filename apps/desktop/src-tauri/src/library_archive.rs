@@ -245,7 +245,13 @@ pub fn unzip_library_dir_sync(
         let mut total = 0_u64;
         for index in 0..archive.len() {
             let entry = archive.by_index(index).map_err(|error| error.to_string())?;
-            if entry.is_file() {
+            if !entry.is_file() {
+                continue;
+            }
+            let Some(relative) = strip_entry_prefix(entry.name(), strip_prefix) else {
+                continue;
+            };
+            if !relative.is_empty() {
                 total += 1;
             }
         }
@@ -311,7 +317,11 @@ pub fn read_zip_file_entry_text(zip_path: &Path, entry_name: &str) -> Result<Str
 }
 
 #[tauri::command]
-pub fn list_zip_entries(zip_path: String) -> Result<Vec<String>, String> {
+pub fn list_zip_entries(
+    state: State<'_, ArchiveState>,
+    zip_path: String,
+) -> Result<Vec<String>, String> {
+    state.reset();
     list_zip_file_entries(Path::new(&zip_path))
 }
 
@@ -353,7 +363,6 @@ pub async fn unzip_library_dir(
     dest: String,
     strip_prefix: String,
 ) -> Result<(), String> {
-    state.reset();
     let cancelled = state.flag();
     tauri::async_runtime::spawn_blocking(move || {
         unzip_library_dir_sync(
