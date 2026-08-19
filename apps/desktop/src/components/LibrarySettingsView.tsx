@@ -4,6 +4,7 @@ import { cn, Label, Select } from "@certtrace/ui";
 import { ChevronDown, ChevronRight, Wrench } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { updateLibraryConfigPartial } from "../lib/library-client";
+import { ErrorBanner } from "./ErrorBanner";
 import { LabelTemplatesEditor } from "./LabelTemplatesEditor";
 import { MaterialTableColumnsEditor } from "./MaterialTableColumnsEditor";
 import { ShapesEditor } from "./ShapesEditor";
@@ -80,6 +81,7 @@ export function LibrarySettingsView({
   const [columnsExpanded, setColumnsExpanded] = useState(false);
   const [shapesExpanded, setShapesExpanded] = useState(false);
   const [labelsExpanded, setLabelsExpanded] = useState(expandLabelTemplates);
+  const [unitError, setUnitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (expandLabelTemplates) {
@@ -112,13 +114,23 @@ export function LibrarySettingsView({
                 value={library.config.defaultUnit}
                 onChange={(event) => {
                   const defaultUnit = event.target.value as LibraryDefaultUnit;
-                  void updateLibraryConfigPartial(library, { defaultUnit }).then(onLibraryUpdated);
+                  setUnitError(null);
+                  void updateLibraryConfigPartial(library, { defaultUnit })
+                    .then(onLibraryUpdated)
+                    .catch((error: unknown) => {
+                      setUnitError(error instanceof Error ? error.message : String(error));
+                    });
                 }}
               >
                 <option value="app">App default</option>
                 <option value="in">Inch</option>
                 <option value="mm">Millimeter</option>
               </Select>
+              {unitError ? (
+                <div className="mt-2">
+                  <ErrorBanner message={unitError} />
+                </div>
+              ) : null}
             </div>
           </CollapsibleSettingsSection>
 

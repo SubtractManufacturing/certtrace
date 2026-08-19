@@ -61,6 +61,7 @@ type PendingDimensionDelete = {
   label: string;
   shapeLabels: string[];
   materialCount: number | null;
+  countError?: string;
 };
 
 function lockedDimensionKeys(optionId: string): string[] {
@@ -385,7 +386,10 @@ export function ShapesEditor({ library, onLibraryUpdated, onRefreshLibrary }: Sh
         current?.key === key ? { ...current, materialCount } : current,
       );
     } catch (err) {
-      setModalError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      setPendingDimensionDelete((current) =>
+        current?.key === key ? { ...current, countError: message } : current,
+      );
     }
   }
 
@@ -433,8 +437,9 @@ export function ShapesEditor({ library, onLibraryUpdated, onRefreshLibrary }: Sh
     pendingDimensionDelete?.shapeLabels.length === 0
       ? "no Shapes"
       : (pendingDimensionDelete?.shapeLabels.join(", ") ?? "");
-  const dimensionMaterialText =
-    pendingDimensionDelete?.materialCount == null
+  const dimensionMaterialText = pendingDimensionDelete?.countError
+    ? "an unknown number of Materials"
+    : pendingDimensionDelete?.materialCount == null
       ? "Loading affected Material count…"
       : `${pendingDimensionDelete.materialCount} Material${
           pendingDimensionDelete.materialCount === 1 ? "" : "s"
@@ -553,7 +558,6 @@ export function ShapesEditor({ library, onLibraryUpdated, onRefreshLibrary }: Sh
                     type="button"
                     ref={dimensionsTriggerRef}
                     aria-expanded={dimensionsOpen}
-                    aria-haspopup="listbox"
                     aria-label={`Dimensions for ${draft.label || "this Shape"}`}
                     className="flex h-9 w-full items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 text-left text-sm shadow-sm dark:border-slate-700 dark:bg-slate-950"
                     onClick={() => setDimensionsOpen((open) => !open)}
@@ -567,7 +571,7 @@ export function ShapesEditor({ library, onLibraryUpdated, onRefreshLibrary }: Sh
                     open={dimensionsOpen}
                     anchorRef={dimensionsTriggerRef}
                     matchAnchorWidth
-                    role="listbox"
+                    role="group"
                     onClose={() => {
                       setDimensionsOpen(false);
                       setAddingDimension(false);
@@ -802,6 +806,11 @@ export function ShapesEditor({ library, onLibraryUpdated, onRefreshLibrary }: Sh
               from those Shapes, their Size patterns, and affected Materials. Shipped dimensions
               cannot be deleted.
             </DialogDescription>
+            {pendingDimensionDelete?.countError ? (
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {pendingDimensionDelete.countError}
+              </p>
+            ) : null}
           </DialogHeader>
           <DialogFooter>
             <Button
@@ -814,7 +823,11 @@ export function ShapesEditor({ library, onLibraryUpdated, onRefreshLibrary }: Sh
             </Button>
             <Button
               type="button"
-              disabled={busy || pendingDimensionDelete?.materialCount == null}
+              disabled={
+                busy ||
+                (pendingDimensionDelete?.materialCount == null &&
+                  !pendingDimensionDelete?.countError)
+              }
               onClick={() => void confirmDeleteDimension()}
             >
               Delete dimension

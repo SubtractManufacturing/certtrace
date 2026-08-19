@@ -442,7 +442,28 @@ export function MaterialSchemaForm({
                   <SizeUnitToggle
                     id={`${idPrefix}-size-unit`}
                     value={sizeUnit}
-                    onChange={(nextUnit) => onChange({ ...values, sizeUnit: nextUnit })}
+                    onChange={(nextUnit) => {
+                      if (nextUnit === sizeUnit) {
+                        return;
+                      }
+                      const populatedKeys = sizeDimensionFields
+                        .filter((field) => typeof values.fields[field.key] === "number")
+                        .map((field) => field.key);
+                      if (populatedKeys.length > 0) {
+                        const confirmed = window.confirm(
+                          "Changing the Size unit clears dimension values. Continue?",
+                        );
+                        if (!confirmed) {
+                          return;
+                        }
+                      }
+                      const nextFields = { ...values.fields };
+                      for (const key of populatedKeys) {
+                        delete nextFields[key];
+                      }
+                      setDimensionDrafts({});
+                      emit(nextFields, nextUnit);
+                    }}
                   />
                 </div>
               </div>

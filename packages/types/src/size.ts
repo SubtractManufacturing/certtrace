@@ -149,18 +149,20 @@ export function renderSizePattern(
 
   let result = pattern;
 
-  for (const [key, value] of Object.entries(dimensions)) {
-    const token = `{${key}}`;
-    if (value === undefined || value === null) {
-      result = result.replaceAll(token, "");
-    } else {
-      result = result.replaceAll(token, formatDimensionValue(value));
+  for (const match of pattern.matchAll(/\{([A-Za-z][A-Za-z0-9_]*)\}/g)) {
+    const key = match[1];
+    if (!key || key === "unit") {
+      continue;
     }
+    const value = dimensions[key];
+    result = result.replaceAll(
+      `{${key}}`,
+      value === undefined || value === null ? "" : formatDimensionValue(value),
+    );
   }
 
-  result = result.replaceAll("{unit}", formatUnitSuffix(unit));
-
   result = collapseSizePatternSeparators(result);
+  result = result.replaceAll("{unit}", formatUnitSuffix(unit));
 
   if (result.includes("{")) {
     return "";

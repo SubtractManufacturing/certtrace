@@ -285,6 +285,7 @@ export const fieldSchemaV1Schema = z
       "id",
       "createdAt",
       "updatedAt",
+      "unit",
       LABEL_CONTENT_MATERIAL_ID,
       LABEL_CONTENT_QR,
       LABEL_CONTENT_BARCODE,

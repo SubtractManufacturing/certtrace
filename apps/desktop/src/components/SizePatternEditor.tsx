@@ -1,6 +1,7 @@
 import { Button, cn } from "@certtrace/ui";
 import { Plus } from "lucide-react";
 import {
+  type ClipboardEvent as ReactClipboardEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
@@ -176,6 +177,12 @@ export function SizePatternEditor({ pattern, values, onChange }: SizePatternEdit
     if (serializeEditor(editor).trim() === pattern.trim()) {
       return;
     }
+    setSelectedChip((current) => {
+      if (current) {
+        current.classList.remove(...CHIP_SELECTED_CLASSES);
+      }
+      return null;
+    });
     editor.replaceChildren(...nodesFromPattern(pattern));
   }, [pattern, nodesFromPattern]);
 
@@ -292,7 +299,7 @@ export function SizePatternEditor({ pattern, values, onChange }: SizePatternEdit
 
   function removeChip(chip: HTMLElement, caretSide: "before" | "after") {
     const editor = editorRef.current;
-    if (!editor) {
+    if (!editor?.contains(chip)) {
       return;
     }
     const range = document.createRange();
@@ -397,6 +404,35 @@ export function SizePatternEditor({ pattern, values, onChange }: SizePatternEdit
         node.remove();
       }
     }
+    emit();
+  }
+
+  function handlePaste(event: ReactClipboardEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const text = event.clipboardData.getData("text/plain").replace(/\s+/g, " ");
+    if (!text) {
+      return;
+    }
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection || selection.rangeCount === 0) {
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    if (
+      !editor.contains(range.commonAncestorContainer) &&
+      range.commonAncestorContainer !== editor
+    ) {
+      return;
+    }
+    range.deleteContents();
+    const node = document.createTextNode(text);
+    range.insertNode(node);
+    range.setStartAfter(node);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    savedRangeRef.current = range.cloneRange();
     emit();
   }
 
@@ -710,6 +746,7 @@ export function SizePatternEditor({ pattern, values, onChange }: SizePatternEdit
           aria-labelledby={labelId}
           className="min-w-0 flex-1 whitespace-pre-wrap wrap-break-word text-sm leading-6 text-slate-800 outline-none dark:text-slate-100"
           onInput={handleInput}
+          onPaste={handlePaste}
           onKeyDown={handleKeyDown}
           onKeyUp={saveRange}
           onMouseUp={saveRange}

@@ -355,4 +355,33 @@ describe("MaterialSchemaForm", () => {
     expect((screen.getByLabelText("Width") as HTMLInputElement).value).toBe("");
     expect(screen.getByLabelText("Height")).toBeTruthy();
   });
+
+  it("clears populated dimensions after confirming a Size unit change", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    function Harness() {
+      const [values, setValues] = useState<MaterialFormValues>({
+        fields: { shape: "square_bar", width: 2 },
+        identifiers: {},
+        sizeUnit: "in",
+      });
+      return (
+        <MaterialSchemaForm
+          schema={defaultFieldSchemaV1}
+          values={values}
+          onChange={setValues}
+          resolvedDefaultUnit="in"
+        />
+      );
+    }
+
+    render(<Harness />);
+    expect((screen.getByLabelText("Width") as HTMLInputElement).value).toBe("2");
+
+    await userEvent.click(screen.getByRole("button", { name: "mm" }));
+
+    expect(window.confirm).toHaveBeenCalled();
+    expect((screen.getByLabelText("Width") as HTMLInputElement).value).toBe("");
+    expect(screen.getByRole("button", { name: "mm" }).getAttribute("aria-pressed")).toBe("true");
+  });
 });

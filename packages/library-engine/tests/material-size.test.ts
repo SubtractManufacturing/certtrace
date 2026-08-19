@@ -260,6 +260,52 @@ describe("material Size on disk", () => {
     }
   });
 
+  it("clears stale dimensions when an existing Shape option drops a key", async () => {
+    const fs = createNodeFileSystem();
+    const parentDir = await mkdtemp(join(tmpdir(), "certtrace-size-"));
+
+    try {
+      const library = await createLibrary(fs, parentDir, "Size Shop");
+      const square = await createMaterial(library, {
+        fields: { family: "aluminum", shape: "square_bar", width: 2 },
+        sizeUnit: "in",
+      });
+      const plate = await createMaterial(library, {
+        fields: { family: "aluminum", shape: "plate", thickness: 0.5 },
+        sizeUnit: "in",
+      });
+
+      await updateFieldSchema(library, {
+        ...library.fieldSchema,
+        fields: library.fieldSchema.fields.map((field) =>
+          field.key === "shape"
+            ? {
+                ...field,
+                options: field.options?.map((option) =>
+                  option.id === "square_bar"
+                    ? { ...option, dimensionKeys: [], sizePattern: undefined }
+                    : option,
+                ),
+              }
+            : field,
+        ),
+      });
+
+      const reopened = await openLibrary(fs, library.paths.root);
+      const squareFetched = await getMaterial(reopened, square.id);
+      expect(squareFetched.fields.shape).toBe("square_bar");
+      expect(squareFetched.fields.width).toBeUndefined();
+      expect(squareFetched.sizeUnit).toBeUndefined();
+
+      const plateFetched = await getMaterial(reopened, plate.id);
+      expect(plateFetched.fields.shape).toBe("plate");
+      expect(plateFetched.fields.thickness).toBe(0.5);
+      expect(plateFetched.sizeUnit).toBe("in");
+    } finally {
+      await rm(parentDir, { recursive: true, force: true });
+    }
+  });
+
   it("strips a custom dimension from Shape options, patterns, and Materials", async () => {
     const fs = createNodeFileSystem();
     const parentDir = await mkdtemp(join(tmpdir(), "certtrace-size-"));

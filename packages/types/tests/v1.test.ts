@@ -156,6 +156,24 @@ describe("fieldSchemaV1Schema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("rejects unit as a field key because it is the Size suffix token", () => {
+    const result = fieldSchemaV1Schema.safeParse({
+      version: SCHEMA_VERSION,
+      fields: [
+        {
+          key: "unit",
+          label: "Unit",
+          type: "number",
+          required: false,
+          filterable: false,
+        },
+      ],
+      identifierKinds: [],
+      attachmentKinds: [],
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects Label content core keys as field or identifier definitions", () => {
     const asField = fieldSchemaV1Schema.safeParse({
       version: SCHEMA_VERSION,

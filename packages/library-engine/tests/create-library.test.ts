@@ -249,6 +249,7 @@ describe("createLibrary", () => {
       const addedOption = createFieldOption(family, "Titanium");
 
       expect(addedField).toMatchObject({ key: "inspection_score", type: "number" });
+      expect(createFieldDefinition(library.fieldSchema, "Unit", "number").key).toBe("unit_2");
       expect(addedKind).toMatchObject({ key: "mill_cert", required: false });
       expect(addedOption).toEqual({ id: "titanium", label: "Titanium" });
 

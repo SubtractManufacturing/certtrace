@@ -3,7 +3,8 @@ import { createDefaultLibraryConfigV1, defaultFieldSchemaV1 } from "@certtrace/t
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { updateLibraryFieldSchema } from "../lib/library-client";
+import { updateLibraryConfigPartial, updateLibraryFieldSchema } from "../lib/library-client";
+import { chooseSelectOption } from "../test/select-helpers";
 import { LibrarySettingsView } from "./LibrarySettingsView";
 
 vi.mock("../lib/library-client", () => ({
@@ -148,5 +149,23 @@ describe("LibrarySettingsView", () => {
         .getByRole("button", { name: /Collapse Label Templates/i })
         .getAttribute("aria-expanded"),
     ).toBe("true");
+  });
+
+  it("shows an error when saving the default unit fails", async () => {
+    vi.mocked(updateLibraryConfigPartial).mockRejectedValue(new Error("Disk is full"));
+
+    render(
+      <LibrarySettingsView
+        library={sampleLibrary}
+        onOpenAdvancedSettings={() => undefined}
+        onLibraryUpdated={() => undefined}
+        onRefreshLibrary={async () => undefined}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Expand Units/i }));
+    await chooseSelectOption(screen.getByLabelText("Default unit"), "Millimeter");
+
+    expect(await screen.findByText("Disk is full")).toBeTruthy();
   });
 });

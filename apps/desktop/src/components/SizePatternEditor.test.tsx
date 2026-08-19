@@ -232,4 +232,41 @@ describe("SizePatternEditor", () => {
     });
     expect(chip?.getAttribute("aria-label")).toBe("Across");
   });
+
+  it("does not throw when Backspace follows a parent-driven pattern replace", async () => {
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <SizePatternEditor pattern="{width} x {height}" values={values} onChange={onChange} />,
+    );
+
+    const editor = getEditor();
+    editor.focus();
+    const height = editor.querySelector<HTMLElement>('[data-key="height"]');
+    expect(height).toBeTruthy();
+    placeCaretAfter(height!);
+
+    await userEvent.keyboard("{Backspace}");
+    expect(height!.className).toContain("ring-2");
+
+    rerender(<SizePatternEditor pattern="{width}" values={values} onChange={onChange} />);
+
+    await userEvent.keyboard("{Backspace}");
+    expect(editor.querySelector('[data-key="width"]')).toBeTruthy();
+  });
+
+  it("pastes clipboard content as a plain-text node", () => {
+    const onChange = vi.fn();
+    render(<SizePatternEditor pattern="{width}" values={values} onChange={onChange} />);
+
+    const editor = getEditor();
+    editor.focus();
+    placeCaretAtEnd(editor);
+
+    const clipboardData = {
+      getData: (type: string) => (type === "text/plain" ? " x  extra " : "<b>x</b>"),
+    };
+    fireEvent.paste(editor, { clipboardData });
+
+    expect(onChange).toHaveBeenLastCalledWith("{width} x extra");
+  });
 });

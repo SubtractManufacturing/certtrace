@@ -38,6 +38,7 @@ function mockPersist() {
       fields: library.fieldSchema.fields.filter((field) => field.key !== input.key),
     },
   }));
+  vi.mocked(fetchMaterials).mockResolvedValue([]);
 }
 
 async function openDimensions(shapeLabel: string) {
@@ -407,5 +408,40 @@ describe("ShapesEditor", () => {
     });
     await userEvent.click(screen.getByRole("button", { name: "Delete Shape" }));
     expect(updateLibraryFieldSchema).toHaveBeenCalled();
+  });
+
+  it("lets the user delete a dimension when the Material count cannot be loaded", async () => {
+    vi.mocked(fetchMaterials).mockRejectedValue(new Error("Library folder is offline"));
+    const schema = structuredClone(defaultFieldSchemaV1);
+    schema.fields.push({
+      key: "leg_a",
+      label: "Leg A",
+      type: "number",
+      required: false,
+      filterable: false,
+    });
+    const shape = schema.fields.find((field) => field.key === "shape");
+    const square = shape?.options?.find((option) => option.id === "square_bar");
+    if (square) {
+      square.dimensionKeys = ["width", "leg_a"];
+    }
+
+    render(
+      <ShapesEditor
+        library={sampleLibrary(schema)}
+        onLibraryUpdated={() => undefined}
+        onRefreshLibrary={async () => undefined}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Edit Square bar" }));
+    await openDimensions("Square bar");
+    await userEvent.click(screen.getByRole("button", { name: "Delete Leg A" }));
+
+    expect(await screen.findByText(/an unknown number of Materials/)).toBeTruthy();
+    expect(screen.getByText("Library folder is offline")).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Delete dimension" }) as HTMLButtonElement).disabled,
+    ).toBe(false);
   });
 });
