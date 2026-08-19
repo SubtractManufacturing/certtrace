@@ -4,6 +4,7 @@ import {
   type AddFieldOptionResult,
   addFieldOption,
   archiveMaterial as archiveMaterialInLibrary,
+  assertRestoreDestinationFree,
   assignMaterialToJob as assignMaterialToJobInLibrary,
   type CreateJobInput,
   type CreateLibraryOptions,
@@ -11,6 +12,9 @@ import {
   createJob,
   createLibrary,
   createMaterial,
+  findLibraryRootPrefix,
+  libraryBackupSuggestedFileName,
+  libraryRestoreDestination,
   listAssignedMaterialIds,
   listJobCustomers,
   listJobs,
@@ -20,6 +24,7 @@ import {
   listMaterialsForJob,
   type OpenLibraryResult,
   openLibrary,
+  parseLibraryNameFromConfigJson,
   type RemoveSchemaDefinitionInput,
   removeJob,
   removeMaterial,
@@ -44,9 +49,21 @@ import type {
   NamingRulesV1,
   WordListsV1,
 } from "@certtrace/types";
-import { joinPath, libraryFolderName } from "@certtrace/types";
-import { open } from "@tauri-apps/plugin-dialog";
+import {
+  joinPath,
+  LIBRARY_BACKUP_SKIP_NAMES,
+  LIBRARY_BACKUP_SKIP_PREFIXES,
+  LIBRARY_JSON,
+  libraryFolderName,
+} from "@certtrace/types";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import { recordRecentLibrary } from "./app-settings-client";
+import {
+  listZipEntries,
+  readZipEntryText,
+  unzipLibraryDir,
+  zipLibraryDir,
+} from "./library-archive-client";
 import { allowLibraryDirectory } from "./library-scope";
 import { createTauriFileSystem } from "./tauri-fs";
 
@@ -75,6 +92,86 @@ export async function pickParentFolder(title: string): Promise<string | null> {
   }
 
   return selected;
+}
+
+function parentPath(path: string): string {
+  const trimmed = path.replace(/[/\\]+$/, "");
+  const separatorIndex = Math.max(trimmed.lastIndexOf("/"), trimmed.lastIndexOf("\\"));
+  return separatorIndex <= 0 ? trimmed : trimmed.slice(0, separatorIndex);
+}
+
+function folderNameFromPath(path: string): string {
+  const trimmed = path.replace(/[/\\]+$/, "");
+  const separatorIndex = Math.max(trimmed.lastIndexOf("/"), trimmed.lastIndexOf("\\"));
+  return separatorIndex < 0 ? trimmed : trimmed.slice(separatorIndex + 1);
+}
+
+export async function pickLibraryBackupZip(): Promise<string | null> {
+  const selected = await open({
+    title: "Choose a library backup",
+    multiple: false,
+    filters: [{ name: "ZIP", extensions: ["zip"] }],
+  });
+
+  if (selected === null || Array.isArray(selected)) {
+    return null;
+  }
+
+  return selected;
+}
+
+export async function pickLibraryBackupSavePath(libraryRoot: string): Promise<string | null> {
+  const selected = await save({
+    title: "Save library backup",
+    defaultPath: libraryBackupSuggestedFileName(folderNameFromPath(libraryRoot), new Date()),
+    filters: [{ name: "ZIP", extensions: ["zip"] }],
+  });
+
+  return selected ?? null;
+}
+
+export async function inspectLibraryBackup(
+  zipPath: string,
+): Promise<{ name: string; prefix: string }> {
+  await grantLibraryAccess(parentPath(zipPath), { recursive: false });
+  const entries = await listZipEntries(zipPath);
+  const prefix = findLibraryRootPrefix(entries);
+  const libraryJsonPath = prefix ? `${prefix}/${LIBRARY_JSON}` : LIBRARY_JSON;
+  const raw = await readZipEntryText(zipPath, libraryJsonPath);
+  return {
+    name: parseLibraryNameFromConfigJson(raw),
+    prefix,
+  };
+}
+
+export async function backupLibraryAtPath(libraryRoot: string, destZip: string): Promise<void> {
+  await grantLibraryAccess(libraryRoot);
+  await grantLibraryAccess(parentPath(destZip), { recursive: false });
+  await zipLibraryDir(
+    libraryRoot,
+    destZip,
+    LIBRARY_BACKUP_SKIP_PREFIXES,
+    LIBRARY_BACKUP_SKIP_NAMES,
+  );
+}
+
+export async function restoreLibraryFromBackup(
+  zipPath: string,
+  parentDir: string,
+): Promise<OpenLibraryResult> {
+  const inspected = await inspectLibraryBackup(zipPath);
+  const dest = libraryRestoreDestination(parentDir, inspected.name);
+  await grantLibraryAccess(parentDir, { recursive: false });
+  await grantLibraryAccess(dest);
+  await assertRestoreDestinationFree(fs, dest);
+
+  try {
+    await unzipLibraryDir(zipPath, dest, inspected.prefix);
+    return await openLibraryAtPath(dest);
+  } catch (error) {
+    await deleteLibraryFolder(dest).catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function openLibraryAtPath(root: string): Promise<OpenLibraryResult> {
