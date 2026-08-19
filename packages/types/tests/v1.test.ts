@@ -89,9 +89,9 @@ describe("fieldSchemaV1Schema", () => {
       "family",
       "alloy",
       "temper",
+      "traceability_type",
       "shape",
       "supplier",
-      "traceability_type",
       "date_received",
       "storage_location",
     ]);

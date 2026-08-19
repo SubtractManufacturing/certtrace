@@ -234,6 +234,18 @@ export const defaultFieldSchemaV1: FieldSchemaV1 = {
       },
     },
     {
+      key: "traceability_type",
+      label: "Traceability Type",
+      type: "single_select",
+      required: false,
+      filterable: true,
+      options: [
+        { id: "material_cert", label: "Material cert" },
+        { id: "coc", label: "COC" },
+        { id: "full_traceability", label: "Full Traceability" },
+      ],
+    },
+    {
       key: "shape",
       label: "Shape",
       type: "single_select",
@@ -268,18 +280,6 @@ export const defaultFieldSchemaV1: FieldSchemaV1 = {
         { id: "boedecker", label: "Boedecker" },
         { id: "online_metals", label: "Online Metals" },
         { id: "speedy_metals", label: "Speedy Metals" },
-      ],
-    },
-    {
-      key: "traceability_type",
-      label: "Traceability Type",
-      type: "single_select",
-      required: false,
-      filterable: true,
-      options: [
-        { id: "material_cert", label: "Material cert" },
-        { id: "coc", label: "COC" },
-        { id: "full_traceability", label: "Full Traceability" },
       ],
     },
     {

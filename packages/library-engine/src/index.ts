@@ -4,6 +4,7 @@ import {
   CERTTRACE_DIR,
   FIELD_SCHEMA_JSON,
   type FieldSchemaV1,
+  isShippedDimensionKey,
   JOBS_DIR,
   joinPath,
   LABELS_DIR,
@@ -17,23 +18,22 @@ import {
   materialMetadataV1Schema,
   NAMING_RULES_JSON,
   SCHEMA_VERSION,
-  isShippedDimensionKey,
   WORD_LISTS_JSON,
 } from "@certtrace/types";
 import { LibraryError } from "./errors.js";
 import { removeMaterialFromAllJobAssignments } from "./job-assignments.js";
-import {
-  clearShapeAndSize,
-  getShapeField,
-  sanitizeMaterialSize,
-  stripDimensionKeyFromShapeOptions,
-} from "./material-size.js";
 import {
   buildCreateLibraryConfig,
   type CreateLibraryOptions,
   canReplaceFieldDefinition,
   updateFieldSchema as writeFieldSchema,
 } from "./library-config.js";
+import {
+  clearShapeAndSize,
+  getShapeField,
+  sanitizeMaterialSize,
+  stripDimensionKeyFromShapeOptions,
+} from "./material-size.js";
 import {
   migrateFieldSchema,
   migrateLibraryConfig,
@@ -60,21 +60,6 @@ export {
   renameMaterialAttachment,
 } from "./attachments.js";
 export { LibraryError } from "./errors.js";
-export {
-  compareMaterialSize,
-  compareSizeSortKeys,
-  formatMaterialSize,
-  getShapeDimensionKeys,
-  getShapeField,
-  getShapeOption,
-  getShapeSizePattern,
-  hasFilledShapeDimensions,
-  isDimensionFieldKey,
-  listReusableDimensionFields,
-  materialSizeSortKey,
-  sanitizeMaterialSize,
-  stripDimensionKeyFromShapeOptions,
-} from "./material-size.js";
 export {
   availableFieldOptions,
   isFieldVisible,
@@ -133,6 +118,21 @@ export {
   type MaterialShelfFilter,
   sanitizeMaterialFilterFields,
 } from "./material-filters.js";
+export {
+  compareMaterialSize,
+  compareSizeSortKeys,
+  formatMaterialSize,
+  getShapeDimensionKeys,
+  getShapeField,
+  getShapeOption,
+  getShapeSizePattern,
+  hasFilledShapeDimensions,
+  isDimensionFieldKey,
+  listReusableDimensionFields,
+  materialSizeSortKey,
+  sanitizeMaterialSize,
+  stripDimensionKeyFromShapeOptions,
+} from "./material-size.js";
 export type {
   CreateJobInput,
   CreateMaterialInput,
@@ -212,8 +212,7 @@ export async function updateFieldSchema(
     const removed = new Set(removedOptionIds);
     const materials = await listMaterials(library);
     const nextMaterials = materials.map((material) => {
-      const shapeId =
-        typeof material.fields.shape === "string" ? material.fields.shape : undefined;
+      const shapeId = typeof material.fields.shape === "string" ? material.fields.shape : undefined;
       if (!shapeId || !removed.has(shapeId)) {
         return material;
       }

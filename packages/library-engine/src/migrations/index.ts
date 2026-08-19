@@ -4,6 +4,7 @@ import {
   defaultFieldSchemaV1,
   type FieldSchemaV1,
   fieldSchemaV1Schema,
+  isShippedDimensionKey,
   type LabelContentItem,
   type LibraryConfigV1,
   libraryConfigV1Schema,
@@ -17,7 +18,6 @@ import {
   type WordListsV1,
   wordListsV1Schema,
 } from "@certtrace/types";
-import { isShippedDimensionKey } from "@certtrace/types";
 import { LibraryError } from "../errors.js";
 import { migrateToCurrent } from "./shared.js";
 

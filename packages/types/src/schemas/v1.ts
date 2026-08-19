@@ -102,7 +102,7 @@ export const libraryConfigV1Schema = z
     defaultLabelTemplateId: z.string().min(1),
     /** Legacy compatibility only. Search is always material ID plus identifier values (ADR-0004). */
     searchAllFields: z.boolean(),
-    /** Inch, millimetre, or follow the install default (shipped `app`). */
+    /** Inch, millimeter, or follow the install default (shipped `app`). */
     defaultUnit: libraryDefaultUnitSchema.default("app"),
   })
   .superRefine((value, ctx) => {
