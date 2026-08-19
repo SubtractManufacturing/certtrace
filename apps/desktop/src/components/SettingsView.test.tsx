@@ -16,6 +16,7 @@ const baseProps = {
   resolvedTheme: "light" as const,
   checkForUpdates: false,
   includeArchivedMaterialsInSearch: false,
+  defaultUnit: "in" as const,
   defaultLibraryOnLaunch: null,
   recentLibraries: [
     {
@@ -33,6 +34,7 @@ const baseProps = {
   onThemeChange: () => undefined,
   onCheckForUpdatesChange: () => undefined,
   onIncludeArchivedMaterialsInSearchChange: () => undefined,
+  onDefaultUnitChange: () => undefined,
   onDefaultLibraryChange: () => undefined,
   onAddLibrary: () => undefined,
   onCreateLibrary: () => undefined,
