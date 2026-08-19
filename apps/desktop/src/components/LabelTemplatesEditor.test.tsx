@@ -248,6 +248,23 @@ describe("LabelTemplatesEditor", () => {
     }
   });
 
+  it("offers Dimensions instead of individual dimension field slots", async () => {
+    render(
+      <LabelTemplatesEditor
+        library={sampleLibrary()}
+        onLibraryUpdated={() => undefined}
+        onRefreshLibrary={async () => undefined}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Edit 4×6 in/i }));
+
+    expect(screen.getByLabelText(/Include Dimensions/i)).toBeTruthy();
+    expect(screen.queryByLabelText(/Include Width/i)).toBeNull();
+    expect(screen.queryByLabelText(/Include Height/i)).toBeNull();
+    expect(screen.queryByLabelText(/Include Thickness/i)).toBeNull();
+  });
+
   it("toggles content slots and edits align/size on enabled rows", async () => {
     const library = sampleLibrary();
     mockPersist(library);
@@ -301,6 +318,7 @@ describe("LabelTemplatesEditor", () => {
     const preview = await screen.findByRole("region", { name: /Label preview/i });
     expect(preview.textContent).toContain("AL-falcon-104");
     expect(preview.textContent).toContain("Aluminum");
+    expect(preview.textContent).toContain("1.25 in");
 
     await userEvent.click(screen.getByLabelText(/Include Temper/i));
     expect(preview.textContent).not.toContain("T6511");

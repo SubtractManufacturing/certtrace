@@ -1,6 +1,7 @@
 import {
   createLabelContentItem,
   type FieldSchemaV1,
+  isShippedDimensionKey,
   LABEL_CONTENT_BARCODE,
   LABEL_CONTENT_MATERIAL_ID,
   LABEL_CONTENT_QR,
@@ -9,6 +10,7 @@ import {
   type MaterialMetadataV1,
   SCHEMA_VERSION,
 } from "@certtrace/types";
+import { isDimensionFieldKey } from "@certtrace/library-engine";
 
 export interface LabelContentOption {
   key: string;
@@ -29,10 +31,12 @@ export function createSampleLabelMaterial(): MaterialMetadataV1 {
       alloy: "6061",
       temper: "t6511",
       shape: "round_bar",
+      diameter: 1.25,
       supplier: "mcmaster",
       storage_location: "Rack B2",
       traceability_type: "full_traceability",
     },
+    sizeUnit: "in",
     identifiers: {
       heat_number: "A4921",
       lot_number: "L-7781",
@@ -44,10 +48,17 @@ export function createSampleLabelMaterial(): MaterialMetadataV1 {
   };
 }
 
-/** Core slots always offered, then every Field and Identifier kind from the schema. */
+function isIndividualDimensionFieldKey(fieldSchema: FieldSchemaV1, key: string): boolean {
+  if (isShippedDimensionKey(key)) {
+    return fieldSchema.fields.some((field) => field.key === key);
+  }
+  return isDimensionFieldKey(fieldSchema, key);
+}
+
+/** Core slots always offered, then non-dimension Fields and Identifier kinds from the schema. */
 export function labelContentOptions(fieldSchema: FieldSchemaV1): LabelContentOption[] {
   const core: LabelContentOption[] = [
-    { key: LABEL_CONTENT_SIZE, label: "Size" },
+    { key: LABEL_CONTENT_SIZE, label: "Dimensions" },
     { key: LABEL_CONTENT_MATERIAL_ID, label: "Material id" },
     { key: LABEL_CONTENT_QR, label: "QR" },
     { key: LABEL_CONTENT_BARCODE, label: "Barcode" },
@@ -56,7 +67,7 @@ export function labelContentOptions(fieldSchema: FieldSchemaV1): LabelContentOpt
   const coreKeys = new Set(core.map((option) => option.key));
 
   const fields = fieldSchema.fields
-    .filter((field) => !coreKeys.has(field.key))
+    .filter((field) => !coreKeys.has(field.key) && !isIndividualDimensionFieldKey(fieldSchema, field.key))
     .map((field) => ({
       key: field.key,
       label: field.label,
@@ -70,6 +81,30 @@ export function labelContentOptions(fieldSchema: FieldSchemaV1): LabelContentOpt
     }));
 
   return [...core, ...fields, ...identifiers];
+}
+
+/**
+ * Drop per-dimension field slots from a template. When any are removed, ensure the
+ * Dimensions slot is enabled so Shape label templates still appear on labels.
+ */
+export function sanitizeLabelTemplateContent(
+  fieldSchema: FieldSchemaV1,
+  content: LabelContentItem[],
+): LabelContentItem[] {
+  let removedDimensionField = false;
+  const next = content.filter((item) => {
+    if (!isIndividualDimensionFieldKey(fieldSchema, item.key)) {
+      return true;
+    }
+    removedDimensionField = true;
+    return false;
+  });
+
+  if (removedDimensionField && !next.some((item) => item.key === LABEL_CONTENT_SIZE)) {
+    return [...next, createLabelContentItem(LABEL_CONTENT_SIZE)];
+  }
+
+  return next;
 }
 
 /** Enabled rows in template order, then disabled options in catalog order. */

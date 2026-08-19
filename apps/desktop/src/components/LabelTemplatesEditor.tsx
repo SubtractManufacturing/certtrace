@@ -37,7 +37,7 @@ import {
 import { Pencil, Plus, Star, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatDimensionInput, parseDimensionInput } from "../lib/label-dimensions";
-import { createSampleLabelMaterial } from "../lib/label-template-content";
+import { createSampleLabelMaterial, sanitizeLabelTemplateContent } from "../lib/label-template-content";
 import { fetchMaterials, updateLibraryConfigPartial } from "../lib/library-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { LabelLivePreview } from "./LabelLivePreview";
@@ -150,12 +150,16 @@ export function LabelTemplatesEditor({
 
   function openCreate() {
     setError(null);
-    setEditor({ kind: "create", draft: createBlankTemplate() });
+    const draft = createBlankTemplate();
+    draft.content = sanitizeLabelTemplateContent(library.fieldSchema, draft.content);
+    setEditor({ kind: "create", draft });
   }
 
   function openEdit(template: LabelTemplate) {
     setError(null);
-    setEditor({ kind: "edit", draft: structuredClone(template) });
+    const draft = structuredClone(template);
+    draft.content = sanitizeLabelTemplateContent(library.fieldSchema, draft.content);
+    setEditor({ kind: "edit", draft });
   }
 
   function closeEditor() {
@@ -271,7 +275,11 @@ export function LabelTemplatesEditor({
     setBusy(true);
     setModalError(null);
     try {
-      const validated = labelTemplateSchema.parse(editor.draft);
+      const draft = {
+        ...editor.draft,
+        content: sanitizeLabelTemplateContent(library.fieldSchema, editor.draft.content),
+      };
+      const validated = labelTemplateSchema.parse(draft);
       const next =
         editor.kind === "create"
           ? addLabelTemplate(library.config, validated)

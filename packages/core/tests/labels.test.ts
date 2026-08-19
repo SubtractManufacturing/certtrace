@@ -221,7 +221,7 @@ describe("generateLabelPdf", () => {
     });
     expect(sizedResult.lines[0]?.[0]).toEqual({
       key: LABEL_CONTENT_SIZE,
-      label: "Size",
+      label: "Dimensions",
       value: "2 x 2 in",
     });
   });
