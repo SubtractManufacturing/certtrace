@@ -7,7 +7,7 @@ import type {
 import type { Theme } from "@certtrace/ui";
 import { Button, Label, Select, Switch, ThemeProvider } from "@certtrace/ui";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { FolderOpen, Plus, Settings, Trash2 } from "lucide-react";
+import { FolderOpen, Plus, Save, Settings, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { openAppDataFolder } from "../lib/app-data-client";
 import { APP_VERSION } from "../lib/update-check";
@@ -38,6 +38,8 @@ interface SettingsViewProps {
   onDefaultLibraryChange: (value: DefaultLibraryOnLaunch) => void;
   onAddLibrary: () => void;
   onCreateLibrary: () => void;
+  onRestoreLibrary: () => void;
+  onBackupLibrary: (path: string) => void;
   onRemoveLibrary: (path: string, deleteFolder: boolean) => Promise<void>;
   onOpenLibrarySettings: (path: string) => void;
   onCheckForUpdatesNow: () => void;
@@ -66,6 +68,8 @@ export function SettingsView({
   onDefaultLibraryChange,
   onAddLibrary,
   onCreateLibrary,
+  onRestoreLibrary,
+  onBackupLibrary,
   onRemoveLibrary,
   onOpenLibrarySettings,
   onCheckForUpdatesNow,
@@ -136,6 +140,9 @@ export function SettingsView({
               <Button type="button" variant="outline" onClick={onCreateLibrary}>
                 Create library
               </Button>
+              <Button type="button" variant="outline" onClick={onRestoreLibrary}>
+                Restore from backup
+              </Button>
             </div>
             <label className="ml-auto flex items-center gap-2 text-sm">
               <Label className="shrink-0 font-normal text-slate-600 dark:text-slate-400">
@@ -172,6 +179,14 @@ export function SettingsView({
                     <p className="truncate text-xs text-slate-500">{entry.path}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label={`Backup ${entry.name}`}
+                      className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                      onClick={() => onBackupLibrary(entry.path)}
+                    >
+                      <Save className="h-4 w-4" />
+                    </button>
                     <button
                       type="button"
                       aria-label={`Library settings for ${entry.name}`}

@@ -10,6 +10,20 @@ export const NAMING_RULES_JSON = `${CERTTRACE_DIR}/naming-rules.json`;
 export const WORD_LISTS_JSON = `${CERTTRACE_DIR}/word-lists.json`;
 export const FIELD_SCHEMA_JSON = `${CERTTRACE_DIR}/field-schema.json`;
 
+/** Relative prefixes omitted from a Library backup ZIP. */
+export const LIBRARY_BACKUP_SKIP_PREFIXES = [BACKUPS_DIR] as const;
+
+/** File basenames omitted from a Library backup ZIP. */
+export const LIBRARY_BACKUP_SKIP_NAMES = [".DS_Store", "Thumbs.db"] as const;
+
+/** Config files that must share one ZIP prefix for restore. */
+export const LIBRARY_BACKUP_REQUIRED_FILES = [
+  LIBRARY_JSON,
+  NAMING_RULES_JSON,
+  WORD_LISTS_JSON,
+  FIELD_SCHEMA_JSON,
+] as const;
+
 export const LIBRARY_README = "README.md";
 
 export const materialDir = (materialId: string) => `${MATERIALS_DIR}/${materialId}`;

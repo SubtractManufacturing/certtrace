@@ -13,12 +13,14 @@ interface WelcomeViewProps {
   busy?: boolean;
   onOpenLibrary: (path: string) => Promise<void>;
   onStartCreateLibrary: () => void;
+  onStartRestoreLibrary: () => void;
 }
 
 export function WelcomeView({
   busy = false,
   onOpenLibrary,
   onStartCreateLibrary,
+  onStartRestoreLibrary,
 }: WelcomeViewProps) {
   const [recentLibraries, setRecentLibraries] = useState<RecentLibraryEntryV1[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -132,14 +134,24 @@ export function WelcomeView({
           >
             Create library
           </Button>
-          <button
-            type="button"
-            disabled={busy}
-            className="h-8 w-full max-w-sm text-xs font-medium text-slate-500 hover:text-slate-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:pointer-events-none disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200 dark:focus-visible:ring-slate-500"
-            onClick={() => void handleOpenLibrary()}
-          >
-            Open library
-          </button>
+          <div className="grid w-full max-w-sm grid-cols-2">
+            <button
+              type="button"
+              disabled={busy}
+              className="h-8 w-full text-center text-xs font-medium text-slate-500 hover:text-slate-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:pointer-events-none disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200 dark:focus-visible:ring-slate-500"
+              onClick={() => void handleOpenLibrary()}
+            >
+              Open library
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="h-8 w-full text-center text-xs font-medium text-slate-500 hover:text-slate-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:pointer-events-none disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200 dark:focus-visible:ring-slate-500"
+              onClick={onStartRestoreLibrary}
+            >
+              Restore from backup
+            </button>
+          </div>
         </div>
 
         {error ? (
