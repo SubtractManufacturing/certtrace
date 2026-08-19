@@ -1,0 +1,3 @@
+# Shipped dimension fields are permanent; Shape options are not
+
+The six starter dimension fields (thickness, diameter, width, height, OD, wall) cannot be deleted. Size patterns and shared packing depend on them; a shop that needs something else adds a field. Delete applies only to those extra dimension fields (removed from every Shape that listed them, after confirm). Shipped Shape options stay deletable so the Shape list can stay lean. This is a deliberate exception to ADR-0002 for the Size dimension set only. Rejected: unlisting a shipped dimension from one Shape, and freezing shipped Shape options the same way.

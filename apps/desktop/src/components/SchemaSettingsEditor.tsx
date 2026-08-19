@@ -9,7 +9,7 @@ import {
   type SchemaDefinitionRemovalStrategy,
   type SchemaDefinitionType,
 } from "@certtrace/library-engine";
-import type { FieldSchemaV1, FieldType } from "@certtrace/types";
+import { type FieldSchemaV1, type FieldType, isShippedDimensionKey } from "@certtrace/types";
 import { Button, Input, Label, Select, Switch } from "@certtrace/ui";
 import { useState } from "react";
 
@@ -17,6 +17,8 @@ interface SchemaSettingsEditorProps {
   schema: FieldSchemaV1;
   onChange: (schema: FieldSchemaV1) => void;
   onRemoveDefinition?: (input: RemoveSchemaDefinitionInput) => Promise<void>;
+  onRemoveShapeOption?: (optionId: string) => Promise<void>;
+  onCountShapeOptionMaterials?: (optionId: string) => Promise<number>;
 }
 
 function moveItem<T>(items: T[], index: number, offset: -1 | 1): T[] | null {
@@ -29,16 +31,46 @@ function moveItem<T>(items: T[], index: number, offset: -1 | 1): T[] | null {
   return reordered;
 }
 
-interface FieldOptionsEditorProps {
-  field: FieldSchemaV1["fields"][number];
-  onChange: (field: FieldSchemaV1["fields"][number]) => void;
+function dimensionDeleteImpactNote(schema: FieldSchemaV1, key: string): string | undefined {
+  const labels =
+    schema.fields
+      .find((field) => field.key === "shape")
+      ?.options?.filter((option) => option.dimensionKeys?.includes(key))
+      .map((option) => option.label) ?? [];
+  if (labels.length === 0) {
+    return undefined;
+  }
+  return `Listed on ${labels.join(", ")}. Delete strips it from those Shape options, Size patterns, and Materials.`;
 }
 
-function FieldOptionsEditor({ field, onChange }: FieldOptionsEditorProps) {
+interface FieldOptionsEditorProps {
+  schema: FieldSchemaV1;
+  field: FieldSchemaV1["fields"][number];
+  onChange: (schema: FieldSchemaV1) => void;
+  onRemoveShapeOption?: (optionId: string) => Promise<void>;
+  onCountShapeOptionMaterials?: (optionId: string) => Promise<number>;
+}
+
+function FieldOptionsEditor({
+  schema,
+  field,
+  onChange,
+  onRemoveShapeOption,
+  onCountShapeOptionMaterials,
+}: FieldOptionsEditorProps) {
   const [newOptionLabel, setNewOptionLabel] = useState("");
 
   if (field.type !== "single_select" && field.type !== "multi_select") {
     return null;
+  }
+
+  function updateField(nextField: FieldSchemaV1["fields"][number]) {
+    onChange({
+      ...schema,
+      fields: schema.fields.map((candidate) =>
+        candidate.key === field.key ? nextField : candidate,
+      ),
+    });
   }
 
   function updateOption(
@@ -47,7 +79,7 @@ function FieldOptionsEditor({ field, onChange }: FieldOptionsEditorProps) {
       option: NonNullable<typeof field.options>[number],
     ) => NonNullable<typeof field.options>[number],
   ) {
-    onChange({
+    updateField({
       ...field,
       options: field.options?.map((option) => (option.id === optionId ? update(option) : option)),
     });
@@ -59,36 +91,67 @@ function FieldOptionsEditor({ field, onChange }: FieldOptionsEditorProps) {
       return;
     }
     const option = createFieldOption(field, label);
-    onChange({ ...field, options: [...(field.options ?? []), option] });
+    updateField({ ...field, options: [...(field.options ?? []), option] });
     setNewOptionLabel("");
+  }
+
+  async function removeOption(optionId: string) {
+    if (onRemoveShapeOption) {
+      await onRemoveShapeOption(optionId);
+      return;
+    }
+    updateField({
+      ...field,
+      options: field.options?.filter((option) => option.id !== optionId),
+    });
   }
 
   return (
     <div className="space-y-2 rounded-md bg-slate-50 p-3 dark:bg-slate-950">
       <p className="text-sm font-medium">Options</p>
+      {field.key === "shape" ? (
+        <p className="text-xs text-slate-500">
+          Dimensions and Size patterns are edited under Library settings → Shapes.
+        </p>
+      ) : null}
       {field.options?.map((option) => (
-        <div key={option.id} className="grid gap-2 sm:grid-cols-[1fr_8rem_8rem]">
-          <Input
-            aria-label={`Option label ${option.id} for field ${field.key}`}
-            value={option.label}
-            onChange={(event) =>
-              updateOption(option.id, (current) => ({ ...current, label: event.target.value }))
-            }
-          />
-          <Input
-            aria-label={`Option short code ${option.id} for field ${field.key}`}
-            placeholder="Short code"
-            value={option.shortCode ?? ""}
-            onChange={(event) =>
-              updateOption(option.id, (current) => {
-                const shortCode = event.target.value;
-                return shortCode
-                  ? { ...current, shortCode }
-                  : { id: current.id, label: current.label };
-              })
-            }
-          />
-          <Input value={option.id} readOnly className="font-mono" aria-label="Stable option id" />
+        <div
+          key={option.id}
+          className="space-y-2 rounded-md border border-slate-200 p-3 dark:border-slate-700"
+        >
+          <div className="grid gap-2 sm:grid-cols-[1fr_8rem_8rem_auto]">
+            <Input
+              aria-label={`Option label ${option.id} for field ${field.key}`}
+              value={option.label}
+              onChange={(event) =>
+                updateOption(option.id, (current) => ({ ...current, label: event.target.value }))
+              }
+            />
+            <Input
+              aria-label={`Option short code ${option.id} for field ${field.key}`}
+              placeholder="Short code"
+              value={option.shortCode ?? ""}
+              onChange={(event) =>
+                updateOption(option.id, (current) => {
+                  const shortCode = event.target.value;
+                  if (shortCode) {
+                    return { ...current, shortCode };
+                  }
+                  const { shortCode: _shortCode, ...rest } = current;
+                  return rest;
+                })
+              }
+            />
+            <Input value={option.id} readOnly className="font-mono" aria-label="Stable option id" />
+            {field.key === "shape" ? (
+              <ShapeOptionRemovalControls
+                optionId={option.id}
+                optionLabel={option.label}
+                onCount={onCountShapeOptionMaterials}
+                onRemove={removeOption}
+              />
+            ) : null}
+          </div>
         </div>
       ))}
       <div className="flex gap-2">
@@ -102,11 +165,102 @@ function FieldOptionsEditor({ field, onChange }: FieldOptionsEditorProps) {
           type="button"
           variant="outline"
           disabled={!newOptionLabel.trim()}
+          aria-label={`Add option to ${field.label}`}
           onClick={addOption}
         >
           Add option
         </Button>
       </div>
+    </div>
+  );
+}
+
+function ShapeOptionRemovalControls({
+  optionId,
+  optionLabel,
+  onRemove,
+  onCount,
+}: {
+  optionId: string;
+  optionLabel: string;
+  onRemove: (optionId: string) => Promise<void>;
+  onCount?: (optionId: string) => Promise<number>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [count, setCount] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function openConfirm() {
+    setOpen(true);
+    setError(null);
+    if (!onCount) {
+      setCount(null);
+      return;
+    }
+    try {
+      setCount(await onCount(optionId));
+    } catch {
+      setCount(null);
+    }
+  }
+
+  async function confirm() {
+    setBusy(true);
+    setError(null);
+    try {
+      await onRemove(optionId);
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        aria-label={`Remove ${optionLabel} option`}
+        onClick={() => void openConfirm()}
+      >
+        Remove
+      </Button>
+    );
+  }
+
+  const countText =
+    count === null ? "materials that used it" : `${count} material${count === 1 ? "" : "s"}`;
+
+  return (
+    <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/30 sm:col-span-4">
+      <p className="text-sm">
+        Delete {optionLabel}? This clears Shape and Size on {countText}.
+      </p>
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={busy}
+          onClick={() => void confirm()}
+        >
+          Delete option
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={() => setOpen(false)}
+        >
+          Cancel
+        </Button>
+      </div>
+      {error ? <p className="text-sm text-red-600">{error}</p> : null}
     </div>
   );
 }
@@ -248,6 +402,7 @@ interface DefinitionRemovalControlsProps {
   label: string;
   targets: Array<{ key: string; label: string }>;
   targetNoun: string;
+  impactNote?: string;
   onRemove: (input: RemoveSchemaDefinitionInput) => Promise<void>;
 }
 
@@ -257,6 +412,7 @@ function DefinitionRemovalControls({
   label,
   targets,
   targetNoun,
+  impactNote,
   onRemove,
 }: DefinitionRemovalControlsProps) {
   const [open, setOpen] = useState(false);
@@ -327,6 +483,7 @@ function DefinitionRemovalControls({
         <p className="text-sm">
           Permanently erase this {targetNoun} and its values from every material.
         </p>
+        {impactNote ? <p className="text-sm">{impactNote}</p> : null}
         <Label htmlFor={`delete-confirm-${definitionType}-${definitionKey}`}>
           Type {label} to confirm
         </Label>
@@ -614,6 +771,8 @@ export function SchemaSettingsEditor({
   schema,
   onChange,
   onRemoveDefinition,
+  onRemoveShapeOption,
+  onCountShapeOptionMaterials,
 }: SchemaSettingsEditorProps) {
   const [newFieldLabel, setNewFieldLabel] = useState("");
   const [newFieldType, setNewFieldType] = useState<FieldType>("text");
@@ -685,12 +844,17 @@ export function SchemaSettingsEditor({
               {field.disabled ? (
                 <span className="self-center text-xs text-slate-500">Disabled for new entries</span>
               ) : null}
-              {onRemoveDefinition ? (
+              {isShippedDimensionKey(field.key) ? (
+                <span className="self-center text-xs text-slate-500">
+                  Shipped dimension fields cannot be deleted
+                </span>
+              ) : onRemoveDefinition ? (
                 <DefinitionRemovalControls
                   definitionType="field"
                   definitionKey={field.key}
                   label={field.label}
                   targetNoun="field"
+                  impactNote={dimensionDeleteImpactNote(schema, field.key)}
                   targets={schema.fields
                     .filter(
                       (candidate) =>
@@ -734,6 +898,7 @@ export function SchemaSettingsEditor({
                 id={`field-type-${field.key}`}
                 aria-label={`Type for field ${field.key}`}
                 value={field.type}
+                disabled={isShippedDimensionKey(field.key)}
                 onChange={(event) =>
                   updateField(field.key, (current) =>
                     changeFieldType(current, event.target.value as FieldType),
@@ -774,8 +939,11 @@ export function SchemaSettingsEditor({
             </div>
           </div>
           <FieldOptionsEditor
+            schema={schema}
             field={field}
-            onChange={(nextField) => updateField(field.key, () => nextField)}
+            onChange={onChange}
+            onRemoveShapeOption={onRemoveShapeOption}
+            onCountShapeOptionMaterials={onCountShapeOptionMaterials}
           />
           <FieldDependencyEditor
             schema={schema}

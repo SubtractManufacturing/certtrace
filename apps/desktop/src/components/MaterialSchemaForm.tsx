@@ -2,20 +2,25 @@ import {
   type AddFieldOptionInput,
   type AddFieldOptionResult,
   availableFieldOptions,
+  getShapeDimensionKeys,
+  hasFilledShapeDimensions,
+  isDimensionFieldKey,
   isFieldVisible,
   sanitizeDependentFieldValues,
   validateMaterialValues,
 } from "@certtrace/library-engine";
-import type { FieldSchemaV1, FieldValueV1 } from "@certtrace/types";
-import { Button, Input, Label, Select, Textarea } from "@certtrace/ui";
+import type { FieldSchemaV1, FieldValueV1, SizeUnit } from "@certtrace/types";
+import { Button, cn, Input, Label, Select, Textarea } from "@certtrace/ui";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
+import { formatDimensionInput, parseSizeDimensionInput } from "../lib/size-input";
 
 export { validateMaterialValues };
 
 export interface MaterialFormValues {
   fields: Record<string, FieldValueV1>;
   identifiers: Record<string, string>;
+  sizeUnit?: SizeUnit;
 }
 
 interface MaterialSchemaFormProps {
@@ -23,7 +28,63 @@ interface MaterialSchemaFormProps {
   values: MaterialFormValues;
   onChange: (values: MaterialFormValues) => void;
   onAddOption?: (input: AddFieldOptionInput) => Promise<AddFieldOptionResult>;
+  /** Resolved unit for bare dimension numbers (install + library defaults). */
+  resolvedDefaultUnit?: SizeUnit;
   idPrefix?: string;
+}
+
+function isDimensionField(schema: FieldSchemaV1, field: FieldSchemaV1["fields"][number]): boolean {
+  return isDimensionFieldKey(schema, field.key);
+}
+
+function SizeUnitToggle({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: SizeUnit;
+  onChange: (unit: SizeUnit) => void;
+}) {
+  return (
+    <div
+      className="inline-flex shrink-0 rounded-full border border-slate-200 p-0.5 dark:border-slate-700"
+      role="group"
+      aria-label="Size unit"
+    >
+      {(["in", "mm"] as const).map((unit) => {
+        const selected = value === unit;
+        return (
+          <button
+            key={unit}
+            id={unit === value ? id : undefined}
+            type="button"
+            aria-pressed={selected}
+            className={cn(
+              "rounded-full px-2 py-0.5 text-xs font-medium",
+              selected
+                ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+                : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
+            )}
+            onClick={() => onChange(unit)}
+          >
+            {unit}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function allDimensionKeys(schema: FieldSchemaV1): Set<string> {
+  const keys = new Set<string>();
+  const shapeField = schema.fields.find((field) => field.key === "shape");
+  for (const option of shapeField?.options ?? []) {
+    for (const key of option.dimensionKeys ?? []) {
+      keys.add(key);
+    }
+  }
+  return keys;
 }
 
 export function MaterialSchemaForm({
@@ -31,6 +92,7 @@ export function MaterialSchemaForm({
   values,
   onChange,
   onAddOption,
+  resolvedDefaultUnit = "in",
   idPrefix = "material-field",
 }: MaterialSchemaFormProps) {
   const [openSelectField, setOpenSelectField] = useState<string | null>(null);
@@ -38,22 +100,57 @@ export function MaterialSchemaForm({
   const [newOptionLabel, setNewOptionLabel] = useState("");
   const [optionError, setOptionError] = useState<string | null>(null);
   const [addingOption, setAddingOption] = useState(false);
+  const [dimensionDrafts, setDimensionDrafts] = useState<Record<string, string>>({});
+  const [sizeInputError, setSizeInputError] = useState<string | null>(null);
 
-  function setField(
-    key: string,
-    value: FieldValueV1 | undefined,
-    currentSchema: FieldSchemaV1 = schema,
-  ) {
+  const shapeId = typeof values.fields.shape === "string" ? values.fields.shape : undefined;
+
+  function emit(nextFields: Record<string, FieldValueV1>, nextSizeUnit?: SizeUnit) {
+    onChange({
+      fields: sanitizeDependentFieldValues(schema, nextFields),
+      identifiers: values.identifiers,
+      sizeUnit: nextSizeUnit,
+    });
+  }
+
+  function setField(key: string, value: FieldValueV1 | undefined) {
     const fields = { ...values.fields };
     if (value === undefined || value === "") {
       delete fields[key];
     } else {
       fields[key] = value;
     }
-    onChange({
-      fields: sanitizeDependentFieldValues(currentSchema, fields),
-      identifiers: values.identifiers,
-    });
+
+    if (key === "shape") {
+      const nextShapeId = typeof value === "string" ? value : undefined;
+      if (!nextShapeId) {
+        for (const dimensionKey of allDimensionKeys(schema)) {
+          delete fields[dimensionKey];
+        }
+        setDimensionDrafts({});
+        emit(fields, undefined);
+        return;
+      }
+
+      if (nextShapeId !== shapeId) {
+        if (hasFilledShapeDimensions(schema, values.fields)) {
+          const confirmed = window.confirm(
+            "Changing Shape clears dimension values. Keep the current unit and continue?",
+          );
+          if (!confirmed) {
+            return;
+          }
+        }
+        for (const dimensionKey of allDimensionKeys(schema)) {
+          delete fields[dimensionKey];
+        }
+      }
+      setDimensionDrafts({});
+      emit(fields, values.sizeUnit);
+      return;
+    }
+
+    emit(fields, values.sizeUnit);
   }
 
   function setIdentifier(key: string, value: string) {
@@ -63,7 +160,50 @@ export function MaterialSchemaForm({
     } else {
       identifiers[key] = value;
     }
-    onChange({ fields: values.fields, identifiers });
+    onChange({ ...values, identifiers });
+  }
+
+  function dimensionDisplayValue(key: string): string {
+    if (key in dimensionDrafts) {
+      return dimensionDrafts[key] ?? "";
+    }
+    const raw = values.fields[key];
+    return typeof raw === "number" ? formatDimensionInput(raw) : "";
+  }
+
+  function commitDimensionInput(key: string, raw: string) {
+    setSizeInputError(null);
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      const fields = { ...values.fields };
+      delete fields[key];
+      const nextDrafts = { ...dimensionDrafts };
+      delete nextDrafts[key];
+      setDimensionDrafts(nextDrafts);
+      const hasRemaining = getShapeDimensionKeys(schema, shapeId).some(
+        (dimensionKey) => typeof fields[dimensionKey] === "number",
+      );
+      emit(fields, hasRemaining ? values.sizeUnit : undefined);
+      return;
+    }
+
+    const parsed = parseSizeDimensionInput(trimmed, values.sizeUnit ?? resolvedDefaultUnit);
+    if (!parsed) {
+      setSizeInputError(`Could not parse "${trimmed}".`);
+      return;
+    }
+
+    const nextUnit = parsed.unit ?? values.sizeUnit ?? resolvedDefaultUnit;
+    if (values.sizeUnit && parsed.unit && parsed.unit !== values.sizeUnit) {
+      setSizeInputError(`Mixed units are not allowed. This Size uses ${values.sizeUnit}.`);
+      return;
+    }
+
+    const fields = { ...values.fields, [key]: parsed.value };
+    const nextDrafts = { ...dimensionDrafts };
+    delete nextDrafts[key];
+    setDimensionDrafts(nextDrafts);
+    emit(fields, nextUnit);
   }
 
   function resetAddOptionState(fieldKey?: string) {
@@ -99,7 +239,7 @@ export function MaterialSchemaForm({
       const nextValue = multiSelect
         ? [...(Array.isArray(current) ? current : []), result.option.id]
         : result.option.id;
-      setField(fieldKey, nextValue, result.fieldSchema);
+      setField(fieldKey, nextValue);
       resetAddOptionState(fieldKey);
       setOpenSelectField(null);
     } catch (err) {
@@ -182,9 +322,52 @@ export function MaterialSchemaForm({
     );
   }
 
+  const sizeUnit = values.sizeUnit ?? resolvedDefaultUnit;
+  const sizeDimensionFields = getShapeDimensionKeys(schema, shapeId)
+    .map((key) => schema.fields.find((field) => field.key === key))
+    .filter((field): field is FieldSchemaV1["fields"][number] => Boolean(field));
+
+  function renderSizeDimensionField(field: FieldSchemaV1["fields"][number]) {
+    const inputId = `${idPrefix}-${field.key}`;
+    return (
+      <div key={field.key} className="space-y-1 text-sm">
+        <Label htmlFor={inputId} className="block whitespace-nowrap">
+          {field.label}
+        </Label>
+        <div className="relative w-[4.75rem]">
+          <Input
+            id={inputId}
+            type="text"
+            inputMode="decimal"
+            disabled={field.disabled}
+            className="w-[4.75rem] px-2 pr-7"
+            value={dimensionDisplayValue(field.key)}
+            onChange={(event) =>
+              setDimensionDrafts((current) => ({ ...current, [field.key]: event.target.value }))
+            }
+            onBlur={(event) => commitDimensionInput(field.key, event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                commitDimensionInput(field.key, event.currentTarget.value);
+              }
+            }}
+          />
+          <span className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center text-xs text-slate-500 dark:text-slate-400">
+            {sizeUnit}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {schema.fields.map((field) => {
+        if (isDimensionField(schema, field)) {
+          return null;
+        }
+
         const raw = values.fields[field.key];
         if (
           (field.disabled && raw === undefined) ||
@@ -214,8 +397,8 @@ export function MaterialSchemaForm({
         }
 
         if (field.type === "single_select") {
-          return (
-            <div key={field.key} className="space-y-1 text-sm">
+          const select = (
+            <>
               <Label htmlFor={inputId}>{field.label}</Label>
               <Select
                 id={inputId}
@@ -237,7 +420,54 @@ export function MaterialSchemaForm({
                   </option>
                 ))}
               </Select>
-            </div>
+            </>
+          );
+
+          if (field.key !== "shape" || sizeDimensionFields.length === 0) {
+            return (
+              <div key={field.key} className="space-y-1 text-sm">
+                {select}
+              </div>
+            );
+          }
+
+          return (
+            <Fragment key={field.key}>
+              <div className="space-y-1 text-sm">{select}</div>
+              <div className="flex min-w-0 flex-wrap items-end gap-x-2 gap-y-2">
+                {sizeDimensionFields.map((dimensionField) =>
+                  renderSizeDimensionField(dimensionField),
+                )}
+                <div className="flex h-9 items-center">
+                  <SizeUnitToggle
+                    id={`${idPrefix}-size-unit`}
+                    value={sizeUnit}
+                    onChange={(nextUnit) => {
+                      if (nextUnit === sizeUnit) {
+                        return;
+                      }
+                      const populatedKeys = sizeDimensionFields
+                        .filter((field) => typeof values.fields[field.key] === "number")
+                        .map((field) => field.key);
+                      if (populatedKeys.length > 0) {
+                        const confirmed = window.confirm(
+                          "Changing the Size unit clears dimension values. Continue?",
+                        );
+                        if (!confirmed) {
+                          return;
+                        }
+                      }
+                      const nextFields = { ...values.fields };
+                      for (const key of populatedKeys) {
+                        delete nextFields[key];
+                      }
+                      setDimensionDrafts({});
+                      emit(nextFields, nextUnit);
+                    }}
+                  />
+                </div>
+              </div>
+            </Fragment>
           );
         }
 
@@ -290,6 +520,10 @@ export function MaterialSchemaForm({
           </div>
         );
       })}
+
+      {sizeInputError ? (
+        <p className="text-sm text-red-600 sm:col-span-2">{sizeInputError}</p>
+      ) : null}
 
       {schema.identifierKinds.map((kind) => {
         const value = values.identifiers[kind.key];

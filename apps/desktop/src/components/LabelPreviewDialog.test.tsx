@@ -28,7 +28,7 @@ const library = {
   },
   fieldSchema: defaultFieldSchemaV1,
   config: {
-    version: 3,
+    version: 4,
     name: "Main",
     idStrategy: "numeric",
     labelTemplates: [
@@ -46,10 +46,10 @@ const library = {
     defaultLabelTemplateId: "starter-4x6",
     searchAllFields: false,
   },
-} as OpenLibraryResult;
+} as unknown as OpenLibraryResult;
 
 const material = {
-  version: 3 as const,
+  version: 4 as const,
   id: "AL-falcon-101",
   fields: {
     family: "Aluminum",

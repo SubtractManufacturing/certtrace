@@ -122,7 +122,7 @@ describe("library-client", () => {
     };
     const result = {
       option: { id: "5052_h32", label: "5052 H32" },
-      fieldSchema: { version: 3, fields: [], identifierKinds: [], attachmentKinds: [] },
+      fieldSchema: { version: 4, fields: [], identifierKinds: [], attachmentKinds: [] },
     } as never;
     vi.mocked(addFieldOption).mockResolvedValue(result);
 
@@ -134,10 +134,10 @@ describe("library-client", () => {
     const library = {
       fs: {},
       paths: { root: "/libraries/main" },
-      fieldSchema: { version: 3, fields: [], identifierKinds: [], attachmentKinds: [] },
+      fieldSchema: { version: 4, fields: [], identifierKinds: [], attachmentKinds: [] },
     } as never;
     const schema = {
-      version: 3,
+      version: 4,
       fields: [],
       identifierKinds: [
         { key: "mill_cert", label: "Mill cert", required: false, filterable: true },

@@ -3,6 +3,8 @@ import { generateMaterialId } from "@certtrace/id-generator";
 import {
   CERTTRACE_DIR,
   FIELD_SCHEMA_JSON,
+  type FieldSchemaV1,
+  isShippedDimensionKey,
   JOBS_DIR,
   joinPath,
   LABELS_DIR,
@@ -24,8 +26,16 @@ import {
   buildCreateLibraryConfig,
   type CreateLibraryOptions,
   canReplaceFieldDefinition,
-  updateFieldSchema,
+  updateFieldSchema as writeFieldSchema,
 } from "./library-config.js";
+import {
+  clearShapeAndSize,
+  getAllDimensionKeys,
+  getShapeDimensionKeys,
+  getShapeField,
+  sanitizeMaterialSize,
+  stripDimensionKeyFromShapeOptions,
+} from "./material-size.js";
 import {
   migrateFieldSchema,
   migrateLibraryConfig,
@@ -105,7 +115,6 @@ export {
   duplicateNamingStrategy,
   renameNamingStrategy,
   setDefaultLabelTemplate,
-  updateFieldSchema,
   updateLabelTemplate,
   updateLibraryConfig,
   updateNamingRules,
@@ -120,6 +129,21 @@ export {
   type MaterialShelfFilter,
   sanitizeMaterialFilterFields,
 } from "./material-filters.js";
+export {
+  compareMaterialSize,
+  compareSizeSortKeys,
+  formatMaterialSize,
+  getShapeDimensionKeys,
+  getShapeField,
+  getShapeOption,
+  getShapeSizePattern,
+  hasFilledShapeDimensions,
+  isDimensionFieldKey,
+  listReusableDimensionFields,
+  materialSizeSortKey,
+  sanitizeMaterialSize,
+  stripDimensionKeyFromShapeOptions,
+} from "./material-size.js";
 export type {
   CreateJobInput,
   CreateMaterialInput,
@@ -151,6 +175,133 @@ export function getLibraryPaths(root: string) {
 
 async function writeJson(fs: FileSystem, path: string, value: unknown): Promise<void> {
   await fs.writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+async function persistMaterialUpdates(
+  library: OpenLibraryResult,
+  original: MaterialMetadataV1[],
+  next: MaterialMetadataV1[],
+): Promise<void> {
+  const changed = next.filter((material, index) => material !== original[index]);
+  try {
+    for (const material of changed) {
+      await writeJson(
+        library.fs,
+        joinPath(library.paths.root, materialMetadataPath(material.id)),
+        material,
+      );
+    }
+  } catch (error) {
+    for (const material of original) {
+      if (changed.some((changedMaterial) => changedMaterial.id === material.id)) {
+        await writeJson(
+          library.fs,
+          joinPath(library.paths.root, materialMetadataPath(material.id)),
+          material,
+        ).catch(() => undefined);
+      }
+    }
+    throw error;
+  }
+}
+
+function shapeOptionIds(schema: FieldSchemaV1): Set<string> {
+  return new Set(getShapeField(schema)?.options?.map((option) => option.id) ?? []);
+}
+
+function shapeOptionDimensionsChanged(previous: FieldSchemaV1, next: FieldSchemaV1): boolean {
+  const nextById = new Map(
+    (getShapeField(next)?.options ?? []).map((option) => [option.id, option] as const),
+  );
+  for (const option of getShapeField(previous)?.options ?? []) {
+    const nextOption = nextById.get(option.id);
+    if (!nextOption) {
+      continue;
+    }
+    const previousKeys = option.dimensionKeys ?? [];
+    const nextKeys = nextOption.dimensionKeys ?? [];
+    if (
+      previousKeys.length !== nextKeys.length ||
+      previousKeys.some((key, index) => key !== nextKeys[index])
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function sameFieldValues(
+  left: MaterialMetadataV1["fields"],
+  right: MaterialMetadataV1["fields"],
+): boolean {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+  return leftKeys.every((key) => left[key] === right[key]);
+}
+
+/** Persist a field schema; sanitizing Size on Materials whose Shape packing changed. */
+export async function updateFieldSchema(
+  library: OpenLibraryResult,
+  schema: FieldSchemaV1,
+): Promise<FieldSchemaV1> {
+  const previousSchema = library.fieldSchema;
+  const nextOptionIds = shapeOptionIds(schema);
+  const removedOptionIds = [...shapeOptionIds(previousSchema)].filter(
+    (optionId) => !nextOptionIds.has(optionId),
+  );
+  const packingChanged = shapeOptionDimensionsChanged(previousSchema, schema);
+
+  if (removedOptionIds.length === 0 && !packingChanged) {
+    return writeFieldSchema(library, schema);
+  }
+
+  const removed = new Set(removedOptionIds);
+  const materials = await listMaterials(library);
+  const nextMaterials = materials.map((material) => {
+    const shapeId = typeof material.fields.shape === "string" ? material.fields.shape : undefined;
+    if (shapeId && removed.has(shapeId)) {
+      return {
+        ...material,
+        fields: clearShapeAndSize(previousSchema, material.fields),
+        sizeUnit: undefined,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
+    const allowed = new Set(getShapeDimensionKeys(schema, shapeId));
+    const fields = { ...material.fields };
+    for (const key of getAllDimensionKeys(previousSchema)) {
+      if (!allowed.has(key)) {
+        delete fields[key];
+      }
+    }
+    const sanitized = sanitizeMaterialSize(schema, {
+      fields,
+      sizeUnit: material.sizeUnit,
+    });
+    if (
+      sanitized.sizeUnit === material.sizeUnit &&
+      sameFieldValues(sanitized.fields, material.fields)
+    ) {
+      return material;
+    }
+    return {
+      ...material,
+      fields: sanitized.fields,
+      sizeUnit: sanitized.sizeUnit,
+      updatedAt: new Date().toISOString(),
+    };
+  });
+  await persistMaterialUpdates(library, materials, nextMaterials);
+  try {
+    return await writeFieldSchema(library, schema);
+  } catch (error) {
+    await persistMaterialUpdates(library, nextMaterials, materials);
+    throw error;
+  }
 }
 
 async function assertNewLibraryRoot(fs: FileSystem, root: string): Promise<void> {
@@ -366,12 +517,20 @@ export async function createMaterial(
     materialOption,
   });
 
+  const mergedFields = input.fields ?? {};
+  const sanitized = sanitizeMaterialSize(library.fieldSchema, {
+    fields: mergedFields,
+    sizeUnit: input.sizeUnit,
+    dimensionUnits: input.dimensionUnits,
+  });
+
   const now = new Date().toISOString();
   const metadata = materialMetadataV1Schema.parse({
     version: SCHEMA_VERSION,
     id,
-    fields: input.fields ?? {},
+    fields: sanitized.fields,
     identifiers: input.identifiers ?? {},
+    sizeUnit: sanitized.sizeUnit,
     archived: false,
     createdAt: now,
     updatedAt: now,
@@ -391,16 +550,40 @@ export async function updateMaterial(
 ): Promise<MaterialMetadataV1> {
   const current = await getMaterial(library, materialId);
   assertNoDisabledDefinitionChanges(library, input.fields, input.identifiers, current);
+  const baseFields = input.replaceFields ? {} : { ...current.fields };
+  const shapeWasSupplied = input.fields && Object.hasOwn(input.fields, "shape");
+  const currentShape = typeof current.fields.shape === "string" ? current.fields.shape : undefined;
+  const nextShape =
+    typeof input.fields?.shape === "string" && input.fields.shape.length > 0
+      ? input.fields.shape
+      : undefined;
+  const shapeChanged = Boolean(shapeWasSupplied && nextShape !== currentShape);
+  if (!input.replaceFields && shapeChanged) {
+    for (const key of getAllDimensionKeys(library.fieldSchema)) {
+      delete baseFields[key];
+    }
+  }
+  const mergedFields = { ...baseFields, ...input.fields };
+  const nextSizeUnit =
+    input.sizeUnit === null
+      ? undefined
+      : input.sizeUnit !== undefined
+        ? input.sizeUnit
+        : current.sizeUnit;
+  const sanitized = sanitizeMaterialSize(library.fieldSchema, {
+    fields: mergedFields,
+    sizeUnit: nextSizeUnit,
+    dimensionUnits: input.dimensionUnits,
+  });
+
   const updated: MaterialMetadataV1 = {
     ...current,
-    fields: {
-      ...current.fields,
-      ...input.fields,
-    },
+    fields: sanitized.fields,
     identifiers: {
       ...current.identifiers,
       ...input.identifiers,
     },
+    sizeUnit: sanitized.sizeUnit ?? (shapeChanged && nextShape ? nextSizeUnit : undefined),
     id: current.id,
     version: current.version,
     archived: current.archived,
@@ -477,6 +660,12 @@ export async function removeSchemaDefinition(
     throw new LibraryError(`Schema ${input.definitionType} "${input.key}" was not found.`);
   }
 
+  if (input.definitionType === "field" && isShippedDimensionKey(input.key)) {
+    throw new LibraryError(
+      `Shipped dimension field "${input.key}" cannot be deleted, disabled, or replaced.`,
+    );
+  }
+
   if (input.strategy.type === "disable") {
     const nextSchema =
       input.definitionType === "field"
@@ -520,35 +709,7 @@ export async function removeSchemaDefinition(
   }
 
   const materials = await listMaterials(library);
-  const remappedMaterials = materials.map((material) => {
-    const values =
-      input.definitionType === "field" ? { ...material.fields } : { ...material.identifiers };
-    const sourceValue = values[input.key];
-    if (sourceValue === undefined) {
-      return material;
-    }
-    if (targetKey) {
-      const targetValue = values[targetKey];
-      if (
-        targetValue !== undefined &&
-        JSON.stringify(targetValue) !== JSON.stringify(sourceValue)
-      ) {
-        throw new LibraryError(
-          `Material "${material.id}" already has a different value for "${targetKey}".`,
-        );
-      }
-      values[targetKey] = sourceValue;
-    }
-    delete values[input.key];
-
-    return {
-      ...material,
-      ...(input.definitionType === "field" ? { fields: values } : { identifiers: values }),
-      updatedAt: new Date().toISOString(),
-    } as MaterialMetadataV1;
-  });
-
-  const nextSchema =
+  let nextSchema: FieldSchemaV1 =
     input.definitionType === "field"
       ? {
           ...library.fieldSchema,
@@ -575,28 +736,69 @@ export async function removeSchemaDefinition(
           ),
         };
 
-  const changedMaterials = remappedMaterials.filter(
-    (material, index) => material !== materials[index],
-  );
-  try {
-    for (const material of changedMaterials) {
-      await writeJson(
-        library.fs,
-        joinPath(library.paths.root, materialMetadataPath(material.id)),
-        material,
-      );
+  if (input.definitionType === "field" && !targetKey) {
+    nextSchema = stripDimensionKeyFromShapeOptions(nextSchema, input.key);
+  }
+
+  const remappedMaterials = materials.map((material): MaterialMetadataV1 => {
+    if (input.definitionType === "field") {
+      const values = { ...material.fields };
+      const sourceValue = values[input.key];
+      if (sourceValue === undefined) {
+        return material;
+      }
+      if (targetKey) {
+        const targetValue = values[targetKey];
+        if (
+          targetValue !== undefined &&
+          JSON.stringify(targetValue) !== JSON.stringify(sourceValue)
+        ) {
+          throw new LibraryError(
+            `Material "${material.id}" already has a different value for "${targetKey}".`,
+          );
+        }
+        values[targetKey] = sourceValue;
+      }
+      delete values[input.key];
+      const sanitized = sanitizeMaterialSize(nextSchema, {
+        fields: values,
+        sizeUnit: material.sizeUnit,
+      });
+      return {
+        ...material,
+        fields: sanitized.fields,
+        sizeUnit: sanitized.sizeUnit,
+        updatedAt: new Date().toISOString(),
+      };
     }
+
+    const values = { ...material.identifiers };
+    const sourceValue = values[input.key];
+    if (sourceValue === undefined) {
+      return material;
+    }
+    if (targetKey) {
+      const targetValue = values[targetKey];
+      if (targetValue !== undefined && targetValue !== sourceValue) {
+        throw new LibraryError(
+          `Material "${material.id}" already has a different value for "${targetKey}".`,
+        );
+      }
+      values[targetKey] = sourceValue;
+    }
+    delete values[input.key];
+    return {
+      ...material,
+      identifiers: values,
+      updatedAt: new Date().toISOString(),
+    };
+  });
+
+  try {
+    await persistMaterialUpdates(library, materials, remappedMaterials);
     return await updateFieldSchema(library, nextSchema);
   } catch (error) {
-    for (const material of materials) {
-      if (changedMaterials.some((changed) => changed.id === material.id)) {
-        await writeJson(
-          library.fs,
-          joinPath(library.paths.root, materialMetadataPath(material.id)),
-          material,
-        ).catch(() => undefined);
-      }
-    }
+    await persistMaterialUpdates(library, remappedMaterials, materials);
     throw error;
   }
 }

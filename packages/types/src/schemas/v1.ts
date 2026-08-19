@@ -1,12 +1,14 @@
 import { z } from "zod";
 import { JOB_ID_PATTERN } from "../paths.js";
+import { libraryDefaultUnitSchema, sizeUnitSchema } from "../size.js";
 
-export const SCHEMA_VERSION = 3 as const;
+export const SCHEMA_VERSION = 4 as const;
 
 /** Well-known Label Template content keys (not Field/Identifier keys). */
 export const LABEL_CONTENT_MATERIAL_ID = "material_id" as const;
 export const LABEL_CONTENT_QR = "qr" as const;
 export const LABEL_CONTENT_BARCODE = "barcode" as const;
+export const LABEL_CONTENT_SIZE = "size" as const;
 
 export const labelContentAlignSchema = z.enum(["left", "center", "right"]);
 export type LabelContentAlign = z.infer<typeof labelContentAlignSchema>;
@@ -100,6 +102,8 @@ export const libraryConfigV1Schema = z
     defaultLabelTemplateId: z.string().min(1),
     /** Legacy compatibility only. Search is always material ID plus identifier values (ADR-0004). */
     searchAllFields: z.boolean(),
+    /** Inch, millimeter, or follow the install default (shipped `app`). */
+    defaultUnit: libraryDefaultUnitSchema.default("app"),
   })
   .superRefine((value, ctx) => {
     const ids = new Set(value.labelTemplates.map((template) => template.id));
@@ -189,6 +193,10 @@ export const fieldOptionV1Schema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
   shortCode: z.string().min(1).optional(),
+  /** Dimension field keys listed on this Shape option (ADR-0011). */
+  dimensionKeys: z.array(z.string().min(1)).optional(),
+  /** Size pattern with `{dimensionKey}` and `{unit}` tokens. */
+  sizePattern: z.string().min(1).optional(),
 });
 
 export type FieldOptionV1 = z.infer<typeof fieldOptionV1Schema>;
@@ -249,6 +257,7 @@ export const materialTableColumnV1Schema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("id") }),
   z.object({ kind: z.literal("field"), key: z.string().min(1) }),
   z.object({ kind: z.literal("identifier"), key: z.string().min(1) }),
+  z.object({ kind: z.literal("size") }),
   z.object({ kind: z.literal("attachments") }),
   z.object({ kind: z.literal("identifiers") }),
 ]);
@@ -276,9 +285,11 @@ export const fieldSchemaV1Schema = z
       "id",
       "createdAt",
       "updatedAt",
+      "unit",
       LABEL_CONTENT_MATERIAL_ID,
       LABEL_CONTENT_QR,
       LABEL_CONTENT_BARCODE,
+      LABEL_CONTENT_SIZE,
     ]);
     for (const [index, field] of schema.fields.entries()) {
       if (reserved.has(field.key)) {
@@ -314,6 +325,8 @@ export const materialMetadataV1Schema = z.object({
   identifiers: z.record(z.string().min(1), z.string()),
   /** Lifecycle flag: false/active by default; legacy metadata without the field opens as active. */
   archived: z.boolean().default(false),
+  /** Present when any listed Shape dimension has a value; absent when Size is fully empty. */
+  sizeUnit: sizeUnitSchema.optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

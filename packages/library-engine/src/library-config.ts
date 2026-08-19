@@ -97,6 +97,7 @@ export function createFieldDefinition(
     "id",
     "createdAt",
     "updatedAt",
+    "unit",
   ]);
   const key = createStableKey(label, "field", existingKeys);
   const options =

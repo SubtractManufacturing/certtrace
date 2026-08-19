@@ -25,6 +25,7 @@ describe("app settings", () => {
       const settings = await readAppSettings(fs, settingsDir);
       expect(settings).toEqual(createDefaultAppSettingsV1());
       expect(settings.includeArchivedMaterialsInSearch).toBe(false);
+      expect(settings.defaultUnit).toBe("in");
     } finally {
       await rm(settingsDir, { recursive: true, force: true });
     }
@@ -61,6 +62,34 @@ describe("app settings", () => {
 
       const settings = await readAppSettings(fs, settingsDir);
       expect(settings.includeArchivedMaterialsInSearch).toBe(false);
+    } finally {
+      await rm(settingsDir, { recursive: true, force: true });
+    }
+  });
+
+  it("defaults defaultUnit to inch for legacy settings files", async () => {
+    const fs = createNodeFileSystem();
+    const settingsDir = await mkdtemp(join(tmpdir(), "certtrace-settings-"));
+
+    try {
+      await fs.writeFile(
+        `${settingsDir}/settings.json`,
+        `${JSON.stringify(
+          {
+            version: 1,
+            theme: "system",
+            recentLibraries: [],
+            checkForUpdates: true,
+            defaultLibraryOnLaunch: null,
+            includeArchivedMaterialsInSearch: false,
+          },
+          null,
+          2,
+        )}\n`,
+      );
+
+      const settings = await readAppSettings(fs, settingsDir);
+      expect(settings.defaultUnit).toBe("in");
     } finally {
       await rm(settingsDir, { recursive: true, force: true });
     }

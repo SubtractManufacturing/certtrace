@@ -47,6 +47,7 @@ const SAMPLE_PREVIEW_VALUE = "__sample__";
 
 interface LabelTemplatesEditorProps {
   library: OpenLibraryResult;
+  defaultDisplayUnit?: LabelDisplayUnit;
   onLibraryUpdated: (library: OpenLibraryResult) => void;
   onRefreshLibrary: () => Promise<void>;
 }
@@ -57,12 +58,13 @@ function newTemplateId(): string {
   return `label-${crypto.randomUUID()}`;
 }
 
-function createBlankTemplate(): LabelTemplate {
+function createBlankTemplate(displayUnit: LabelDisplayUnit): LabelTemplate {
   const starter = createStarterLabelTemplates()[0]!;
   return {
     ...structuredClone(starter),
     id: newTemplateId(),
     name: "New template",
+    displayUnit,
   };
 }
 
@@ -77,6 +79,7 @@ function templateSizeLabel(template: LabelTemplate): string {
 
 export function LabelTemplatesEditor({
   library,
+  defaultDisplayUnit = "in",
   onLibraryUpdated,
   onRefreshLibrary,
 }: LabelTemplatesEditorProps) {
@@ -150,7 +153,7 @@ export function LabelTemplatesEditor({
 
   function openCreate() {
     setError(null);
-    setEditor({ kind: "create", draft: createBlankTemplate() });
+    setEditor({ kind: "create", draft: createBlankTemplate(defaultDisplayUnit) });
   }
 
   function openEdit(template: LabelTemplate) {

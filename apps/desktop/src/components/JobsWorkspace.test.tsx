@@ -38,7 +38,7 @@ const sampleLibrary = {
 
 const sampleJobs: JobMetadataV1[] = [
   {
-    version: 3,
+    version: 4,
     id: "job_1",
     jobNumber: "JO-1001",
     jobDate: "2026-08-10",
@@ -48,7 +48,7 @@ const sampleJobs: JobMetadataV1[] = [
     updatedAt: "2026-08-10T12:00:00.000Z",
   },
   {
-    version: 3,
+    version: 4,
     id: "job_2",
     jobNumber: "JO-1002",
     jobDate: "2026-08-11",
@@ -60,7 +60,7 @@ const sampleJobs: JobMetadataV1[] = [
 
 const sampleMaterials: MaterialMetadataV1[] = [
   {
-    version: 3,
+    version: 4,
     id: "AL-100",
     fields: {},
     identifiers: {},
@@ -69,7 +69,7 @@ const sampleMaterials: MaterialMetadataV1[] = [
     updatedAt: "2026-08-10T12:00:00.000Z",
   },
   {
-    version: 3,
+    version: 4,
     id: "ST-200",
     fields: {},
     identifiers: {},

@@ -1,0 +1,3 @@
+# Unit defaults: install preference, then library, then the Size
+
+Each install has a default unit (shipped inch) for new Size entry and other measurement UIs such as label paper size. Each library chooses Inch, Millimetre, or App default (the install preference). New libraries ship as App default so a shared library can stay unopinionated. Changing the install or library default never converts a Size already saved; labels still print the unit that was entered. Rejected: metric/imperial as labels (the app only has inch and millimetre) and a library-only default (two machines opening the same folder could not keep their own prefills).

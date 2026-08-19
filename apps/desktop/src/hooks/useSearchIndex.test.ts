@@ -27,7 +27,7 @@ function material(
   overrides: Partial<MaterialMetadataV1> = {},
 ): MaterialMetadataV1 {
   return {
-    version: 3,
+    version: 4,
     id,
     fields: { notes: `Notes for ${identifier}` },
     identifiers: { heat_number: identifier },
