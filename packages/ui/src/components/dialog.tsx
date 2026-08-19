@@ -8,9 +8,11 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { registerOverlayDismissLayer } from "../lib/overlay-dismiss-stack.js";
 import {
   dialogPanelClassName,
   overlayBackdropClassName,
@@ -54,14 +56,17 @@ export function Dialog({
   const titleId = useId();
   const descriptionId = useId();
 
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
+
   const setOpen = useCallback(
     (next: boolean) => {
       if (openProp === undefined) {
         setUncontrolledOpen(next);
       }
-      onOpenChange?.(next);
+      onOpenChangeRef.current?.(next);
     },
-    [openProp, onOpenChange],
+    [openProp],
   );
 
   const value = useMemo(
@@ -109,25 +114,29 @@ export function DialogOverlay({ className, ...props }: HTMLAttributes<HTMLDivEle
 export function DialogContent({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   const { open, setOpen, titleId, descriptionId } = useDialogContext("DialogContent");
   const { present, visible } = useOverlayPresence(open);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const dismissRef = useRef<() => void>(() => undefined);
+  dismissRef.current = () => setOpen(false);
 
   useEffect(() => {
-    if (!open) return;
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+    if (!open) {
+      return;
     }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, setOpen]);
+    return registerOverlayDismissLayer({
+      dismiss: () => dismissRef.current(),
+      shouldDismissOnPointerDown: (target) => backdropRef.current === target,
+    });
+  }, [open]);
 
   if (!present) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
+        ref={backdropRef}
         className={cn("absolute inset-0 bg-black/50", overlayBackdropClassName)}
         data-state={overlayMotionState(visible)}
         aria-hidden
-        onClick={() => setOpen(false)}
       />
       <div
         role="dialog"

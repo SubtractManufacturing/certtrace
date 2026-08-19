@@ -57,6 +57,12 @@ export {
   useTheme,
 } from "./components/theme-provider.js";
 export {
+  clearOverlayDismissLayersForTests,
+  hasOverlayDismissLayers,
+  type OverlayDismissLayer,
+  registerOverlayDismissLayer,
+} from "./lib/overlay-dismiss-stack.js";
+export {
   dialogPanelClassName,
   OVERLAY_TRANSITION_MS,
   type OverlayMotionState,

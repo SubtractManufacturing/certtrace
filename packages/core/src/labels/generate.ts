@@ -1,8 +1,10 @@
 import {
   type FieldSchemaV1,
+  formatMaterialSize,
   LABEL_CONTENT_BARCODE,
   LABEL_CONTENT_MATERIAL_ID,
   LABEL_CONTENT_QR,
+  LABEL_CONTENT_SIZE,
   type LabelTemplate,
   labelTemplateSizePoints,
   type MaterialMetadataV1,
@@ -96,6 +98,9 @@ function contentLabel(fieldSchema: FieldSchemaV1, key: string): string {
   if (key === LABEL_CONTENT_MATERIAL_ID) {
     return "Material id";
   }
+  if (key === LABEL_CONTENT_SIZE) {
+    return "Size";
+  }
   if (key === LABEL_CONTENT_QR) {
     return "QR";
   }
@@ -124,6 +129,9 @@ function resolveContentValue(
   if (key === LABEL_CONTENT_QR || key === LABEL_CONTENT_BARCODE) {
     return material.id;
   }
+  if (key === LABEL_CONTENT_SIZE) {
+    return formatMaterialSize(fieldSchema, material);
+  }
   if (fieldSchema.fields.some((entry) => entry.key === key)) {
     return displayFieldValue(material, fieldSchema, key);
   }
@@ -149,6 +157,20 @@ export function resolveLabelLayout(
     if (key === LABEL_CONTENT_BARCODE) {
       codes.barcode = material.id;
       slots.push({ kind: "barcode", payload: material.id, align, size });
+      continue;
+    }
+    if (key === LABEL_CONTENT_SIZE) {
+      const sizeValue = resolveContentValue(material, fieldSchema, key);
+      if (sizeValue.length === 0) {
+        continue;
+      }
+      const line: LabelContentLine = {
+        key,
+        label: contentLabel(fieldSchema, key),
+        value: sizeValue,
+      };
+      lines.push(line);
+      slots.push({ kind: "text", line, align, size });
       continue;
     }
 

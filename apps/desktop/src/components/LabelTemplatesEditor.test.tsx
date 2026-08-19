@@ -75,6 +75,21 @@ describe("LabelTemplatesEditor", () => {
     ).toBe(false);
   });
 
+  it("uses the resolved default unit for a new template's paper-size display", async () => {
+    render(
+      <LabelTemplatesEditor
+        library={sampleLibrary()}
+        defaultDisplayUnit="mm"
+        onLibraryUpdated={() => undefined}
+        onRefreshLibrary={async () => undefined}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Add template/i }));
+
+    expect(getSelectValue(screen.getByLabelText("Display unit"))).toBe("mm");
+  });
+
   it("creates a Label Template from the modal and can set it as default in the list", async () => {
     let library = sampleLibrary();
     const onLibraryUpdated = vi.fn((updated: OpenLibraryResult) => {
@@ -226,12 +241,14 @@ describe("LabelTemplatesEditor", () => {
     expect(screen.getByRole("button", { name: /^Save$/i })).toBeTruthy();
 
     await chooseSelectOption(screen.getByLabelText(/Label size/i), "Custom");
-    const width = screen.getByLabelText(/Width/i);
-    const height = screen.getByLabelText(/Height/i);
-    await userEvent.clear(width);
-    await userEvent.type(width, "100mm");
-    await userEvent.clear(height);
-    await userEvent.type(height, "150");
+    const width = document.getElementById("label-template-width");
+    const height = document.getElementById("label-template-height");
+    expect(width).toBeTruthy();
+    expect(height).toBeTruthy();
+    await userEvent.clear(width!);
+    await userEvent.type(width!, "100mm");
+    await userEvent.clear(height!);
+    await userEvent.type(height!, "150");
 
     expect(getSelectValue(screen.getByLabelText(/Display unit/i))).toBe("mm");
 
@@ -244,6 +261,23 @@ describe("LabelTemplatesEditor", () => {
       expect(saved.size.widthIn).toBeCloseTo(100 / 25.4, 5);
       expect(saved.size.heightIn).toBeCloseTo(150 / 25.4, 5);
     }
+  });
+
+  it("offers Size and individual dimension Field slots", async () => {
+    render(
+      <LabelTemplatesEditor
+        library={sampleLibrary()}
+        onLibraryUpdated={() => undefined}
+        onRefreshLibrary={async () => undefined}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Edit 4×6 in/i }));
+
+    expect(screen.getByLabelText(/Include Size/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Include Width/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Include Height/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Include Thickness/i)).toBeTruthy();
   });
 
   it("toggles content slots and edits align/size on enabled rows", async () => {
@@ -270,6 +304,7 @@ describe("LabelTemplatesEditor", () => {
     expect(saved?.content.map((item) => item.key)).toEqual([
       "family",
       "alloy",
+      "size",
       "material_id",
       "qr",
       "barcode",
@@ -298,6 +333,7 @@ describe("LabelTemplatesEditor", () => {
     const preview = await screen.findByRole("region", { name: /Label preview/i });
     expect(preview.textContent).toContain("AL-falcon-104");
     expect(preview.textContent).toContain("Aluminum");
+    expect(preview.textContent).toContain("1.25 in");
 
     await userEvent.click(screen.getByLabelText(/Include Temper/i));
     expect(preview.textContent).not.toContain("T6511");

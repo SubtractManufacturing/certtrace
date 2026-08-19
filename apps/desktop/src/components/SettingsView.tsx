@@ -2,6 +2,7 @@ import type {
   AppSettingsTheme,
   DefaultLibraryOnLaunch,
   RecentLibraryEntryV1,
+  SizeUnit,
 } from "@certtrace/types";
 import type { Theme } from "@certtrace/ui";
 import { Button, Label, Select, Switch, ThemeProvider } from "@certtrace/ui";
@@ -20,6 +21,7 @@ interface SettingsViewProps {
   resolvedTheme: Theme;
   checkForUpdates: boolean;
   includeArchivedMaterialsInSearch: boolean;
+  defaultUnit: SizeUnit;
   defaultLibraryOnLaunch: DefaultLibraryOnLaunch;
   recentLibraries: RecentLibraryEntryV1[];
   checkingForUpdates: boolean;
@@ -32,6 +34,7 @@ interface SettingsViewProps {
   onThemeChange: (theme: AppSettingsTheme) => void;
   onCheckForUpdatesChange: (value: boolean) => void;
   onIncludeArchivedMaterialsInSearchChange: (value: boolean) => void;
+  onDefaultUnitChange: (value: SizeUnit) => void;
   onDefaultLibraryChange: (value: DefaultLibraryOnLaunch) => void;
   onAddLibrary: () => void;
   onCreateLibrary: () => void;
@@ -46,6 +49,7 @@ export function SettingsView({
   resolvedTheme,
   checkForUpdates,
   includeArchivedMaterialsInSearch,
+  defaultUnit,
   defaultLibraryOnLaunch,
   recentLibraries,
   checkingForUpdates,
@@ -58,6 +62,7 @@ export function SettingsView({
   onThemeChange,
   onCheckForUpdatesChange,
   onIncludeArchivedMaterialsInSearchChange,
+  onDefaultUnitChange,
   onDefaultLibraryChange,
   onAddLibrary,
   onCreateLibrary,
@@ -191,6 +196,25 @@ export function SettingsView({
           ) : (
             <p className="mt-4 text-sm text-slate-500">No libraries added yet.</p>
           )}
+        </section>
+
+        <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="text-lg font-semibold">Units</h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Default across app, some libraries may impose their own unit defaults
+          </p>
+          <div className="mt-4 max-w-xs">
+            <Label htmlFor="default-unit">Default unit</Label>
+            <Select
+              id="default-unit"
+              className="mt-1"
+              value={defaultUnit}
+              onChange={(event) => onDefaultUnitChange(event.target.value as SizeUnit)}
+            >
+              <option value="in">Inch</option>
+              <option value="mm">Millimeter</option>
+            </Select>
+          </div>
         </section>
 
         <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">

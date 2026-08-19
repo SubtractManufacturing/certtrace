@@ -371,6 +371,7 @@ function App() {
             onEditLabelTemplates={(path) => {
               void handleOpenLibrarySettings(path, { expandLabelTemplates: true });
             }}
+            installDefaultUnit={settings?.defaultUnit ?? "in"}
           />
         ) : null}
 
@@ -388,6 +389,7 @@ function App() {
             resolvedTheme={resolvedTheme}
             checkForUpdates={settings.checkForUpdates}
             includeArchivedMaterialsInSearch={settings.includeArchivedMaterialsInSearch}
+            defaultUnit={settings.defaultUnit}
             defaultLibraryOnLaunch={settings.defaultLibraryOnLaunch}
             recentLibraries={librariesForSettings}
             checkingForUpdates={updateCheck.checking}
@@ -402,6 +404,7 @@ function App() {
             onIncludeArchivedMaterialsInSearchChange={(value) =>
               void updateSettings({ includeArchivedMaterialsInSearch: value })
             }
+            onDefaultUnitChange={(value) => void updateSettings({ defaultUnit: value })}
             onDefaultLibraryChange={(value) =>
               void updateSettings({ defaultLibraryOnLaunch: value })
             }
@@ -417,6 +420,7 @@ function App() {
         {activeView === "library-settings" && settingsLibraryForMenu ? (
           <LibrarySettingsView
             library={settingsLibraryForMenu}
+            installDefaultUnit={settings?.defaultUnit ?? "in"}
             expandLabelTemplates={expandLabelTemplates}
             onOpenAdvancedSettings={() => setActiveView("library-advanced-settings")}
             onLibraryUpdated={(library) => session.updateLibraryInSession(library)}

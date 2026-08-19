@@ -1,27 +1,87 @@
 import type { OpenLibraryResult } from "@certtrace/library-engine";
-import { cn } from "@certtrace/ui";
+import { type LibraryDefaultUnit, resolveSizeUnit, type SizeUnit } from "@certtrace/types";
+import { cn, Label, Select } from "@certtrace/ui";
 import { ChevronDown, ChevronRight, Wrench } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
+import { updateLibraryConfigPartial } from "../lib/library-client";
+import { ErrorBanner } from "./ErrorBanner";
 import { LabelTemplatesEditor } from "./LabelTemplatesEditor";
 import { MaterialTableColumnsEditor } from "./MaterialTableColumnsEditor";
+import { ShapesEditor } from "./ShapesEditor";
 
 interface LibrarySettingsViewProps {
   library: OpenLibraryResult;
+  installDefaultUnit?: SizeUnit;
   expandLabelTemplates?: boolean;
   onOpenAdvancedSettings: () => void;
   onLibraryUpdated: (library: OpenLibraryResult) => void;
   onRefreshLibrary: () => Promise<void>;
 }
 
+function CollapsibleSettingsSection({
+  title,
+  expanded,
+  onToggle,
+  children,
+}: {
+  title: string;
+  expanded: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">{title}</h2>
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-label={expanded ? `Collapse ${title}` : `Expand ${title}`}
+          className="rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          onClick={onToggle}
+        >
+          <ChevronDown
+            className={cn(
+              "h-5 w-5 transition-transform duration-200 ease-in-out",
+              expanded && "rotate-180",
+            )}
+          />
+        </button>
+      </div>
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-200 ease-in-out",
+          expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+      >
+        <div className="min-h-0 overflow-hidden" inert={!expanded ? true : undefined}>
+          <div
+            className={cn(
+              "pt-4 transition-opacity duration-200 ease-in-out",
+              expanded ? "opacity-100" : "opacity-0",
+            )}
+          >
+            {children}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function LibrarySettingsView({
   library,
+  installDefaultUnit = "in",
   expandLabelTemplates = false,
   onOpenAdvancedSettings,
   onLibraryUpdated,
   onRefreshLibrary,
 }: LibrarySettingsViewProps) {
+  const [unitsExpanded, setUnitsExpanded] = useState(false);
   const [columnsExpanded, setColumnsExpanded] = useState(false);
+  const [shapesExpanded, setShapesExpanded] = useState(false);
   const [labelsExpanded, setLabelsExpanded] = useState(expandLabelTemplates);
+  const [unitError, setUnitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (expandLabelTemplates) {
@@ -38,89 +98,78 @@ export function LibrarySettingsView({
         </header>
 
         <div className="space-y-4">
-          <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold">Material columns</h2>
-              <button
-                type="button"
-                aria-expanded={columnsExpanded}
-                aria-label={
-                  columnsExpanded ? "Collapse material columns" : "Expand material columns"
-                }
-                className="rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-                onClick={() => setColumnsExpanded((expanded) => !expanded)}
+          <CollapsibleSettingsSection
+            title="Units"
+            expanded={unitsExpanded}
+            onToggle={() => setUnitsExpanded((expanded) => !expanded)}
+          >
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Default for new Size in this library. App default follows Global settings.
+            </p>
+            <div className="mt-4 max-w-xs">
+              <Label htmlFor="library-default-unit">Default unit</Label>
+              <Select
+                id="library-default-unit"
+                className="mt-1"
+                value={library.config.defaultUnit}
+                onChange={(event) => {
+                  const defaultUnit = event.target.value as LibraryDefaultUnit;
+                  setUnitError(null);
+                  void updateLibraryConfigPartial(library, { defaultUnit })
+                    .then(onLibraryUpdated)
+                    .catch((error: unknown) => {
+                      setUnitError(error instanceof Error ? error.message : String(error));
+                    });
+                }}
               >
-                <ChevronDown
-                  className={cn(
-                    "h-5 w-5 transition-transform duration-200 ease-in-out",
-                    columnsExpanded && "rotate-180",
-                  )}
-                />
-              </button>
-            </div>
-            <div
-              className={cn(
-                "grid transition-[grid-template-rows] duration-200 ease-in-out",
-                columnsExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-              )}
-            >
-              <div className="min-h-0 overflow-hidden" inert={!columnsExpanded ? true : undefined}>
-                <div
-                  className={cn(
-                    "pt-4 transition-opacity duration-200 ease-in-out",
-                    columnsExpanded ? "opacity-100" : "opacity-0",
-                  )}
-                >
-                  <MaterialTableColumnsEditor
-                    library={library}
-                    onLibraryUpdated={onLibraryUpdated}
-                    onRefreshLibrary={onRefreshLibrary}
-                  />
+                <option value="app">App default</option>
+                <option value="in">Inch</option>
+                <option value="mm">Millimeter</option>
+              </Select>
+              {unitError ? (
+                <div className="mt-2">
+                  <ErrorBanner message={unitError} />
                 </div>
-              </div>
+              ) : null}
             </div>
-          </section>
+          </CollapsibleSettingsSection>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold">Label Templates</h2>
-              <button
-                type="button"
-                aria-expanded={labelsExpanded}
-                aria-label={labelsExpanded ? "Collapse Label Templates" : "Expand Label Templates"}
-                className="rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-                onClick={() => setLabelsExpanded((expanded) => !expanded)}
-              >
-                <ChevronDown
-                  className={cn(
-                    "h-5 w-5 transition-transform duration-200 ease-in-out",
-                    labelsExpanded && "rotate-180",
-                  )}
-                />
-              </button>
-            </div>
-            <div
-              className={cn(
-                "grid transition-[grid-template-rows] duration-200 ease-in-out",
-                labelsExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-              )}
-            >
-              <div className="min-h-0 overflow-hidden" inert={!labelsExpanded ? true : undefined}>
-                <div
-                  className={cn(
-                    "pt-4 transition-opacity duration-200 ease-in-out",
-                    labelsExpanded ? "opacity-100" : "opacity-0",
-                  )}
-                >
-                  <LabelTemplatesEditor
-                    library={library}
-                    onLibraryUpdated={onLibraryUpdated}
-                    onRefreshLibrary={onRefreshLibrary}
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
+          <CollapsibleSettingsSection
+            title="Material columns"
+            expanded={columnsExpanded}
+            onToggle={() => setColumnsExpanded((expanded) => !expanded)}
+          >
+            <MaterialTableColumnsEditor
+              library={library}
+              onLibraryUpdated={onLibraryUpdated}
+              onRefreshLibrary={onRefreshLibrary}
+            />
+          </CollapsibleSettingsSection>
+
+          <CollapsibleSettingsSection
+            title="Shapes"
+            expanded={shapesExpanded}
+            onToggle={() => setShapesExpanded((expanded) => !expanded)}
+          >
+            <ShapesEditor
+              library={library}
+              onLibraryUpdated={onLibraryUpdated}
+              onRefreshLibrary={onRefreshLibrary}
+            />
+          </CollapsibleSettingsSection>
+
+          <CollapsibleSettingsSection
+            title="Label Templates"
+            expanded={labelsExpanded}
+            onToggle={() => setLabelsExpanded((expanded) => !expanded)}
+          >
+            <LabelTemplatesEditor
+              library={library}
+              defaultDisplayUnit={resolveSizeUnit(library.config.defaultUnit, installDefaultUnit)}
+              onLibraryUpdated={onLibraryUpdated}
+              onRefreshLibrary={onRefreshLibrary}
+            />
+          </CollapsibleSettingsSection>
 
           <button
             type="button"

@@ -89,9 +89,9 @@ describe("fieldSchemaV1Schema", () => {
       "family",
       "alloy",
       "temper",
+      "traceability_type",
       "shape",
       "supplier",
-      "traceability_type",
       "date_received",
       "storage_location",
     ]);
@@ -148,6 +148,24 @@ describe("fieldSchemaV1Schema", () => {
           type: "text",
           required: true,
           filterable: true,
+        },
+      ],
+      identifierKinds: [],
+      attachmentKinds: [],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects unit as a field key because it is the Size suffix token", () => {
+    const result = fieldSchemaV1Schema.safeParse({
+      version: SCHEMA_VERSION,
+      fields: [
+        {
+          key: "unit",
+          label: "Unit",
+          type: "number",
+          required: false,
+          filterable: false,
         },
       ],
       identifierKinds: [],

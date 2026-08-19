@@ -46,7 +46,7 @@ const sampleLibrary = {
 const materials: IndexedMaterial[] = [
   {
     id: "AL-falcon-101",
-    version: 3,
+    version: 4,
     fields: {
       family: "aluminum",
       alloy: "6061",
@@ -65,7 +65,7 @@ const materials: IndexedMaterial[] = [
   },
   {
     id: "AL-river-102",
-    version: 3,
+    version: 4,
     fields: {
       family: "aluminum",
       alloy: "7075",
@@ -308,7 +308,7 @@ describe("MaterialsWorkspace", () => {
   it("renders the add form from the library field schema and saves keyed values", async () => {
     vi.mocked(addMaterial).mockResolvedValue({
       id: "AL-new-103",
-      version: 3,
+      version: 4,
       fields: {},
       identifiers: {},
       archived: false,
@@ -438,7 +438,7 @@ describe("MaterialsWorkspace", () => {
   it("Print and Add creates the Material and opens Label preview", async () => {
     const created = {
       id: "AL-new-104",
-      version: 3 as const,
+      version: 4 as const,
       fields: { family: "aluminum", alloy: "6061" },
       identifiers: { heat_number: "H-200" },
       archived: false,
@@ -484,7 +484,7 @@ describe("MaterialsWorkspace", () => {
   it("plain Add material saves without opening Label preview", async () => {
     vi.mocked(addMaterial).mockResolvedValue({
       id: "AL-new-105",
-      version: 3,
+      version: 4,
       fields: {},
       identifiers: {},
       archived: false,

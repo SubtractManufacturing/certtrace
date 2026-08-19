@@ -5,6 +5,7 @@ import {
   LABEL_CONTENT_BARCODE,
   LABEL_CONTENT_MATERIAL_ID,
   LABEL_CONTENT_QR,
+  LABEL_CONTENT_SIZE,
   type LabelTemplate,
   type MaterialMetadataV1,
   SCHEMA_VERSION,
@@ -178,5 +179,70 @@ describe("generateLabelPdf", () => {
 
     expect(new TextDecoder().decode(pdf.slice(0, 5))).toBe("%PDF-");
     expect(warnings.length).toBeGreaterThan(0);
+  });
+
+  it("includes Size on starter 4x6 and letter templates but not 3x1", () => {
+    const templates = createStarterLabelTemplates();
+    const starter4x6 = templates.find((template) => template.id === STARTER_LABEL_TEMPLATE_4X6_ID)!;
+    const starterLetter = templates.find((template) => template.id === "starter-letter")!;
+    const starter3x1 = templates.find((template) => template.id === "starter-3x1")!;
+
+    expect(starter4x6.content.some((item) => item.key === LABEL_CONTENT_SIZE)).toBe(true);
+    expect(starterLetter.content.some((item) => item.key === LABEL_CONTENT_SIZE)).toBe(true);
+    expect(starter3x1.content.some((item) => item.key === LABEL_CONTENT_SIZE)).toBe(false);
+  });
+
+  it("omits the Size slot when Size is empty and renders the pattern when filled", async () => {
+    const template: LabelTemplate = {
+      ...starter4x6(),
+      content: [LABEL_CONTENT_SIZE, LABEL_CONTENT_MATERIAL_ID].map((key) =>
+        createLabelContentItem(key),
+      ),
+    };
+
+    const emptyResult = await generateLabelPdf({
+      template,
+      materials: [emptyMaterial],
+      fieldSchema: defaultFieldSchemaV1,
+    });
+    expect(emptyResult.lines[0]).toEqual([
+      { key: LABEL_CONTENT_MATERIAL_ID, label: "Material id", value: "EMPTY-1" },
+    ]);
+
+    const sizedMaterial: MaterialMetadataV1 = {
+      ...material,
+      fields: { ...material.fields, shape: "square_bar", width: 2 },
+      sizeUnit: "in",
+    };
+    const sizedResult = await generateLabelPdf({
+      template,
+      materials: [sizedMaterial],
+      fieldSchema: defaultFieldSchemaV1,
+    });
+    expect(sizedResult.lines[0]?.[0]).toEqual({
+      key: LABEL_CONTENT_SIZE,
+      label: "Size",
+      value: "2 x 2 in",
+    });
+  });
+
+  it("renders an individual dimension Field as an ordinary label line", async () => {
+    const template: LabelTemplate = {
+      ...starter4x6(),
+      content: [createLabelContentItem("width")],
+    };
+    const sizedMaterial: MaterialMetadataV1 = {
+      ...material,
+      fields: { ...material.fields, shape: "square_bar", width: 2 },
+      sizeUnit: "in",
+    };
+
+    const result = await generateLabelPdf({
+      template,
+      materials: [sizedMaterial],
+      fieldSchema: defaultFieldSchemaV1,
+    });
+
+    expect(result.lines[0]).toEqual([{ key: "width", label: "Width", value: "2" }]);
   });
 });

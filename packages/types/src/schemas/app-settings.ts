@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { sizeUnitSchema } from "../size.js";
 
 export const APP_SETTINGS_VERSION = 1 as const;
 
@@ -25,6 +26,8 @@ export const appSettingsV1Schema = z.object({
     .default(null),
   /** When false (default), search excludes Archived Materials. */
   includeArchivedMaterialsInSearch: z.boolean().default(false),
+  /** Default unit for new Size entry and measurement UIs (shipped inch). */
+  defaultUnit: sizeUnitSchema.default("in"),
 });
 
 export type AppSettingsV1 = z.infer<typeof appSettingsV1Schema>;
@@ -40,5 +43,6 @@ export function createDefaultAppSettingsV1(): AppSettingsV1 {
     checkForUpdates: true,
     defaultLibraryOnLaunch: null,
     includeArchivedMaterialsInSearch: false,
+    defaultUnit: "in",
   };
 }

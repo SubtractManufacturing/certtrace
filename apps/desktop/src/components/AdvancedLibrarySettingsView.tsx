@@ -10,6 +10,7 @@ import type { FieldSchemaV1, NamingRulesV1, WordListsV1 } from "@certtrace/types
 import { Button, Label, Select } from "@certtrace/ui";
 import { useState } from "react";
 import {
+  fetchMaterials,
   removeLibrarySchemaDefinition,
   updateLibraryConfigPartial,
   updateLibraryFieldSchema,
@@ -81,6 +82,36 @@ export function AdvancedLibrarySettingsView({
     }
   }
 
+  async function removeShapeOption(optionId: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await updateLibraryFieldSchema(library, {
+        ...fieldSchema,
+        fields: fieldSchema.fields.map((field) =>
+          field.key === "shape"
+            ? {
+                ...field,
+                options: field.options?.filter((option) => option.id !== optionId),
+              }
+            : field,
+        ),
+      });
+      onLibraryUpdated(updated);
+      setFieldSchema(updated.fieldSchema);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      throw err;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function countShapeOptionMaterials(optionId: string) {
+    const materials = await fetchMaterials(library);
+    return materials.filter((material) => material.fields.shape === optionId).length;
+  }
+
   function updateSelectedStrategy(next: typeof selectedStrategy) {
     setNamingRules({
       ...namingRules,
@@ -111,6 +142,8 @@ export function AdvancedLibrarySettingsView({
               schema={fieldSchema}
               onChange={setFieldSchema}
               onRemoveDefinition={removeDefinition}
+              onRemoveShapeOption={removeShapeOption}
+              onCountShapeOptionMaterials={countShapeOptionMaterials}
             />
           </div>
         </section>

@@ -4,6 +4,7 @@ import {
   LABEL_CONTENT_BARCODE,
   LABEL_CONTENT_MATERIAL_ID,
   LABEL_CONTENT_QR,
+  LABEL_CONTENT_SIZE,
 } from "@certtrace/types";
 import { describe, expect, it } from "vitest";
 import {
@@ -17,24 +18,29 @@ import {
 } from "./label-template-content";
 
 describe("labelContentOptions", () => {
-  it("offers core slots plus every Field and Identifier kind", () => {
+  it("offers core slots plus Fields and Identifier kinds", () => {
     const options = labelContentOptions(defaultFieldSchemaV1);
     const keys = options.map((option) => option.key);
 
     expect(keys).toEqual(
       expect.arrayContaining([
+        LABEL_CONTENT_SIZE,
         LABEL_CONTENT_MATERIAL_ID,
         LABEL_CONTENT_QR,
         LABEL_CONTENT_BARCODE,
         "family",
         "alloy",
         "temper",
+        "width",
+        "height",
+        "thickness",
         "heat_number",
         "lot_number",
         "purchase_order",
       ]),
     );
     expect(options.find((option) => option.key === "family")?.label).toBe("Material");
+    expect(options.find((option) => option.key === LABEL_CONTENT_SIZE)?.label).toBe("Size");
     expect(options.find((option) => option.key === LABEL_CONTENT_MATERIAL_ID)?.label).toBe(
       "Material id",
     );
@@ -132,6 +138,8 @@ describe("createSampleLabelMaterial", () => {
     const sample = createSampleLabelMaterial();
     expect(sample.id).toBe("AL-falcon-104");
     expect(sample.fields.family).toBe("aluminum");
+    expect(sample.fields.diameter).toBe(1.25);
+    expect(sample.sizeUnit).toBe("in");
     expect(sample.identifiers.heat_number).toBe("A4921");
   });
 });

@@ -12,7 +12,7 @@ import {
 } from "./MaterialSchemaForm";
 
 const customSchema: FieldSchemaV1 = {
-  version: 3,
+  version: 4,
   fields: [
     {
       key: "family",
@@ -135,7 +135,7 @@ describe("MaterialSchemaForm", () => {
 
   it("does not render or require a field hidden by its dependency", () => {
     const schema: FieldSchemaV1 = {
-      version: 3,
+      version: 4,
       fields: [
         {
           key: "shape",
@@ -181,7 +181,7 @@ describe("MaterialSchemaForm", () => {
 
   it("reports required fields and identifier kinds that are empty", () => {
     const schema: FieldSchemaV1 = {
-      version: 3,
+      version: 4,
       fields: [
         {
           key: "family",
@@ -221,7 +221,7 @@ describe("MaterialSchemaForm", () => {
 
   it("hides disabled definitions and does not require them on new materials", () => {
     const schema: FieldSchemaV1 = {
-      version: 3,
+      version: 4,
       fields: [
         {
           key: "legacy_grade",
@@ -259,7 +259,7 @@ describe("MaterialSchemaForm", () => {
 
   it("shows saved values for disabled definitions without allowing changes", () => {
     const schema: FieldSchemaV1 = {
-      version: 3,
+      version: 4,
       fields: [
         {
           key: "legacy_grade",
@@ -295,5 +295,93 @@ describe("MaterialSchemaForm", () => {
 
     expect((screen.getByLabelText("Legacy Grade") as HTMLInputElement).disabled).toBe(true);
     expect((screen.getByLabelText("Legacy Number") as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it("packs Shape dimensions into one compact group with an in/mm chip", async () => {
+    function Harness() {
+      const [values, setValues] = useState<MaterialFormValues>({
+        fields: {},
+        identifiers: {},
+      });
+      return (
+        <MaterialSchemaForm
+          schema={defaultFieldSchemaV1}
+          values={values}
+          onChange={setValues}
+          resolvedDefaultUnit="in"
+        />
+      );
+    }
+
+    render(<Harness />);
+
+    await chooseSelectOption(screen.getByLabelText("Shape"), "Rectangle bar");
+
+    expect(screen.getByLabelText("Width")).toBeTruthy();
+    expect(screen.getByLabelText("Height")).toBeTruthy();
+    expect(screen.queryByRole("combobox", { name: "Size unit" })).toBeNull();
+    expect(screen.queryByText("Millimetre")).toBeNull();
+    expect(screen.getByRole("group", { name: "Size unit" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "mm" }).getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByRole("button", { name: "in" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByLabelText("Width").parentElement?.textContent).toContain("in");
+    expect(screen.getByLabelText("Height").parentElement?.textContent).toContain("in");
+  });
+
+  it("clears shared dimension values when Shape changes", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    function Harness() {
+      const [values, setValues] = useState<MaterialFormValues>({
+        fields: { shape: "square_bar", width: 2 },
+        identifiers: {},
+        sizeUnit: "in",
+      });
+      return (
+        <MaterialSchemaForm
+          schema={defaultFieldSchemaV1}
+          values={values}
+          onChange={setValues}
+          resolvedDefaultUnit="in"
+        />
+      );
+    }
+
+    render(<Harness />);
+    expect((screen.getByLabelText("Width") as HTMLInputElement).value).toBe("2");
+
+    await chooseSelectOption(screen.getByLabelText("Shape"), "Rectangle bar");
+
+    expect((screen.getByLabelText("Width") as HTMLInputElement).value).toBe("");
+    expect(screen.getByLabelText("Height")).toBeTruthy();
+  });
+
+  it("clears populated dimensions after confirming a Size unit change", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    function Harness() {
+      const [values, setValues] = useState<MaterialFormValues>({
+        fields: { shape: "square_bar", width: 2 },
+        identifiers: {},
+        sizeUnit: "in",
+      });
+      return (
+        <MaterialSchemaForm
+          schema={defaultFieldSchemaV1}
+          values={values}
+          onChange={setValues}
+          resolvedDefaultUnit="in"
+        />
+      );
+    }
+
+    render(<Harness />);
+    expect((screen.getByLabelText("Width") as HTMLInputElement).value).toBe("2");
+
+    await userEvent.click(screen.getByRole("button", { name: "mm" }));
+
+    expect(window.confirm).toHaveBeenCalled();
+    expect((screen.getByLabelText("Width") as HTMLInputElement).value).toBe("");
+    expect(screen.getByRole("button", { name: "mm" }).getAttribute("aria-pressed")).toBe("true");
   });
 });

@@ -4,7 +4,7 @@ import {
   getMaterialFolderPath,
   type OpenLibraryResult,
 } from "@certtrace/library-engine";
-import type { AttachedFile, JobMetadataV1, MaterialMetadataV1 } from "@certtrace/types";
+import type { AttachedFile, JobMetadataV1, MaterialMetadataV1, SizeUnit } from "@certtrace/types";
 import {
   Badge,
   Button,
@@ -71,6 +71,7 @@ interface PendingAttachment {
 interface MaterialDetailPanelProps {
   library: OpenLibraryResult;
   material: MaterialMetadataV1;
+  resolvedDefaultUnit?: SizeUnit;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onMaterialUpdated: (material: MaterialMetadataV1) => void;
@@ -85,6 +86,7 @@ function attachmentFilename(path: string): string {
 export function MaterialDetailPanel({
   library,
   material,
+  resolvedDefaultUnit = "in",
   open,
   onOpenChange,
   onMaterialUpdated,
@@ -95,6 +97,7 @@ export function MaterialDetailPanel({
   const [draft, setDraft] = useState<MaterialFormValues>({
     fields: material.fields,
     identifiers: material.identifiers,
+    sizeUnit: material.sizeUnit,
   });
   const [attachments, setAttachments] = useState<AttachedFile[]>([]);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
@@ -114,7 +117,11 @@ export function MaterialDetailPanel({
   const [deleteLinkedJobNumbers, setDeleteLinkedJobNumbers] = useState<string[]>([]);
 
   useEffect(() => {
-    setDraft({ fields: material.fields, identifiers: material.identifiers });
+    setDraft({
+      fields: material.fields,
+      identifiers: material.identifiers,
+      sizeUnit: material.sizeUnit,
+    });
   }, [material]);
 
   useEffect(() => {
@@ -160,7 +167,11 @@ export function MaterialDetailPanel({
   }
 
   function resetDraft() {
-    setDraft({ fields: material.fields, identifiers: material.identifiers });
+    setDraft({
+      fields: material.fields,
+      identifiers: material.identifiers,
+      sizeUnit: material.sizeUnit,
+    });
     setError(null);
   }
 
@@ -198,6 +209,8 @@ export function MaterialDetailPanel({
       const updated = await updateMaterialMetadata(library, material.id, {
         fields: draft.fields,
         identifiers: draft.identifiers,
+        sizeUnit: draft.sizeUnit ?? null,
+        replaceFields: true,
       });
       onMaterialUpdated(updated);
       onOpenChange(false);
@@ -446,6 +459,7 @@ export function MaterialDetailPanel({
               values={draft}
               onChange={setDraft}
               onAddOption={(input) => addLibraryFieldOption(library, input)}
+              resolvedDefaultUnit={resolvedDefaultUnit}
               idPrefix="detail-material"
             />
 

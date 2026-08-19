@@ -1,8 +1,10 @@
 import {
   createLabelContentItem,
   createStarterLabelTemplates,
+  defaultFieldSchemaV1,
   type FieldSchemaV1,
   fieldSchemaV1Schema,
+  isShippedDimensionKey,
   type LabelContentItem,
   type LibraryConfigV1,
   libraryConfigV1Schema,
@@ -11,6 +13,7 @@ import {
   type NamingRulesV1,
   namingRulesV1Schema,
   SCHEMA_VERSION,
+  SHIPPED_SHAPE_PACKING,
   STARTER_LABEL_TEMPLATE_4X6_ID,
   type WordListsV1,
   wordListsV1Schema,
@@ -115,6 +118,83 @@ export function migrateLibraryConfigV2ToV3(doc: unknown): unknown {
   };
 }
 
+function shippedDimensionFieldsFromSeed() {
+  return defaultFieldSchemaV1.fields.filter(
+    (field) => field.type === "number" && isShippedDimensionKey(field.key),
+  );
+}
+
+/** Add dimension fields and pack shipped Shape option ids (ADR-0015). */
+export function migrateFieldSchemaV3ToV4(doc: unknown): unknown {
+  if (typeof doc !== "object" || doc === null) {
+    throw new LibraryError("Invalid field-schema.json for v3→v4 migration");
+  }
+
+  const record = doc as FieldSchemaV1;
+  const existingKeys = new Set(record.fields.map((field) => field.key));
+  const nextFields = [...record.fields];
+
+  for (const dimensionField of shippedDimensionFieldsFromSeed()) {
+    if (!existingKeys.has(dimensionField.key)) {
+      nextFields.push(dimensionField);
+    }
+  }
+
+  const shapeIndex = nextFields.findIndex((field) => field.key === "shape");
+  if (shapeIndex >= 0) {
+    const shapeField = nextFields[shapeIndex]!;
+    const existingOptions = shapeField.options ?? [];
+    const optionById = new Map(existingOptions.map((option) => [option.id, option]));
+
+    if (!optionById.has("rect_bar")) {
+      const rectBarSeed = defaultFieldSchemaV1.fields
+        .find((field) => field.key === "shape")
+        ?.options?.find((option) => option.id === "rect_bar");
+      if (rectBarSeed) {
+        existingOptions.push(rectBarSeed);
+        optionById.set("rect_bar", rectBarSeed);
+      }
+    }
+
+    const packedOptions = existingOptions.map((option) => {
+      const packing = SHIPPED_SHAPE_PACKING[option.id];
+      if (!packing) {
+        return option;
+      }
+      return {
+        ...option,
+        dimensionKeys: packing.dimensionKeys,
+        sizePattern: packing.sizePattern,
+      };
+    });
+
+    nextFields[shapeIndex] = {
+      ...shapeField,
+      options: packedOptions,
+    };
+  }
+
+  return {
+    ...record,
+    version: 4,
+    fields: nextFields,
+  };
+}
+
+/** Add library `defaultUnit` when absent (ADR-0014). */
+export function migrateLibraryConfigV3ToV4(doc: unknown): unknown {
+  if (typeof doc !== "object" || doc === null) {
+    throw new LibraryError("Invalid library.json for v3→v4 migration");
+  }
+
+  const record = doc as Record<string, unknown>;
+  return {
+    ...record,
+    version: 4,
+    defaultUnit: record.defaultUnit ?? "app",
+  };
+}
+
 export function migrateLibraryConfig(doc: unknown): LibraryConfigV1 {
   return migrateToCurrent(
     doc,
@@ -122,6 +202,7 @@ export function migrateLibraryConfig(doc: unknown): LibraryConfigV1 {
     {
       1: migrateLibraryConfigV1ToV2,
       2: migrateLibraryConfigV2ToV3,
+      3: migrateLibraryConfigV3ToV4,
     },
     libraryConfigV1Schema.parse,
   );
@@ -133,7 +214,8 @@ export function migrateNamingRules(doc: unknown): NamingRulesV1 {
     "naming-rules.json",
     {
       1: (value) => bumpDocumentToVersion(value, 2),
-      2: bumpDocumentVersion,
+      2: (value) => bumpDocumentToVersion(value, 3),
+      3: bumpDocumentVersion,
     },
     namingRulesV1Schema.parse,
   );
@@ -145,7 +227,8 @@ export function migrateWordLists(doc: unknown): WordListsV1 {
     "word-lists.json",
     {
       1: (value) => bumpDocumentToVersion(value, 2),
-      2: bumpDocumentVersion,
+      2: (value) => bumpDocumentToVersion(value, 3),
+      3: bumpDocumentVersion,
     },
     wordListsV1Schema.parse,
   );
@@ -157,7 +240,8 @@ export function migrateFieldSchema(doc: unknown): FieldSchemaV1 {
     "field-schema.json",
     {
       1: (value) => bumpDocumentToVersion(value, 2),
-      2: bumpDocumentVersion,
+      2: (value) => bumpDocumentToVersion(value, 3),
+      3: migrateFieldSchemaV3ToV4,
     },
     fieldSchemaV1Schema.parse,
   );
@@ -169,7 +253,8 @@ export function migrateMaterialMetadata(doc: unknown): MaterialMetadataV1 {
     "metadata.json",
     {
       1: (value) => bumpDocumentToVersion(value, 2),
-      2: bumpDocumentVersion,
+      2: (value) => bumpDocumentToVersion(value, 3),
+      3: bumpDocumentVersion,
     },
     materialMetadataV1Schema.parse,
   );
