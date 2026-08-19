@@ -5,17 +5,11 @@ import {
   createFieldDefinition,
   createFieldOption,
   createIdentifierKind,
-  listReusableDimensionFields,
   type RemoveSchemaDefinitionInput,
   type SchemaDefinitionRemovalStrategy,
   type SchemaDefinitionType,
 } from "@certtrace/library-engine";
-import {
-  type FieldSchemaV1,
-  type FieldType,
-  isShippedDimensionKey,
-  SHIPPED_SHAPE_PACKING,
-} from "@certtrace/types";
+import { type FieldSchemaV1, type FieldType, isShippedDimensionKey } from "@certtrace/types";
 import { Button, Input, Label, Select, Switch } from "@certtrace/ui";
 import { useState } from "react";
 
@@ -65,7 +59,6 @@ function FieldOptionsEditor({
   onCountShapeOptionMaterials,
 }: FieldOptionsEditorProps) {
   const [newOptionLabel, setNewOptionLabel] = useState("");
-  const [newDimensionLabels, setNewDimensionLabels] = useState<Record<string, string>>({});
 
   if (field.type !== "single_select" && field.type !== "multi_select") {
     return null;
@@ -113,77 +106,19 @@ function FieldOptionsEditor({
     });
   }
 
-  function toggleDimension(optionId: string, key: string, checked: boolean) {
-    const locked = new Set(SHIPPED_SHAPE_PACKING[optionId]?.dimensionKeys ?? []);
-    if (!checked && locked.has(key)) {
-      return;
-    }
-    updateOption(optionId, (current) => {
-      const keys = new Set(current.dimensionKeys ?? []);
-      for (const starter of locked) {
-        keys.add(starter);
-      }
-      if (checked) {
-        keys.add(key);
-      } else {
-        keys.delete(key);
-      }
-      const dimensionKeys = [
-        ...locked,
-        ...[...keys].filter((entry) => !locked.has(entry)),
-      ];
-      return {
-        ...current,
-        dimensionKeys: dimensionKeys.length > 0 ? dimensionKeys : undefined,
-      };
-    });
-  }
-
-  function addDimensionField(optionId: string) {
-    const label = (newDimensionLabels[optionId] ?? "").trim();
-    if (!label) {
-      return;
-    }
-    const created = createFieldDefinition(schema, label, "number");
-    const locked = new Set(SHIPPED_SHAPE_PACKING[optionId]?.dimensionKeys ?? []);
-    onChange({
-      ...schema,
-      fields: [
-        ...schema.fields.map((candidate) => {
-          if (candidate.key !== field.key) {
-            return candidate;
-          }
-          return {
-            ...candidate,
-            options: candidate.options?.map((option) => {
-              if (option.id !== optionId) {
-                return option;
-              }
-              const keys = new Set(option.dimensionKeys ?? []);
-              for (const starter of locked) {
-                keys.add(starter);
-              }
-              keys.add(created.key);
-              return {
-                ...option,
-                dimensionKeys: [...locked, ...[...keys].filter((entry) => !locked.has(entry))],
-              };
-            }),
-          };
-        }),
-        created,
-      ],
-    });
-    setNewDimensionLabels((current) => ({ ...current, [optionId]: "" }));
-  }
-
-  const reusableDimensions = listReusableDimensionFields(schema);
-
   return (
     <div className="space-y-2 rounded-md bg-slate-50 p-3 dark:bg-slate-950">
       <p className="text-sm font-medium">Options</p>
+      {field.key === "shape" ? (
+        <p className="text-xs text-slate-500">
+          Dimensions and Size patterns are edited under Library settings → Shapes.
+        </p>
+      ) : null}
       {field.options?.map((option) => (
-        <div key={option.id} className="space-y-2 rounded-md border border-slate-200 p-3 dark:border-slate-700">
+        <div
+          key={option.id}
+          className="space-y-2 rounded-md border border-slate-200 p-3 dark:border-slate-700"
+        >
           <div className="grid gap-2 sm:grid-cols-[1fr_8rem_8rem_auto]">
             <Input
               aria-label={`Option label ${option.id} for field ${field.key}`}
@@ -217,71 +152,6 @@ function FieldOptionsEditor({
               />
             ) : null}
           </div>
-          {field.key === "shape" ? (
-            <div className="space-y-2">
-              <p className="text-xs font-medium">Dimensions</p>
-              <div className="flex flex-wrap gap-x-4 gap-y-2">
-                {reusableDimensions.map((dimension) => {
-                  const locked = SHIPPED_SHAPE_PACKING[option.id]?.dimensionKeys.includes(
-                    dimension.key,
-                  );
-                  const checked = option.dimensionKeys?.includes(dimension.key) ?? false;
-                  return (
-                    <label key={dimension.key} className="flex items-center gap-1 text-sm">
-                      <input
-                        type="checkbox"
-                        aria-label={`Use ${dimension.label} on ${option.label}`}
-                        checked={checked || Boolean(locked)}
-                        disabled={Boolean(locked)}
-                        onChange={(event) =>
-                          toggleDimension(option.id, dimension.key, event.target.checked)
-                        }
-                      />
-                      {dimension.label}
-                    </label>
-                  );
-                })}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  aria-label={`New dimension field for ${option.label}`}
-                  placeholder="New dimension field"
-                  value={newDimensionLabels[option.id] ?? ""}
-                  onChange={(event) =>
-                    setNewDimensionLabels((current) => ({
-                      ...current,
-                      [option.id]: event.target.value,
-                    }))
-                  }
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={!(newDimensionLabels[option.id] ?? "").trim()}
-                  aria-label={`Add dimension field to ${option.label}`}
-                  onClick={() => addDimensionField(option.id)}
-                >
-                  Add dimension field
-                </Button>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Size pattern</Label>
-                <Input
-                  aria-label={`Size pattern for ${option.label}`}
-                  value={option.sizePattern ?? ""}
-                  placeholder="{width} x {height} {unit}"
-                  onChange={(event) => {
-                    const sizePattern = event.target.value.trim();
-                    updateOption(option.id, (current) => ({
-                      ...current,
-                      sizePattern: sizePattern || undefined,
-                    }));
-                  }}
-                />
-              </div>
-            </div>
-          ) : null}
         </div>
       ))}
       <div className="flex gap-2">
@@ -363,9 +233,7 @@ function ShapeOptionRemovalControls({
   }
 
   const countText =
-    count === null
-      ? "materials that used it"
-      : `${count} material${count === 1 ? "" : "s"}`;
+    count === null ? "materials that used it" : `${count} material${count === 1 ? "" : "s"}`;
 
   return (
     <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/30 sm:col-span-4">
@@ -373,10 +241,22 @@ function ShapeOptionRemovalControls({
         Delete {optionLabel}? This clears Shape and Size on {countText}.
       </p>
       <div className="flex gap-2">
-        <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => void confirm()}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={busy}
+          onClick={() => void confirm()}
+        >
           Delete option
         </Button>
-        <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => setOpen(false)}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={() => setOpen(false)}
+        >
           Cancel
         </Button>
       </div>

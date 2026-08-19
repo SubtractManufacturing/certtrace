@@ -1,5 +1,5 @@
 import type { RemoveSchemaDefinitionInput } from "@certtrace/library-engine";
-import { defaultFieldSchemaV1 } from "@certtrace/types";
+import { defaultFieldSchemaV1, type FieldSchemaV1 } from "@certtrace/types";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -7,6 +7,7 @@ import { chooseSelectOption } from "../test/select-helpers";
 import { SchemaSettingsEditor } from "./SchemaSettingsEditor";
 
 function renderEditor(options?: {
+  schema?: FieldSchemaV1;
   onRemoveDefinition?: (input: RemoveSchemaDefinitionInput) => Promise<void>;
   onRemoveShapeOption?: (optionId: string) => Promise<void>;
   onCountShapeOptionMaterials?: (optionId: string) => Promise<number>;
@@ -14,7 +15,7 @@ function renderEditor(options?: {
   const onChange = vi.fn();
 
   function Harness() {
-    const [schema, setSchema] = useState(defaultFieldSchemaV1);
+    const [schema, setSchema] = useState(options?.schema ?? defaultFieldSchemaV1);
     return (
       <SchemaSettingsEditor
         schema={schema}
@@ -223,20 +224,6 @@ describe("SchemaSettingsEditor", { timeout: 20_000 }, () => {
     });
   });
 
-  it("packs a reusable dimension onto a Shape option", async () => {
-    const onChange = renderEditor();
-
-    fireEvent.click(screen.getByLabelText("Use Height on Square bar"));
-
-    const shape = onChange.mock.calls
-      .at(-1)?.[0]
-      .fields.find((field: { key: string }) => field.key === "shape");
-    expect(shape.options.find((option: { id: string }) => option.id === "square_bar")).toMatchObject({
-      dimensionKeys: ["width", "height"],
-      sizePattern: "{width} x {width} {unit}",
-    });
-  });
-
   it("starts a new Shape option unpacked", async () => {
     const onChange = renderEditor();
 
@@ -249,31 +236,13 @@ describe("SchemaSettingsEditor", { timeout: 20_000 }, () => {
     expect(shape.options.at(-1)).toEqual({ id: "angle", label: "Angle" });
   });
 
-  it("creates a dimension Field from the Shape editor and lists it on that option", async () => {
-    const onChange = renderEditor();
-
-    setInputValue(screen.getByLabelText("New dimension field for Square bar"), "Leg A");
-    fireEvent.click(screen.getByRole("button", { name: "Add dimension field to Square bar" }));
-
-    const updated = onChange.mock.calls.at(-1)?.[0];
-    expect(updated.fields.at(-1)).toMatchObject({
-      key: "leg_a",
-      label: "Leg A",
-      type: "number",
-    });
-    const square = updated.fields
-      .find((field: { key: string }) => field.key === "shape")
-      .options.find((option: { id: string }) => option.id === "square_bar");
-    expect(square.dimensionKeys).toEqual(["width", "leg_a"]);
-  });
-
   it("does not offer removal for shipped dimension fields", async () => {
     renderEditor({ onRemoveDefinition: vi.fn().mockResolvedValue(undefined) });
 
     expect(screen.queryByRole("button", { name: "Remove Width" })).toBeNull();
-    expect(screen.getAllByText("Shipped dimension fields cannot be deleted").length).toBeGreaterThan(
-      0,
-    );
+    expect(
+      screen.getAllByText("Shipped dimension fields cannot be deleted").length,
+    ).toBeGreaterThan(0);
   });
 
   it("confirms Shape option delete with material count", async () => {
@@ -295,11 +264,20 @@ describe("SchemaSettingsEditor", { timeout: 20_000 }, () => {
 
   it("warns which Shapes list a custom dimension before delete", async () => {
     const onRemoveDefinition = vi.fn().mockResolvedValue(undefined);
-    const onChange = renderEditor({ onRemoveDefinition });
-
-    setInputValue(screen.getByLabelText("New dimension field for Square bar"), "Leg A");
-    fireEvent.click(screen.getByRole("button", { name: "Add dimension field to Square bar" }));
-    expect(onChange).toHaveBeenCalled();
+    const schema = structuredClone(defaultFieldSchemaV1);
+    schema.fields.push({
+      key: "leg_a",
+      label: "Leg A",
+      type: "number",
+      required: false,
+      filterable: false,
+    });
+    const shape = schema.fields.find((field) => field.key === "shape");
+    const square = shape?.options?.find((option) => option.id === "square_bar");
+    if (square) {
+      square.dimensionKeys = ["width", "leg_a"];
+    }
+    renderEditor({ onRemoveDefinition, schema });
 
     fireEvent.click(screen.getByRole("button", { name: "Remove Leg A" }));
     expect(

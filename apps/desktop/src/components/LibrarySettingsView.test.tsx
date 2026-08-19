@@ -1,6 +1,6 @@
 import type { OpenLibraryResult } from "@certtrace/library-engine";
 import { createDefaultLibraryConfigV1, defaultFieldSchemaV1 } from "@certtrace/types";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { updateLibraryFieldSchema } from "../lib/library-client";
@@ -9,6 +9,7 @@ import { LibrarySettingsView } from "./LibrarySettingsView";
 vi.mock("../lib/library-client", () => ({
   updateLibraryFieldSchema: vi.fn(),
   updateLibraryConfigPartial: vi.fn(),
+  removeLibrarySchemaDefinition: vi.fn(),
   fetchMaterials: vi.fn().mockResolvedValue([]),
 }));
 
@@ -77,7 +78,9 @@ describe("LibrarySettingsView", () => {
       />,
     );
 
+    expect(screen.getByRole("heading", { name: "Units" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Material columns" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Shapes" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Label Templates" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Advanced settings/i })).toBeTruthy();
     expect(
@@ -100,6 +103,33 @@ describe("LibrarySettingsView", () => {
     expect(
       screen.getByRole("button", { name: /Expand Label Templates/i }).getAttribute("aria-expanded"),
     ).toBe("false");
+  });
+
+  it("collapses Units by default and shows Millimeter after expand", async () => {
+    render(
+      <LibrarySettingsView
+        library={sampleLibrary}
+        onOpenAdvancedSettings={() => undefined}
+        onLibraryUpdated={() => undefined}
+        onRefreshLibrary={async () => undefined}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Units" })).toBeTruthy();
+    expect(screen.queryByText("Measurements")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /Expand Units/i }).getAttribute("aria-expanded"),
+    ).toBe("false");
+
+    await userEvent.click(screen.getByRole("button", { name: /Expand Units/i }));
+    expect(
+      screen.getByText(
+        "Default for new Size in this library. App default follows Global settings.",
+      ),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("Default unit"));
+    expect(screen.getByRole("option", { name: "Millimeter" })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: "Millimetre" })).toBeNull();
   });
 
   it("expands Label Templates when deep-linked from Label preview", () => {
