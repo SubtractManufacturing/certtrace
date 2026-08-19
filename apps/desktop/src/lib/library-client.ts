@@ -97,7 +97,10 @@ export async function pickParentFolder(title: string): Promise<string | null> {
 function parentPath(path: string): string {
   const trimmed = path.replace(/[/\\]+$/, "");
   const separatorIndex = Math.max(trimmed.lastIndexOf("/"), trimmed.lastIndexOf("\\"));
-  return separatorIndex <= 0 ? trimmed : trimmed.slice(0, separatorIndex);
+  if (separatorIndex < 0) {
+    return trimmed;
+  }
+  return separatorIndex === 0 ? trimmed.slice(0, 1) : trimmed.slice(0, separatorIndex);
 }
 
 function folderNameFromPath(path: string): string {

@@ -124,6 +124,13 @@ describe("library backup and restore client", () => {
       [...LIBRARY_BACKUP_SKIP_PREFIXES],
       [...LIBRARY_BACKUP_SKIP_NAMES],
     );
+    expect(allowLibraryDirectory).toHaveBeenCalledWith("/backups", { recursive: false });
+  });
+
+  it("grants access to filesystem root when saving a backup there", async () => {
+    await backupLibraryAtPath("/libraries/Main Shop", "/shop.zip");
+
+    expect(allowLibraryDirectory).toHaveBeenCalledWith("/", { recursive: false });
   });
 
   it("deletes the dest folder when unzip or open fails", async () => {
