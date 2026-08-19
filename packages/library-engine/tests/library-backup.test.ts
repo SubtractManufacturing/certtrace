@@ -1,6 +1,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { FileSystem } from "@certtrace/file-storage";
 import { createNodeFileSystem } from "@certtrace/file-storage/node";
 import {
   FIELD_SCHEMA_JSON,
@@ -63,6 +64,9 @@ describe("findLibraryRootPrefix", () => {
       new LibraryError("This ZIP is not a CertTrace library."),
     );
     expect(() => findLibraryRootPrefix(requiredAtPrefix("nested/Shop Materials"))).toThrow(
+      new LibraryError("This ZIP is not a CertTrace library."),
+    );
+    expect(() => findLibraryRootPrefix(requiredAtPrefix(".."))).toThrow(
       new LibraryError("This ZIP is not a CertTrace library."),
     );
   });
@@ -129,5 +133,20 @@ describe("assertRestoreDestinationFree", () => {
     } finally {
       await rm(parentDir, { recursive: true, force: true });
     }
+  });
+
+  it("detects occupancy for a destination directly under POSIX root", async () => {
+    const nodeFs = createNodeFileSystem();
+    const fs: FileSystem = {
+      ...nodeFs,
+      readdir: async (path) => {
+        expect(path).toBe("/");
+        return [{ name: "Main Shop", isDirectory: true }];
+      },
+    };
+
+    await expect(assertRestoreDestinationFree(fs, "/Main Shop")).rejects.toThrow(
+      new LibraryError("A folder already exists at /Main Shop"),
+    );
   });
 });

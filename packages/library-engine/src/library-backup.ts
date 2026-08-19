@@ -81,7 +81,7 @@ export function findLibraryRootPrefix(entryPaths: string[]): string {
     throw new LibraryError(ZIP_NOT_A_LIBRARY);
   }
 
-  if (first.includes("/")) {
+  if (first === "." || first === ".." || first.includes("/")) {
     throw new LibraryError(ZIP_NOT_A_LIBRARY);
   }
 
@@ -123,8 +123,11 @@ export function parseLibraryNameFromConfigJson(raw: string): string {
 function splitDestPath(dest: string): { parent: string; name: string } {
   const trimmed = dest.replace(/[/\\]+$/, "");
   const separatorIndex = Math.max(trimmed.lastIndexOf("/"), trimmed.lastIndexOf("\\"));
-  if (separatorIndex <= 0) {
-    return { parent: trimmed, name: trimmed };
+  if (separatorIndex < 0) {
+    return { parent: ".", name: trimmed };
+  }
+  if (separatorIndex === 0) {
+    return { parent: "/", name: trimmed.slice(1) };
   }
   return {
     parent: trimmed.slice(0, separatorIndex),
