@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.5](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.4...desktop-v0.0.5) (2026-08-20)
+
+
+### Features
+
+* Add Base Dimension Material Size Tracking with customizable interface ([9320a31](https://github.com/SubtractManufacturing/certtrace/commit/9320a31092a5d8b1e3f8183286e62d6a872cd788))
+* Add library backup and restore ([8553460](https://github.com/SubtractManufacturing/certtrace/commit/8553460429bbd222739495ee8319a46e80bf0ca9))
+
 ## [0.0.4](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.3...desktop-v0.0.4) (2026-08-11)
 
 
