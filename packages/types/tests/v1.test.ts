@@ -24,6 +24,10 @@ import {
 } from "../src/schemas/v1.js";
 import {
   createDefaultLibraryConfigV1,
+  DEFAULT_ADJECTIVES,
+  DEFAULT_ANIMALS,
+  DEFAULT_COLORS,
+  DEFAULT_ID_STRATEGY_ID,
   defaultFieldSchemaV1,
   defaultNamingRulesV1,
   defaultWordListsV1,
@@ -58,10 +62,11 @@ describe("libraryConfigV1Schema", () => {
 });
 
 describe("namingRulesV1Schema", () => {
-  it("validates shipped default presets", () => {
-    expect(namingRulesV1Schema.parse(defaultNamingRulesV1).activeStrategyId).toBe(
-      "material-animal-number",
-    );
+  it("validates the shipped adjective-color-animal default", () => {
+    const parsed = namingRulesV1Schema.parse(defaultNamingRulesV1);
+    expect(parsed.activeStrategyId).toBe(DEFAULT_ID_STRATEGY_ID);
+    expect(parsed.strategies.map((strategy) => strategy.id)).toEqual([DEFAULT_ID_STRATEGY_ID]);
+    expect(parsed.strategies[0]?.template).toBe("{word:adjectives}-{word:colors}-{word:animals}");
   });
 
   it("rejects activeStrategyId that does not exist", () => {
@@ -75,7 +80,27 @@ describe("namingRulesV1Schema", () => {
 
 describe("wordListsV1Schema", () => {
   it("validates default word lists", () => {
-    expect(Object.keys(wordListsV1Schema.parse(defaultWordListsV1).lists)).toContain("animals");
+    expect(Object.keys(wordListsV1Schema.parse(defaultWordListsV1).lists)).toEqual([
+      "adjectives",
+      "colors",
+      "animals",
+    ]);
+  });
+
+  it("ships unique lowercase words with millions of combinations", () => {
+    const unique = (words: readonly string[]) => new Set(words).size === words.length;
+    expect(unique(DEFAULT_ADJECTIVES)).toBe(true);
+    expect(unique(DEFAULT_COLORS)).toBe(true);
+    expect(unique(DEFAULT_ANIMALS)).toBe(true);
+    expect(DEFAULT_ADJECTIVES).toHaveLength(412);
+    expect(DEFAULT_COLORS).toHaveLength(100);
+    expect(DEFAULT_ANIMALS).toHaveLength(100);
+    expect(DEFAULT_ADJECTIVES.length * DEFAULT_COLORS.length * DEFAULT_ANIMALS.length).toBe(
+      4_120_000,
+    );
+    for (const word of [...DEFAULT_ADJECTIVES, ...DEFAULT_COLORS, ...DEFAULT_ANIMALS]) {
+      expect(word).toMatch(/^[a-z0-9]+$/);
+    }
   });
 });
 

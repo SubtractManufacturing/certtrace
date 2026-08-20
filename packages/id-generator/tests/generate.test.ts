@@ -1,20 +1,37 @@
-import { defaultNamingRulesV1, defaultWordListsV1 } from "@certtrace/types";
+import { defaultNamingRulesV1, defaultWordListsV1, SCHEMA_VERSION } from "@certtrace/types";
 import { describe, expect, it } from "vitest";
 import { generateMaterialId, IdGeneratorError, previewMaterialId } from "../src/index.js";
 
-const strategy = (id: string) => {
-  const found = defaultNamingRulesV1.strategies.find((entry) => entry.id === id);
-  if (!found) {
-    throw new Error(`missing strategy ${id}`);
-  }
-  return found;
+const tinyWordLists = {
+  version: SCHEMA_VERSION,
+  lists: {
+    adjectives: { label: "Adjectives", words: ["cute", "brave"] },
+    colors: { label: "Colors", words: ["purple", "gold"] },
+    animals: { label: "Animals", words: ["panda", "falcon"] },
+  },
+};
+
+const numericStrategy = {
+  id: "numeric",
+  label: "Numeric only",
+  template: "{number}",
+  numberStart: 10001,
+  numberPad: 0,
+};
+
+const materialAnimalNumberStrategy = {
+  id: "material-animal-number",
+  label: "Material + animal + number",
+  template: "{material}-{word:animals}-{number}",
+  numberPad: 3,
+  case: "lower" as const,
 };
 
 describe("generateMaterialId", () => {
   it("generates numeric ids with numberStart", () => {
     const id = generateMaterialId({
-      strategy: strategy("numeric"),
-      wordLists: defaultWordListsV1,
+      strategy: numericStrategy,
+      wordLists: tinyWordLists,
       existingIds: new Set(),
     });
     expect(id).toBe("10001");
@@ -22,38 +39,53 @@ describe("generateMaterialId", () => {
 
   it("uses the selected Family option short code for the material token", () => {
     const id = generateMaterialId({
-      strategy: strategy("material-animal-number"),
-      wordLists: defaultWordListsV1,
+      strategy: materialAnimalNumberStrategy,
+      wordLists: tinyWordLists,
       existingIds: new Set(),
       materialOption: { id: "aluminum", label: "Aluminum", shortCode: "AL" },
       random: () => 0,
     });
-    expect(id).toBe("al-falcon-001");
+    expect(id).toBe("al-panda-001");
   });
 
   it("uses the selected Family option label when its short code is empty", () => {
     const id = generateMaterialId({
-      strategy: strategy("material-animal-number"),
-      wordLists: defaultWordListsV1,
+      strategy: materialAnimalNumberStrategy,
+      wordLists: tinyWordLists,
       existingIds: new Set(),
       materialOption: { id: "stainless", label: "Stainless Steel" },
       random: () => 0,
     });
-    expect(id).toBe("stainless-steel-falcon-001");
+    expect(id).toBe("stainless-steel-panda-001");
   });
 
   it("increments number on collision", () => {
     const first = generateMaterialId({
-      strategy: strategy("numeric"),
-      wordLists: defaultWordListsV1,
+      strategy: numericStrategy,
+      wordLists: tinyWordLists,
       existingIds: new Set(),
     });
     const second = generateMaterialId({
-      strategy: strategy("numeric"),
-      wordLists: defaultWordListsV1,
+      strategy: numericStrategy,
+      wordLists: tinyWordLists,
       existingIds: new Set([first]),
     });
     expect(second).toBe("10002");
+  });
+
+  it("re-rolls word tokens until the id is unique", () => {
+    let calls = 0;
+    const id = generateMaterialId({
+      strategy: defaultNamingRulesV1.strategies[0]!,
+      wordLists: tinyWordLists,
+      existingIds: new Set(["cute-purple-panda"]),
+      random: () => {
+        const value = calls < 3 ? 0 : 0.9;
+        calls += 1;
+        return value;
+      },
+    });
+    expect(id).toBe("brave-gold-falcon");
   });
 
   it("supports legacy {animal} shorthand", () => {
@@ -65,18 +97,23 @@ describe("generateMaterialId", () => {
         numberPad: 3,
         case: "lower",
       },
-      wordLists: defaultWordListsV1,
+      wordLists: tinyWordLists,
       existingIds: new Set(),
       random: () => 0,
     });
-    expect(id).toBe("falcon-001");
+    expect(id).toBe("panda-001");
   });
 
   it("throws when the selected Family option is missing", () => {
     expect(() =>
       generateMaterialId({
-        strategy: strategy("prefix-numeric"),
-        wordLists: defaultWordListsV1,
+        strategy: {
+          id: "prefix-numeric",
+          label: "Prefix + numeric",
+          template: "{material}-{number}",
+          numberPad: 0,
+        },
+        wordLists: tinyWordLists,
         existingIds: new Set(),
       }),
     ).toThrow(IdGeneratorError);
@@ -84,36 +121,24 @@ describe("generateMaterialId", () => {
 });
 
 describe("previewMaterialId", () => {
-  it("returns deterministic preview samples", () => {
+  it("returns deterministic preview samples for the shipped default", () => {
     expect(
       previewMaterialId({
-        strategy: strategy("word-pair"),
+        strategy: defaultNamingRulesV1.strategies[0]!,
         wordLists: defaultWordListsV1,
       }),
-    ).toBe("blue-falcon");
+    ).toBe("able-red-dog");
   });
 });
 
-describe("shipped presets", () => {
-  const presetIds = [
-    "numeric",
-    "prefix-numeric",
-    "date-based",
-    "word-pair",
-    "three-word",
-    "animal-number",
-    "material-animal-number",
-  ] as const;
-
-  it.each(presetIds)("generates unique id for preset %s", (presetId) => {
+describe("shipped default", () => {
+  it("generates a unique adjective-color-animal id", () => {
     const id = generateMaterialId({
-      strategy: strategy(presetId),
+      strategy: defaultNamingRulesV1.strategies[0]!,
       wordLists: defaultWordListsV1,
       existingIds: new Set(),
-      materialOption: { id: "aluminum", label: "Aluminum", shortCode: "AL" },
-      now: new Date("2026-05-28T12:00:00.000Z"),
       random: () => 0,
     });
-    expect(id.length).toBeGreaterThan(0);
+    expect(id).toBe("able-red-dog");
   });
 });
