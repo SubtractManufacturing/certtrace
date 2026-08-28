@@ -23,15 +23,15 @@
   "dependencies": {
     "@certtrace/file-storage": "workspace:*",
     "@certtrace/types": "workspace:*",
-    "bwip-js": "^4.11.2",
+    "bwip-js": "^4.11.4",
     "pdf-lib": "^1.17.1",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@types/bwip-js": "^3.2.3",
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.3.0",
     "@types/qrcode": "^1.5.5",
     "typescript": "~7.0.2",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   }
 }
