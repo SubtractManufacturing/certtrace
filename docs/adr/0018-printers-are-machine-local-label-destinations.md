@@ -1,0 +1,3 @@
+# Printers are machine-local destinations for Labels
+
+A Label Template is a library-owned recipe for how a Label looks (ADR-0007). Where it prints is this computer's: a Printer is a shop-named destination that refers to one already-configured OS print queue. Each Label Template may have one Printer on this computer; that link lives in app settings, not in the library, so backups, restores, and other machines start unset. After preview, Print sends the PDF 1:1 at the template's page size to that queue. Rejected: storing a printer on the Label Template / in library.json; sending to an OS queue that was never added as a Printer; fit-to-page scaling; silent print without a preview.
