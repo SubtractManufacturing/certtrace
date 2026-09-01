@@ -1,7 +1,7 @@
 # CertTrace — Locked Decisions Register
 
 > **Status:** Active  
-> **Last updated:** 2026-08-01  
+> **Last updated:** 2026-09-01  
 > **Related:** [spec.md](spec.md) (architecture reference), [roadmap.md](roadmap.md) (phases)
 
 This document is the single source of truth for product and engineering decisions. When the spec and this document conflict, **this document wins** for implementation choices.
@@ -17,7 +17,7 @@ This document is the single source of truth for product and engineering decision
 | **Primary dev machines** | Developer tests on both macOS and Windows as features land. |
 | **Scanner integration** | **Deferred** from v0.1. No USB wedge or camera scanning until hardware/testing path is available. |
 | **Search scope** | When the library view is set to **All libraries**, the search box searches across all open/recent libraries. When a single library is selected, search is scoped to that library. |
-| **Label output** | **PDF export** is sufficient for v0.1. System print dialog via exported PDF. |
+| **Label output** | Preview, then send the PDF 1:1 at the Label Template size to a registered **Printer** on this computer (ADR-0018). Save PDF remains. Supersedes v0.1 “system print dialog via exported PDF.” |
 
 ---
 
