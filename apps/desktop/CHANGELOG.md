@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.6](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.5...desktop-v0.0.6) (2026-09-07)
+
+
+### Bug Fixes
+
+* Improve printing flow vastly ([e1cf242](https://github.com/SubtractManufacturing/certtrace/commit/e1cf2424c3baaf11d9477dfbb7b35780b15cf116))
+
 ## [0.0.5](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.4...desktop-v0.0.5) (2026-08-20)
 
 
