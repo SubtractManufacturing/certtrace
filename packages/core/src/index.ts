@@ -1,10 +1,14 @@
 export {
   APP_SETTINGS_FILENAME,
   AppSettingsError,
+  addRegisteredPrinter,
+  assignLabelTemplatePrinter,
+  deleteRegisteredPrinter,
   readAppSettings,
   removeLibraryFromAppSettings,
   removeRecentLibrary,
   touchRecentLibrary,
+  updateRegisteredPrinter,
   writeAppSettings,
 } from "./app-settings.js";
 export {

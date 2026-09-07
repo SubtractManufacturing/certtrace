@@ -15,6 +15,22 @@ export const recentLibraryEntryV1Schema = z.object({
 
 export type RecentLibraryEntryV1 = z.infer<typeof recentLibraryEntryV1Schema>;
 
+export const registeredPrinterV1Schema = z.object({
+  id: z.string().min(1),
+  name: z.string().trim().min(1),
+  queueName: z.string().min(1),
+});
+
+export type RegisteredPrinterV1 = z.infer<typeof registeredPrinterV1Schema>;
+
+export const labelTemplatePrinterV1Schema = z.object({
+  libraryPath: z.string().min(1),
+  labelTemplateId: z.string().min(1),
+  printerId: z.string().min(1),
+});
+
+export type LabelTemplatePrinterV1 = z.infer<typeof labelTemplatePrinterV1Schema>;
+
 export const appSettingsV1Schema = z.object({
   version: z.literal(APP_SETTINGS_VERSION),
   theme: appSettingsThemeSchema,
@@ -28,6 +44,10 @@ export const appSettingsV1Schema = z.object({
   includeArchivedMaterialsInSearch: z.boolean().default(false),
   /** Default unit for new Size entry and measurement UIs (shipped inch). */
   defaultUnit: sizeUnitSchema.default("in"),
+  /** Shop-named destinations registered on this computer. */
+  printers: z.array(registeredPrinterV1Schema).default([]),
+  /** Per-computer Label Template destinations, keyed by Library path and template id. */
+  labelTemplatePrinters: z.array(labelTemplatePrinterV1Schema).default([]),
 });
 
 export type AppSettingsV1 = z.infer<typeof appSettingsV1Schema>;
@@ -44,5 +64,7 @@ export function createDefaultAppSettingsV1(): AppSettingsV1 {
     defaultLibraryOnLaunch: null,
     includeArchivedMaterialsInSearch: false,
     defaultUnit: "in",
+    printers: [],
+    labelTemplatePrinters: [],
   };
 }

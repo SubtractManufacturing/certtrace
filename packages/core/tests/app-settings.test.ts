@@ -6,10 +6,14 @@ import { createNodeFileSystem } from "@certtrace/file-storage/node";
 import { createDefaultAppSettingsV1 } from "@certtrace/types";
 import { describe, expect, it } from "vitest";
 import {
+  addRegisteredPrinter,
+  assignLabelTemplatePrinter,
+  deleteRegisteredPrinter,
   readAppSettings,
   removeLibraryFromAppSettings,
   removeRecentLibrary,
   touchRecentLibrary,
+  updateRegisteredPrinter,
   writeAppSettings,
 } from "../src/app-settings.js";
 
@@ -26,6 +30,8 @@ describe("app settings", () => {
       expect(settings).toEqual(createDefaultAppSettingsV1());
       expect(settings.includeArchivedMaterialsInSearch).toBe(false);
       expect(settings.defaultUnit).toBe("in");
+      expect(settings.printers).toEqual([]);
+      expect(settings.labelTemplatePrinters).toEqual([]);
     } finally {
       await rm(settingsDir, { recursive: true, force: true });
     }
@@ -90,6 +96,8 @@ describe("app settings", () => {
 
       const settings = await readAppSettings(fs, settingsDir);
       expect(settings.defaultUnit).toBe("in");
+      expect(settings.printers).toEqual([]);
+      expect(settings.labelTemplatePrinters).toEqual([]);
     } finally {
       await rm(settingsDir, { recursive: true, force: true });
     }
@@ -194,5 +202,141 @@ describe("app settings", () => {
 
     expect(removed.recentLibraries.map((entry) => entry.path)).toEqual(["/a"]);
     expect(removed.defaultLibraryOnLaunch).toBe("/a");
+  });
+
+  it("clears machine-local template assignments when removing a Library", () => {
+    const registered = addRegisteredPrinter(createDefaultAppSettingsV1(), {
+      id: "printer-office",
+      name: "Rack labels",
+      queueName: "Zebra ZD421",
+    });
+    const assigned = assignLabelTemplatePrinter(
+      registered,
+      "/libraries/main",
+      "starter-4x6",
+      "printer-office",
+    );
+
+    const removed = removeLibraryFromAppSettings(assigned, "/libraries/main");
+
+    expect(removed.labelTemplatePrinters).toEqual([]);
+  });
+
+  it("registers a uniquely named unused OS queue", () => {
+    const settings = createDefaultAppSettingsV1();
+
+    const updated = addRegisteredPrinter(settings, {
+      id: "printer-office",
+      name: "Shipping labels",
+      queueName: "Zebra ZD421",
+    });
+
+    expect(updated.printers).toEqual([
+      {
+        id: "printer-office",
+        name: "Shipping labels",
+        queueName: "Zebra ZD421",
+      },
+    ]);
+    expect(() =>
+      addRegisteredPrinter(updated, {
+        id: "printer-duplicate-name",
+        name: " shipping LABELS ",
+        queueName: "Brother QL",
+      }),
+    ).toThrow(/name is already registered/i);
+    expect(() =>
+      addRegisteredPrinter(updated, {
+        id: "printer-duplicate-queue",
+        name: "Zebra",
+        queueName: "zebra zd421",
+      }),
+    ).toThrow(/queue is already registered/i);
+  });
+
+  it("renames and retargets a Printer without changing template assignments", () => {
+    const first = addRegisteredPrinter(createDefaultAppSettingsV1(), {
+      id: "printer-office",
+      name: "Shipping labels",
+      queueName: "Zebra ZD421",
+    });
+    const assigned = assignLabelTemplatePrinter(
+      first,
+      "/libraries/main",
+      "starter-4x6",
+      "printer-office",
+    );
+
+    const updated = updateRegisteredPrinter(assigned, {
+      id: "printer-office",
+      name: "Rack labels",
+      queueName: "Brother QL",
+    });
+
+    expect(updated.printers[0]).toEqual({
+      id: "printer-office",
+      name: "Rack labels",
+      queueName: "Brother QL",
+    });
+    expect(updated.labelTemplatePrinters[0]?.printerId).toBe("printer-office");
+  });
+
+  it("stores one assignment per machine-local Library path and template", () => {
+    const withPrinters = addRegisteredPrinter(
+      addRegisteredPrinter(createDefaultAppSettingsV1(), {
+        id: "printer-a",
+        name: "A",
+        queueName: "Queue A",
+      }),
+      { id: "printer-b", name: "B", queueName: "Queue B" },
+    );
+    const assignedA = assignLabelTemplatePrinter(
+      withPrinters,
+      "/libraries/main",
+      "starter-4x6",
+      "printer-a",
+    );
+    const assignedB = assignLabelTemplatePrinter(
+      assignedA,
+      "/libraries/main",
+      "starter-4x6",
+      "printer-b",
+    );
+
+    expect(assignedB.labelTemplatePrinters).toEqual([
+      {
+        libraryPath: "/libraries/main",
+        labelTemplateId: "starter-4x6",
+        printerId: "printer-b",
+      },
+    ]);
+    expect(() =>
+      assignLabelTemplatePrinter(assignedB, "/libraries/main", "starter-letter", "missing"),
+    ).toThrow(/not registered/i);
+  });
+
+  it("deleting a Printer clears every template assignment that used it", () => {
+    const registered = addRegisteredPrinter(createDefaultAppSettingsV1(), {
+      id: "printer-office",
+      name: "Shipping labels",
+      queueName: "Zebra ZD421",
+    });
+    const first = assignLabelTemplatePrinter(
+      registered,
+      "/libraries/main",
+      "starter-4x6",
+      "printer-office",
+    );
+    const second = assignLabelTemplatePrinter(
+      first,
+      "/libraries/other",
+      "starter-letter",
+      "printer-office",
+    );
+
+    const deleted = deleteRegisteredPrinter(second, "printer-office");
+
+    expect(deleted.printers).toEqual([]);
+    expect(deleted.labelTemplatePrinters).toEqual([]);
   });
 });
