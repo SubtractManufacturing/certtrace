@@ -120,5 +120,16 @@ jobs:
         working-directory: apps/desktop/src-tauri
         run: cargo test
 
+      - name: Stage PDFium for Windows bundle
+        if: matrix.platform == 'windows'
+        working-directory: apps/desktop/src-tauri
+        shell: pwsh
+        run: |
+          ./scripts/stage-pdfium.ps1
+          $dll = Get-Item -LiteralPath 'pdfium.dll'
+          if ($dll.Length -le 0) {
+            throw 'pdfium.dll was not staged next to the Tauri config. Windows installers would ship without it.'
+          }
+
       - name: Build desktop app
         run: pnpm build

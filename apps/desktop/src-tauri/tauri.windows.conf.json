@@ -1,0 +1,10 @@
+{
+  "build": {
+    "beforeBundleCommand": "powershell -NoProfile -ExecutionPolicy Bypass -File src-tauri/scripts/stage-pdfium.ps1"
+  },
+  "bundle": {
+    "resources": {
+      "pdfium.dll": "pdfium.dll"
+    }
+  }
+}
