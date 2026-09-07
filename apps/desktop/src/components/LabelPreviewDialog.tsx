@@ -13,7 +13,7 @@ import {
   Select,
 } from "@certtrace/ui";
 import { Printer, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePrinterSettings } from "../contexts/PrinterSettingsContext";
 import { generateLibraryLabelPdf, printLabelPdf, saveLabelPdfViaDialog } from "../lib/label-client";
 import { ErrorBanner } from "./ErrorBanner";
@@ -59,6 +59,7 @@ export function LabelPreviewDialog({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [printerWasManuallyCleared, setPrinterWasManuallyCleared] = useState(false);
+  const assignmentInFlightRef = useRef(false);
 
   const selectedTemplate = resolveSelectedTemplate(
     templates,
@@ -80,6 +81,10 @@ export function LabelPreviewDialog({
     setPrinterWasManuallyCleared(false);
     void refreshQueues();
   }, [open, library.config.defaultLabelTemplateId, refreshQueues]);
+
+  useEffect(() => {
+    setPrinterWasManuallyCleared(false);
+  }, [selectedTemplateId]);
 
   useEffect(() => {
     if (!open || !selectedTemplate) {
@@ -197,7 +202,7 @@ export function LabelPreviewDialog({
                   onManagePrinters?.();
                   return;
                 }
-                if (!selectedTemplate) {
+                if (!selectedTemplate || assignmentInFlightRef.current) {
                   return;
                 }
                 const printerId = event.target.value || null;
@@ -207,11 +212,21 @@ export function LabelPreviewDialog({
                 const printAfterAssignment =
                   !canPrint && !printerWasManuallyCleared && printerId !== null;
                 setError(null);
+                assignmentInFlightRef.current = true;
+                setBusy(true);
                 void assignPrinter(library.paths.root, selectedTemplate.id, printerId)
-                  .then(() => (printAfterAssignment ? printWith(printerId) : undefined))
+                  .then(async () => {
+                    if (printAfterAssignment) {
+                      await printWith(printerId);
+                    }
+                  })
                   .catch((reason) =>
                     setError(reason instanceof Error ? reason.message : String(reason)),
-                  );
+                  )
+                  .finally(() => {
+                    assignmentInFlightRef.current = false;
+                    setBusy(false);
+                  });
               }}
             >
               <option value="">No Printer</option>

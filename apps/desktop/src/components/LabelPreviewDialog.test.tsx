@@ -5,12 +5,13 @@ import {
   createLabelContentItem,
   defaultFieldSchemaV1,
 } from "@certtrace/types";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { type ReactNode, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PrinterSettingsProvider } from "../contexts/PrinterSettingsContext";
 import { generateLibraryLabelPdf, printLabelPdf, saveLabelPdfViaDialog } from "../lib/label-client";
+import { listOsPrinterQueues } from "../lib/printer-client";
 import { chooseSelectOption, getSelectValue } from "../test/select-helpers";
 import { LabelPreviewDialog } from "./LabelPreviewDialog";
 
@@ -98,6 +99,7 @@ describe("LabelPreviewDialog", () => {
       pdf: new Uint8Array([1, 2, 3]),
       warnings: [],
     });
+    vi.mocked(listOsPrinterQueues).mockResolvedValue(["Zebra ZD421"]);
   });
 
   it("opens on the library default Label Template", async () => {
@@ -270,6 +272,48 @@ describe("LabelPreviewDialog", () => {
     expect(printLabelPdf).not.toHaveBeenCalled();
   });
 
+  it("auto-prints after assigning a Printer on a different template than the one just cleared", async () => {
+    const settings = {
+      ...createDefaultAppSettingsV1(),
+      printers: [{ id: "printer-zebra", name: "Rack labels", queueName: "Zebra ZD421" }],
+      labelTemplatePrinters: [
+        {
+          libraryPath: library.paths.root,
+          labelTemplateId: "starter-4x6",
+          printerId: "printer-zebra",
+        },
+      ],
+    };
+    render(
+      <StatefulPrinterSettings initialSettings={settings}>
+        <LabelPreviewDialog
+          library={library}
+          material={material}
+          open
+          onOpenChange={() => undefined}
+          onEditTemplates={() => undefined}
+        />
+      </StatefulPrinterSettings>,
+    );
+
+    const printerSelect = screen.getByLabelText("Printer");
+    await waitFor(() => expect(printerSelect.hasAttribute("disabled")).toBe(false));
+    await chooseSelectOption(printerSelect, "No Printer");
+    await waitFor(() => expect(getSelectValue(printerSelect)).toBe(""));
+
+    await chooseSelectOption(screen.getByLabelText(/Label Template/i), "8.5×11 in");
+    await waitFor(() => expect(printerSelect.hasAttribute("disabled")).toBe(false));
+    await chooseSelectOption(printerSelect, "Rack labels");
+
+    await waitFor(() => expect(printLabelPdf).toHaveBeenCalledTimes(1));
+    expect(printLabelPdf).toHaveBeenCalledWith(
+      new Uint8Array([1, 2, 3]),
+      material.id,
+      "Zebra ZD421",
+      expect.objectContaining({ id: "starter-letter" }),
+    );
+  });
+
   it("assigns and prints once when a Printer is picked while Print is blocked", async () => {
     const settings = {
       ...createDefaultAppSettingsV1(),
@@ -290,6 +334,64 @@ describe("LabelPreviewDialog", () => {
     await screen.findByLabelText(/Label Template/i);
     expect(screen.getByRole("button", { name: /^Print$/i }).hasAttribute("disabled")).toBe(true);
     await chooseSelectOption(screen.getByLabelText("Printer"), "Rack labels");
+
+    await waitFor(() => expect(printLabelPdf).toHaveBeenCalledTimes(1));
+    expect(printLabelPdf).toHaveBeenCalledWith(
+      new Uint8Array([1, 2, 3]),
+      material.id,
+      "Zebra ZD421",
+      expect.objectContaining({ id: "starter-4x6" }),
+    );
+  });
+
+  it("prints only the first assignment when a second Printer is chosen before assignment settles", async () => {
+    let releaseAssignment: (() => void) | undefined;
+    const assignmentGate = new Promise<void>((resolve) => {
+      releaseAssignment = resolve;
+    });
+    const settings = {
+      ...createDefaultAppSettingsV1(),
+      printers: [
+        { id: "printer-zebra", name: "Rack labels", queueName: "Zebra ZD421" },
+        { id: "printer-brother", name: "Shelf labels", queueName: "Brother QL" },
+      ],
+    };
+    vi.mocked(listOsPrinterQueues).mockResolvedValue(["Zebra ZD421", "Brother QL"]);
+
+    function GatedPrinterSettings({ children }: { children: ReactNode }) {
+      const [nextSettings, setSettings] = useState(settings);
+      return (
+        <PrinterSettingsProvider
+          settings={nextSettings}
+          onSettingsChange={async (updated) => {
+            await assignmentGate;
+            setSettings(updated);
+          }}
+        >
+          {children}
+        </PrinterSettingsProvider>
+      );
+    }
+
+    render(
+      <GatedPrinterSettings>
+        <LabelPreviewDialog
+          library={library}
+          material={material}
+          open
+          onOpenChange={() => undefined}
+          onEditTemplates={() => undefined}
+        />
+      </GatedPrinterSettings>,
+    );
+
+    const printerSelect = screen.getByLabelText("Printer");
+    await waitFor(() => expect(printerSelect.hasAttribute("disabled")).toBe(false));
+    await chooseSelectOption(printerSelect, "Rack labels");
+    await waitFor(() => expect(printerSelect.hasAttribute("disabled")).toBe(true));
+    fireEvent.click(printerSelect);
+    expect(screen.queryByRole("listbox")).toBeNull();
+    releaseAssignment?.();
 
     await waitFor(() => expect(printLabelPdf).toHaveBeenCalledTimes(1));
     expect(printLabelPdf).toHaveBeenCalledWith(
