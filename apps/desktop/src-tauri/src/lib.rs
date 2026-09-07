@@ -47,6 +47,7 @@ pub fn run() {
             allow_library_directory,
             open_local::open_local_path,
             open_local::reveal_local_path,
+            print::list_printer_queues,
             print::print_pdf_file,
             library_archive::cancel_library_archive,
             library_archive::list_zip_entries,
