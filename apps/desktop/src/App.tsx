@@ -482,6 +482,7 @@ function App() {
                 onEditLabelTemplates={(path) => {
                   void handleOpenLibrarySettings(path, { expandLabelTemplates: true });
                 }}
+                onManagePrinters={() => setActiveView("settings")}
                 installDefaultUnit={settings?.defaultUnit ?? "in"}
               />
             ) : null}

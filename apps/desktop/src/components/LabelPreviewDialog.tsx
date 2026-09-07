@@ -18,7 +18,6 @@ import { usePrinterSettings } from "../contexts/PrinterSettingsContext";
 import { generateLibraryLabelPdf, printLabelPdf, saveLabelPdfViaDialog } from "../lib/label-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { LabelLivePreview } from "./LabelLivePreview";
-import { PrinterForm } from "./PrinterManager";
 
 interface LabelPreviewDialogProps {
   library: OpenLibraryResult;
@@ -26,6 +25,7 @@ interface LabelPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEditTemplates: () => void;
+  onManagePrinters?: () => void;
 }
 
 function resolveSelectedTemplate(
@@ -46,15 +46,10 @@ export function LabelPreviewDialog({
   open,
   onOpenChange,
   onEditTemplates,
+  onManagePrinters,
 }: LabelPreviewDialogProps) {
-  const {
-    printers,
-    assignedPrinterId,
-    assignPrinter,
-    addPrinter,
-    isQueueAvailable,
-    refreshQueues,
-  } = usePrinterSettings();
+  const { printers, assignedPrinterId, assignPrinter, isQueueAvailable, refreshQueues } =
+    usePrinterSettings();
   const templates = library.config.labelTemplates;
   const [selectedTemplateId, setSelectedTemplateId] = useState(
     library.config.defaultLabelTemplateId,
@@ -63,7 +58,7 @@ export function LabelPreviewDialog({
   const [warnings, setWarnings] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [addingPrinter, setAddingPrinter] = useState(false);
+  const [printerWasManuallyCleared, setPrinterWasManuallyCleared] = useState(false);
 
   const selectedTemplate = resolveSelectedTemplate(
     templates,
@@ -82,6 +77,7 @@ export function LabelPreviewDialog({
     }
     setSelectedTemplateId(library.config.defaultLabelTemplateId);
     setError(null);
+    setPrinterWasManuallyCleared(false);
     void refreshQueues();
   }, [open, library.config.defaultLabelTemplateId, refreshQueues]);
 
@@ -129,6 +125,7 @@ export function LabelPreviewDialog({
     setError(null);
     try {
       await printLabelPdf(pdfBytes, material.id, printer.queueName, selectedTemplate);
+      onOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -196,14 +193,19 @@ export function LabelPreviewDialog({
               disabled={busy || !pdfBytes}
               onChange={(event) => {
                 if (event.target.value === "__add__") {
-                  setAddingPrinter(true);
+                  onOpenChange(false);
+                  onManagePrinters?.();
                   return;
                 }
                 if (!selectedTemplate) {
                   return;
                 }
                 const printerId = event.target.value || null;
-                const printAfterAssignment = !canPrint && printerId !== null;
+                if (printerId === null) {
+                  setPrinterWasManuallyCleared(true);
+                }
+                const printAfterAssignment =
+                  !canPrint && !printerWasManuallyCleared && printerId !== null;
                 setError(null);
                 void assignPrinter(library.paths.root, selectedTemplate.id, printerId)
                   .then(() => (printAfterAssignment ? printWith(printerId) : undefined))
@@ -231,38 +233,6 @@ export function LabelPreviewDialog({
               </p>
             ) : null}
           </div>
-
-          {addingPrinter && selectedTemplate ? (
-            <PrinterForm
-              onCancel={() => setAddingPrinter(false)}
-              onSave={async (name, queueName) => {
-                const printAfterAdd = !canPrint;
-                if (printAfterAdd && !pdfBytes) {
-                  throw new Error("The Label PDF is still being prepared.");
-                }
-                const bytesToPrint = pdfBytes;
-                const printer = await addPrinter(name, queueName, {
-                  libraryPath: library.paths.root,
-                  labelTemplateId: selectedTemplate.id,
-                });
-                if (printAfterAdd && bytesToPrint) {
-                  try {
-                    await printLabelPdf(
-                      bytesToPrint,
-                      material.id,
-                      printer.queueName,
-                      selectedTemplate,
-                    );
-                  } catch (reason) {
-                    setAddingPrinter(false);
-                    setError(reason instanceof Error ? reason.message : String(reason));
-                    return;
-                  }
-                }
-                setAddingPrinter(false);
-              }}
-            />
-          ) : null}
 
           {selectedTemplate ? (
             <LabelLivePreview
