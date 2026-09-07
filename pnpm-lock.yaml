@@ -122,8 +122,8 @@ importers:
         version: 1.5.4
     devDependencies:
       '@types/bwip-js':
-        specifier: ^4.0.0
-        version: 4.0.0
+        specifier: ^3.2.3
+        version: 3.2.3
       '@types/node':
         specifier: ^26.4.1
         version: 26.4.1
@@ -916,9 +916,8 @@ packages:
   '@types/aria-query@5.0.4':
     resolution: {integrity: sha512-rfT93uj5s0PRL7EzccGMs3brplhcrghnDoV26NqKhCAS1hVo+WdNsPvE/yb6ilfr5hi2MEk6d5EWJTKdxg8jVw==}
 
-  '@types/bwip-js@4.0.0':
-    resolution: {integrity: sha512-R69o++0By/0pk5OwC7J9JS0axmfWRiRFpCU3dX5BQqmmPCwY0cR6tswQvFusvxUbtUeySRaQTfwYmB4symJb3A==}
-    deprecated: This is a stub types definition. bwip-js provides its own type definitions, so you do not need this installed.
+  '@types/bwip-js@3.2.3':
+    resolution: {integrity: sha512-kgL1GOW7n5FhlC5aXnckaEim0rz1cFM4t9/xUwuNXCIDnWLx8ruQ4JQkG6znq4GQFovNLhQy5JdgbDwJw4D/zg==}
 
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
@@ -2497,9 +2496,9 @@ snapshots:
 
   '@types/aria-query@5.0.4': {}
 
-  '@types/bwip-js@4.0.0':
+  '@types/bwip-js@3.2.3':
     dependencies:
-      bwip-js: 4.11.4
+      '@types/node': 26.4.1
 
   '@types/chai@5.2.3':
     dependencies:

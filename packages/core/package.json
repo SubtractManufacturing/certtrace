@@ -28,7 +28,7 @@
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
-    "@types/bwip-js": "^4.0.0",
+    "@types/bwip-js": "^3.2.3",
     "@types/node": "^26.4.1",
     "@types/qrcode": "^1.5.5",
     "typescript": "~7.0.2",
