@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.7](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.6...desktop-v0.0.7) (2026-09-07)
+
+
+### Bug Fixes
+
+* Pdfium.dll hotfix ([e8c58c9](https://github.com/SubtractManufacturing/certtrace/commit/e8c58c9ae7660e3c4ea9f9fce44b8bbbf7e2cdeb))
+
 ## [0.0.6](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.5...desktop-v0.0.6) (2026-09-07)
 
 
