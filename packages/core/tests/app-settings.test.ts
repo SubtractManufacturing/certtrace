@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FileSystem } from "@certtrace/file-storage";
 import { createNodeFileSystem } from "@certtrace/file-storage/node";
-import { createDefaultAppSettingsV1 } from "@certtrace/types";
+import { appSettingsV1Schema, createDefaultAppSettingsV1 } from "@certtrace/types";
 import { describe, expect, it } from "vitest";
 import {
   addRegisteredPrinter,
@@ -21,6 +21,58 @@ const WINDOWS_SETTINGS_READ_ERROR =
   "failed to open file at path: C:\\Users\\test\\AppData\\Roaming\\com.subtractmanufacturing.certtrace/settings.json with error: The system cannot find the file specified. (os error 2)";
 
 describe("app settings", () => {
+  it("rejects persisted Printer states that violate registry invariants", () => {
+    const defaults = createDefaultAppSettingsV1();
+    const printer = {
+      id: "printer-a",
+      name: "Rack labels",
+      queueName: "Zebra ZD421",
+    };
+
+    expect(
+      appSettingsV1Schema.safeParse({
+        ...defaults,
+        printers: [printer, { ...printer, id: "printer-b", name: " rack LABELS " }],
+      }).success,
+    ).toBe(false);
+    expect(
+      appSettingsV1Schema.safeParse({
+        ...defaults,
+        printers: [printer, { ...printer, id: "printer-b", name: "Other" }],
+      }).success,
+    ).toBe(false);
+    expect(
+      appSettingsV1Schema.safeParse({
+        ...defaults,
+        printers: [printer],
+        labelTemplatePrinters: [
+          {
+            libraryPath: "/libraries/main",
+            labelTemplateId: "starter-4x6",
+            printerId: "printer-a",
+          },
+          {
+            libraryPath: "/libraries/main",
+            labelTemplateId: "starter-4x6",
+            printerId: "printer-a",
+          },
+        ],
+      }).success,
+    ).toBe(false);
+    expect(
+      appSettingsV1Schema.safeParse({
+        ...defaults,
+        labelTemplatePrinters: [
+          {
+            libraryPath: "/libraries/main",
+            labelTemplateId: "starter-4x6",
+            printerId: "missing",
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
   it("returns defaults when settings file is missing", async () => {
     const fs = createNodeFileSystem();
     const settingsDir = await mkdtemp(join(tmpdir(), "certtrace-settings-"));
