@@ -52,6 +52,7 @@ interface MaterialsWorkspaceProps {
   filterMaterials: (query: string) => IndexedMaterial[];
   onEnsureLibrary?: (path: string) => Promise<OpenLibraryResult | undefined>;
   onEditLabelTemplates?: (libraryPath: string) => void;
+  onManagePrinters?: () => void;
   installDefaultUnit?: SizeUnit;
 }
 
@@ -67,6 +68,7 @@ export function MaterialsWorkspace({
   filterMaterials,
   onEnsureLibrary,
   onEditLabelTemplates,
+  onManagePrinters,
   installDefaultUnit = "in",
 }: MaterialsWorkspaceProps) {
   const [query, setQuery] = useState("");
@@ -354,6 +356,7 @@ export function MaterialsWorkspace({
             setSelectedMaterial(null);
             onEditLabelTemplates?.(selectedMaterial.libraryPath);
           }}
+          onManagePrinters={onManagePrinters}
           onMaterialDeleted={async () => {
             const libraryPath = selectedMaterial.libraryPath;
             await onRefreshLibrary(libraryPath);
@@ -434,6 +437,7 @@ export function MaterialsWorkspace({
             setLabelPreviewMaterial(null);
             onEditLabelTemplates?.(activeSingleLibrary.paths.root);
           }}
+          onManagePrinters={onManagePrinters}
         />
       ) : null}
     </div>

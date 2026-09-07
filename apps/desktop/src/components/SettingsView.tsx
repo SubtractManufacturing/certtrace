@@ -13,6 +13,7 @@ import { openAppDataFolder } from "../lib/app-data-client";
 import { APP_VERSION } from "../lib/update-check";
 import { LATEST_RELEASE_PAGE_URL } from "../lib/update-client";
 import { ErrorBanner } from "./ErrorBanner";
+import { PrinterManager } from "./PrinterManager";
 import { RemoveLibraryDialog } from "./RemoveLibraryDialog";
 import { SkyThemeToggle } from "./SkyThemeToggle";
 
@@ -212,6 +213,8 @@ export function SettingsView({
             <p className="mt-4 text-sm text-slate-500">No libraries added yet.</p>
           )}
         </section>
+
+        <PrinterManager />
 
         <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <h2 className="text-lg font-semibold">Units</h2>

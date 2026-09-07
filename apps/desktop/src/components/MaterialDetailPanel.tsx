@@ -76,6 +76,7 @@ interface MaterialDetailPanelProps {
   onOpenChange: (open: boolean) => void;
   onMaterialUpdated: (material: MaterialMetadataV1) => void;
   onEditLabelTemplates: () => void;
+  onManagePrinters?: () => void;
   onMaterialDeleted: (materialId: string) => void | Promise<void>;
 }
 
@@ -91,6 +92,7 @@ export function MaterialDetailPanel({
   onOpenChange,
   onMaterialUpdated,
   onEditLabelTemplates,
+  onManagePrinters,
   onMaterialDeleted,
 }: MaterialDetailPanelProps) {
   const defaultAttachmentKind = library.fieldSchema.attachmentKinds[0]?.key ?? "";
@@ -804,6 +806,7 @@ export function MaterialDetailPanel({
           setLabelPreviewOpen(false);
           onEditLabelTemplates();
         }}
+        onManagePrinters={onManagePrinters}
       />
 
       <DeleteMaterialDialog

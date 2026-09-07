@@ -36,6 +36,7 @@ import {
 } from "@certtrace/ui";
 import { Pencil, Plus, Star, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { usePrinterSettings } from "../contexts/PrinterSettingsContext";
 import { formatDimensionInput, parseDimensionInput } from "../lib/label-dimensions";
 import { createSampleLabelMaterial } from "../lib/label-template-content";
 import { fetchMaterials, updateLibraryConfigPartial } from "../lib/library-client";
@@ -83,6 +84,7 @@ export function LabelTemplatesEditor({
   onLibraryUpdated,
   onRefreshLibrary,
 }: LabelTemplatesEditorProps) {
+  const { printers, assignedPrinterId, assignPrinter } = usePrinterSettings();
   const [editor, setEditor] = useState<EditorMode | null>(null);
   const [widthText, setWidthText] = useState("");
   const [heightText, setHeightText] = useState("");
@@ -312,6 +314,7 @@ export function LabelTemplatesEditor({
             <TableRow className="hover:bg-transparent">
               <TableHead>Name</TableHead>
               <TableHead>Size</TableHead>
+              <TableHead>Print on</TableHead>
               <TableHead className="w-28">Default</TableHead>
               <TableHead className="w-44 text-right">Actions</TableHead>
             </TableRow>
@@ -324,6 +327,29 @@ export function LabelTemplatesEditor({
                   <TableCell className="font-medium">{template.name}</TableCell>
                   <TableCell className="text-slate-600 dark:text-slate-400">
                     {templateSizeLabel(template)}
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      aria-label={`Print ${template.name} on`}
+                      value={assignedPrinterId(library.paths.root, template.id) ?? ""}
+                      onChange={(event) => {
+                        setError(null);
+                        void assignPrinter(
+                          library.paths.root,
+                          template.id,
+                          event.target.value || null,
+                        ).catch((reason) =>
+                          setError(reason instanceof Error ? reason.message : String(reason)),
+                        );
+                      }}
+                    >
+                      <option value="">No Printer</option>
+                      {printers.map((printer) => (
+                        <option key={printer.id} value={printer.id}>
+                          {printer.name}
+                        </option>
+                      ))}
+                    </Select>
                   </TableCell>
                   <TableCell>
                     {isDefault ? (

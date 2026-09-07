@@ -1,8 +1,13 @@
 import type { OpenLibraryResult } from "@certtrace/library-engine";
-import { createDefaultLibraryConfigV1, defaultFieldSchemaV1 } from "@certtrace/types";
+import {
+  createDefaultAppSettingsV1,
+  createDefaultLibraryConfigV1,
+  defaultFieldSchemaV1,
+} from "@certtrace/types";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PrinterSettingsProvider } from "../contexts/PrinterSettingsContext";
 import { updateLibraryConfigPartial, updateLibraryFieldSchema } from "../lib/library-client";
 import { chooseSelectOption } from "../test/select-helpers";
 import { LibrarySettingsView } from "./LibrarySettingsView";
@@ -12,6 +17,10 @@ vi.mock("../lib/library-client", () => ({
   updateLibraryConfigPartial: vi.fn(),
   removeLibrarySchemaDefinition: vi.fn(),
   fetchMaterials: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("../lib/printer-client", () => ({
+  listOsPrinterQueues: vi.fn(async () => ["Zebra ZD421"]),
 }));
 
 const sampleLibrary = {
@@ -190,5 +199,39 @@ describe("LibrarySettingsView", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Backup library" }));
     expect(onBackupLibrary).toHaveBeenCalled();
+  });
+
+  it("updates the machine-local Printer link from Print on", async () => {
+    const onSettingsChange = vi.fn(async () => undefined);
+    const settings = {
+      ...createDefaultAppSettingsV1(),
+      printers: [{ id: "zebra", name: "Rack labels", queueName: "Zebra ZD421" }],
+    };
+    render(
+      <PrinterSettingsProvider settings={settings} onSettingsChange={onSettingsChange}>
+        <LibrarySettingsView
+          library={sampleLibrary}
+          expandLabelTemplates
+          onOpenAdvancedSettings={() => undefined}
+          onLibraryUpdated={() => undefined}
+          onRefreshLibrary={async () => undefined}
+          onBackupLibrary={() => undefined}
+        />
+      </PrinterSettingsProvider>,
+    );
+
+    await chooseSelectOption(screen.getByLabelText("Print 4×6 in on"), "Rack labels");
+
+    expect(onSettingsChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        labelTemplatePrinters: [
+          {
+            libraryPath: sampleLibrary.paths.root,
+            labelTemplateId: sampleLibrary.config.labelTemplates[0]?.id,
+            printerId: "zebra",
+          },
+        ],
+      }),
+    );
   });
 });
