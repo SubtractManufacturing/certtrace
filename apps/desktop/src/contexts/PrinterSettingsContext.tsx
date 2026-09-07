@@ -71,6 +71,7 @@ export function PrinterSettingsProvider({
       setOsQueues(await listOsPrinterQueues());
       setQueuesError(null);
     } catch (error) {
+      setOsQueues([]);
       setQueuesError(error instanceof Error ? error.message : String(error));
     }
   }, []);
