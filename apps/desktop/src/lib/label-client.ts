@@ -1,6 +1,10 @@
 import { generateLabelPdf } from "@certtrace/core";
 import type { OpenLibraryResult } from "@certtrace/library-engine";
-import type { LabelTemplate, MaterialMetadataV1 } from "@certtrace/types";
+import {
+  type LabelTemplate,
+  labelTemplateSizeInches,
+  type MaterialMetadataV1,
+} from "@certtrace/types";
 import { invoke } from "@tauri-apps/api/core";
 import { appCacheDir, join } from "@tauri-apps/api/path";
 import { save } from "@tauri-apps/plugin-dialog";
@@ -76,19 +80,32 @@ async function writeLabelPdfToCache(bytes: Uint8Array, materialId: string): Prom
   return path;
 }
 
-export async function printLabelPdf(bytes: Uint8Array, materialId: string): Promise<void> {
+export async function printLabelPdf(
+  bytes: Uint8Array,
+  materialId: string,
+  queueName: string,
+  template: LabelTemplate,
+): Promise<void> {
   const path = await writeLabelPdfToCache(bytes, materialId);
-  await invoke("print_pdf_file", { path });
+  const { widthIn, heightIn } = labelTemplateSizeInches(template.size);
+  await invoke("print_pdf_file", {
+    path,
+    queueName,
+    widthMicrons: Math.round(widthIn * 25_400),
+    heightMicrons: Math.round(heightIn * 25_400),
+  });
 }
 
 export async function printLabelPdfFromObjectUrl(
   objectUrl: string,
   materialId: string,
+  queueName: string,
+  template: LabelTemplate,
 ): Promise<void> {
   const response = await fetch(objectUrl);
   if (!response.ok) {
     throw new Error(`Failed to read label data (${response.status})`);
   }
   const bytes = new Uint8Array(await response.arrayBuffer());
-  await printLabelPdf(bytes, materialId);
+  await printLabelPdf(bytes, materialId, queueName, template);
 }

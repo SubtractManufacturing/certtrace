@@ -14,9 +14,11 @@ import {
 } from "@certtrace/ui";
 import { Printer, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { usePrinterSettings } from "../contexts/PrinterSettingsContext";
 import { generateLibraryLabelPdf, printLabelPdf, saveLabelPdfViaDialog } from "../lib/label-client";
 import { ErrorBanner } from "./ErrorBanner";
 import { LabelLivePreview } from "./LabelLivePreview";
+import { PrinterForm } from "./PrinterManager";
 
 interface LabelPreviewDialogProps {
   library: OpenLibraryResult;
@@ -45,6 +47,14 @@ export function LabelPreviewDialog({
   onOpenChange,
   onEditTemplates,
 }: LabelPreviewDialogProps) {
+  const {
+    printers,
+    assignedPrinterId,
+    assignPrinter,
+    addPrinter,
+    isQueueAvailable,
+    refreshQueues,
+  } = usePrinterSettings();
   const templates = library.config.labelTemplates;
   const [selectedTemplateId, setSelectedTemplateId] = useState(
     library.config.defaultLabelTemplateId,
@@ -53,12 +63,18 @@ export function LabelPreviewDialog({
   const [warnings, setWarnings] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [addingPrinter, setAddingPrinter] = useState(false);
 
   const selectedTemplate = resolveSelectedTemplate(
     templates,
     selectedTemplateId,
     library.config.defaultLabelTemplateId,
   );
+  const selectedPrinterId = selectedTemplate
+    ? assignedPrinterId(library.paths.root, selectedTemplate.id)
+    : null;
+  const selectedPrinter = printers.find((printer) => printer.id === selectedPrinterId);
+  const canPrint = Boolean(selectedPrinter && isQueueAvailable(selectedPrinter.queueName));
 
   useEffect(() => {
     if (!open) {
@@ -66,7 +82,8 @@ export function LabelPreviewDialog({
     }
     setSelectedTemplateId(library.config.defaultLabelTemplateId);
     setError(null);
-  }, [open, library.config.defaultLabelTemplateId]);
+    void refreshQueues();
+  }, [open, library.config.defaultLabelTemplateId, refreshQueues]);
 
   useEffect(() => {
     if (!open || !selectedTemplate) {
@@ -103,18 +120,25 @@ export function LabelPreviewDialog({
     };
   }, [open, library, material, selectedTemplate]);
 
-  async function handlePrint() {
-    if (!pdfBytes) {
+  async function printWith(printerId: string) {
+    const printer = printers.find((entry) => entry.id === printerId);
+    if (!pdfBytes || !selectedTemplate || !printer) {
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      await printLabelPdf(pdfBytes, material.id);
+      await printLabelPdf(pdfBytes, material.id, printer.queueName, selectedTemplate);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handlePrint() {
+    if (selectedPrinter) {
+      await printWith(selectedPrinter.id);
     }
   }
 
@@ -163,6 +187,83 @@ export function LabelPreviewDialog({
             </Select>
           </div>
 
+          <div className="space-y-1.5">
+            <Label htmlFor="label-preview-printer">Printer</Label>
+            <Select
+              id="label-preview-printer"
+              aria-label="Printer"
+              value={selectedPrinterId ?? ""}
+              disabled={busy || !pdfBytes}
+              onChange={(event) => {
+                if (event.target.value === "__add__") {
+                  setAddingPrinter(true);
+                  return;
+                }
+                if (!selectedTemplate) {
+                  return;
+                }
+                const printerId = event.target.value || null;
+                const printAfterAssignment = !canPrint && printerId !== null;
+                setError(null);
+                void assignPrinter(library.paths.root, selectedTemplate.id, printerId)
+                  .then(() => (printAfterAssignment ? printWith(printerId) : undefined))
+                  .catch((reason) =>
+                    setError(reason instanceof Error ? reason.message : String(reason)),
+                  );
+              }}
+            >
+              <option value="">No Printer</option>
+              {printers.map((printer) => (
+                <option
+                  key={printer.id}
+                  value={printer.id}
+                  disabled={!isQueueAvailable(printer.queueName)}
+                >
+                  {printer.name}
+                  {isQueueAvailable(printer.queueName) ? "" : " (queue missing)"}
+                </option>
+              ))}
+              <option value="__add__">Add printer…</option>
+            </Select>
+            {selectedPrinter && !canPrint ? (
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                OS queue missing: {selectedPrinter.queueName}
+              </p>
+            ) : null}
+          </div>
+
+          {addingPrinter && selectedTemplate ? (
+            <PrinterForm
+              onCancel={() => setAddingPrinter(false)}
+              onSave={async (name, queueName) => {
+                const printAfterAdd = !canPrint;
+                if (printAfterAdd && !pdfBytes) {
+                  throw new Error("The Label PDF is still being prepared.");
+                }
+                const bytesToPrint = pdfBytes;
+                const printer = await addPrinter(name, queueName, {
+                  libraryPath: library.paths.root,
+                  labelTemplateId: selectedTemplate.id,
+                });
+                if (printAfterAdd && bytesToPrint) {
+                  try {
+                    await printLabelPdf(
+                      bytesToPrint,
+                      material.id,
+                      printer.queueName,
+                      selectedTemplate,
+                    );
+                  } catch (reason) {
+                    setAddingPrinter(false);
+                    setError(reason instanceof Error ? reason.message : String(reason));
+                    return;
+                  }
+                }
+                setAddingPrinter(false);
+              }}
+            />
+          ) : null}
+
           {selectedTemplate ? (
             <LabelLivePreview
               template={selectedTemplate}
@@ -200,7 +301,11 @@ export function LabelPreviewDialog({
             >
               Save PDF
             </Button>
-            <Button type="button" disabled={busy || !pdfBytes} onClick={() => void handlePrint()}>
+            <Button
+              type="button"
+              disabled={busy || !pdfBytes || !canPrint}
+              onClick={() => void handlePrint()}
+            >
               <Printer className="mr-2 h-4 w-4" />
               Print
             </Button>

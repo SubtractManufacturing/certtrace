@@ -1,8 +1,15 @@
 import type { OpenLibraryResult } from "@certtrace/library-engine";
-import { createLabelContentItem, defaultFieldSchemaV1 } from "@certtrace/types";
+import {
+  type AppSettingsV1,
+  createDefaultAppSettingsV1,
+  createLabelContentItem,
+  defaultFieldSchemaV1,
+} from "@certtrace/types";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { type ReactNode, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PrinterSettingsProvider } from "../contexts/PrinterSettingsContext";
 import { generateLibraryLabelPdf, printLabelPdf, saveLabelPdfViaDialog } from "../lib/label-client";
 import { chooseSelectOption, getSelectValue } from "../test/select-helpers";
 import { LabelPreviewDialog } from "./LabelPreviewDialog";
@@ -11,6 +18,10 @@ vi.mock("../lib/label-client", () => ({
   generateLibraryLabelPdf: vi.fn(async () => ({ pdf: new Uint8Array([1, 2, 3]), warnings: [] })),
   printLabelPdf: vi.fn(),
   saveLabelPdfViaDialog: vi.fn(async () => "/tmp/label.pdf"),
+}));
+
+vi.mock("../lib/printer-client", () => ({
+  listOsPrinterQueues: vi.fn(async () => ["Zebra ZD421"]),
 }));
 
 const letterTemplate = {
@@ -62,6 +73,24 @@ const material = {
   updatedAt: "2026-05-28T12:00:00.000Z",
 };
 
+function StatefulPrinterSettings({
+  initialSettings,
+  children,
+}: {
+  initialSettings: AppSettingsV1;
+  children: ReactNode;
+}) {
+  const [settings, setSettings] = useState(initialSettings);
+  return (
+    <PrinterSettingsProvider
+      settings={settings}
+      onSettingsChange={async (next) => setSettings(next)}
+    >
+      {children}
+    </PrinterSettingsProvider>
+  );
+}
+
 describe("LabelPreviewDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -111,7 +140,7 @@ describe("LabelPreviewDialog", () => {
     );
   });
 
-  it("shows an overflow warning without blocking Print or Save", async () => {
+  it("shows an overflow warning while Save remains available", async () => {
     vi.mocked(generateLibraryLabelPdf).mockResolvedValue({
       pdf: new Uint8Array([1]),
       warnings: ["Label content may not fit the 4×6 in label size."],
@@ -130,27 +159,104 @@ describe("LabelPreviewDialog", () => {
     expect(
       await screen.findByText(/Label content may not fit the 4×6 in label size/i),
     ).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^Print$/i }).hasAttribute("disabled")).toBe(false);
+    expect(screen.getByRole("button", { name: /^Print$/i }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByRole("button", { name: /Save PDF/i }).hasAttribute("disabled")).toBe(false);
   });
 
-  it("prints via the system print path from the preview", async () => {
+  it("prints to the assigned available OS queue from the preview", async () => {
+    const settings = {
+      ...createDefaultAppSettingsV1(),
+      printers: [{ id: "printer-zebra", name: "Rack labels", queueName: "Zebra ZD421" }],
+      labelTemplatePrinters: [
+        {
+          libraryPath: library.paths.root,
+          labelTemplateId: "starter-4x6",
+          printerId: "printer-zebra",
+        },
+      ],
+    };
     render(
-      <LabelPreviewDialog
-        library={library}
-        material={material}
-        open
-        onOpenChange={() => undefined}
-        onEditTemplates={() => undefined}
-      />,
+      <PrinterSettingsProvider settings={settings} onSettingsChange={async () => undefined}>
+        <LabelPreviewDialog
+          library={library}
+          material={material}
+          open
+          onOpenChange={() => undefined}
+          onEditTemplates={() => undefined}
+        />
+      </PrinterSettingsProvider>,
     );
 
     await screen.findByLabelText(/Label Template/i);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /^Print$/i }).hasAttribute("disabled")).toBe(false),
+    );
     await userEvent.click(screen.getByRole("button", { name: /^Print$/i }));
 
     await waitFor(() =>
-      expect(printLabelPdf).toHaveBeenCalledWith(new Uint8Array([1, 2, 3]), material.id),
+      expect(printLabelPdf).toHaveBeenCalledWith(
+        new Uint8Array([1, 2, 3]),
+        material.id,
+        "Zebra ZD421",
+        expect.objectContaining({ id: "starter-4x6" }),
+      ),
     );
+  });
+
+  it("assigns and prints once when a Printer is picked while Print is blocked", async () => {
+    const settings = {
+      ...createDefaultAppSettingsV1(),
+      printers: [{ id: "printer-zebra", name: "Rack labels", queueName: "Zebra ZD421" }],
+    };
+    render(
+      <StatefulPrinterSettings initialSettings={settings}>
+        <LabelPreviewDialog
+          library={library}
+          material={material}
+          open
+          onOpenChange={() => undefined}
+          onEditTemplates={() => undefined}
+        />
+      </StatefulPrinterSettings>,
+    );
+
+    await screen.findByLabelText(/Label Template/i);
+    expect(screen.getByRole("button", { name: /^Print$/i }).hasAttribute("disabled")).toBe(true);
+    await chooseSelectOption(screen.getByLabelText("Printer"), "Rack labels");
+
+    await waitFor(() => expect(printLabelPdf).toHaveBeenCalledTimes(1));
+    expect(printLabelPdf).toHaveBeenCalledWith(
+      new Uint8Array([1, 2, 3]),
+      material.id,
+      "Zebra ZD421",
+      expect.objectContaining({ id: "starter-4x6" }),
+    );
+  });
+
+  it("shows the named-queue error when Add printer assigns but printing fails", async () => {
+    vi.mocked(printLabelPdf).mockRejectedValueOnce(new Error("Zebra ZD421 is offline"));
+    render(
+      <StatefulPrinterSettings initialSettings={createDefaultAppSettingsV1()}>
+        <LabelPreviewDialog
+          library={library}
+          material={material}
+          open
+          onOpenChange={() => undefined}
+          onEditTemplates={() => undefined}
+        />
+      </StatefulPrinterSettings>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Printer").hasAttribute("disabled")).toBe(false),
+    );
+    await chooseSelectOption(screen.getByLabelText("Printer"), "Add printer…");
+    const savePrinter = await screen.findByRole("button", { name: "Save printer" });
+    await waitFor(() => expect(savePrinter.hasAttribute("disabled")).toBe(false));
+    await userEvent.click(savePrinter);
+
+    expect(await screen.findByText("Zebra ZD421 is offline")).toBeTruthy();
+    expect(printLabelPdf).toHaveBeenCalledTimes(1);
   });
 
   it("saves a PDF from the preview with the selected template", async () => {

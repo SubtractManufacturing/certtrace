@@ -13,6 +13,7 @@ import { RestoreLibraryWizard } from "./components/RestoreLibraryWizard";
 import { SettingsView } from "./components/SettingsView";
 import { UpdateAvailableDialog } from "./components/UpdateAvailableBanner";
 import { WelcomeView } from "./components/WelcomeView";
+import { PrinterSettingsProvider } from "./contexts/PrinterSettingsContext";
 import { useAppSettings } from "./hooks/useAppSettings";
 import { type ActiveLibraryPath, useLibrarySession } from "./hooks/useLibrarySession";
 import { useSearchIndex } from "./hooks/useSearchIndex";
@@ -445,139 +446,143 @@ function App() {
 
   return (
     <ThemeProvider theme={resolvedTheme}>
-      <AppShell
-        activeView={activeView}
-        onViewChange={(view) => {
-          if (view !== "library-settings") {
-            setExpandLabelTemplates(false);
-          }
-          setActiveView(view);
-        }}
-        libraries={libraryPickerOptions}
-        activeLibraryPath={session.activeLibraryPath}
-        onLibraryChange={(path) => void handleLibraryChange(path)}
-        onOpenLibrarySettings={() => {
-          const path =
-            session.activeLibraryPath && session.activeLibraryPath !== "all"
-              ? session.activeLibraryPath
-              : libraryPickerOptions[0]?.path;
-          if (path) {
-            void handleOpenLibrarySettings(path);
-          }
-        }}
-      >
-        {activeView === "materials" ? (
-          <MaterialsWorkspace
-            sessionLibraries={session.sessionLibraries}
-            activeLibraryPath={session.activeLibraryPath}
-            materials={indexedMaterials}
-            loading={materialsLoading}
-            error={materialsError ?? error}
-            onRefreshLibrary={refreshLibraryMaterials}
-            filterMaterials={filterMaterials}
-            onEnsureLibrary={(path) => session.openLibrary(path)}
-            onEditLabelTemplates={(path) => {
-              void handleOpenLibrarySettings(path, { expandLabelTemplates: true });
+      {settings ? (
+        <PrinterSettingsProvider settings={settings} onSettingsChange={updateSettings}>
+          <AppShell
+            activeView={activeView}
+            onViewChange={(view) => {
+              if (view !== "library-settings") {
+                setExpandLabelTemplates(false);
+              }
+              setActiveView(view);
             }}
-            installDefaultUnit={settings?.defaultUnit ?? "in"}
-          />
-        ) : null}
-
-        {activeView === "jobs" ? (
-          <JobsWorkspace
-            sessionLibraries={session.sessionLibraries}
+            libraries={libraryPickerOptions}
             activeLibraryPath={session.activeLibraryPath}
-            error={error}
+            onLibraryChange={(path) => void handleLibraryChange(path)}
+            onOpenLibrarySettings={() => {
+              const path =
+                session.activeLibraryPath && session.activeLibraryPath !== "all"
+                  ? session.activeLibraryPath
+                  : libraryPickerOptions[0]?.path;
+              if (path) {
+                void handleOpenLibrarySettings(path);
+              }
+            }}
+          >
+            {activeView === "materials" ? (
+              <MaterialsWorkspace
+                sessionLibraries={session.sessionLibraries}
+                activeLibraryPath={session.activeLibraryPath}
+                materials={indexedMaterials}
+                loading={materialsLoading}
+                error={materialsError ?? error}
+                onRefreshLibrary={refreshLibraryMaterials}
+                filterMaterials={filterMaterials}
+                onEnsureLibrary={(path) => session.openLibrary(path)}
+                onEditLabelTemplates={(path) => {
+                  void handleOpenLibrarySettings(path, { expandLabelTemplates: true });
+                }}
+                installDefaultUnit={settings?.defaultUnit ?? "in"}
+              />
+            ) : null}
+
+            {activeView === "jobs" ? (
+              <JobsWorkspace
+                sessionLibraries={session.sessionLibraries}
+                activeLibraryPath={session.activeLibraryPath}
+                error={error}
+              />
+            ) : null}
+
+            {activeView === "settings" && settings ? (
+              <SettingsView
+                theme={settings.theme}
+                resolvedTheme={resolvedTheme}
+                checkForUpdates={settings.checkForUpdates}
+                includeArchivedMaterialsInSearch={settings.includeArchivedMaterialsInSearch}
+                defaultUnit={settings.defaultUnit}
+                defaultLibraryOnLaunch={settings.defaultLibraryOnLaunch}
+                recentLibraries={librariesForSettings}
+                checkingForUpdates={updateCheck.checking}
+                installingUpdate={updateCheck.installing}
+                updateAvailable={Boolean(updateCheck.updateInfo)}
+                canInstallInApp={updateCheck.canInstallInApp}
+                updateError={updateCheck.error}
+                hasCheckedForUpdates={updateCheck.hasChecked}
+                removingLibrary={removingLibrary}
+                onThemeChange={(theme) => void setTheme(theme)}
+                onCheckForUpdatesChange={(value) => void updateSettings({ checkForUpdates: value })}
+                onIncludeArchivedMaterialsInSearchChange={(value) =>
+                  void updateSettings({ includeArchivedMaterialsInSearch: value })
+                }
+                onDefaultUnitChange={(value) => void updateSettings({ defaultUnit: value })}
+                onDefaultLibraryChange={(value) =>
+                  void updateSettings({ defaultLibraryOnLaunch: value })
+                }
+                onAddLibrary={() => void handleAddLibraryFromSettings()}
+                onCreateLibrary={() => setShowCreateWizard(true)}
+                onRestoreLibrary={() => setShowRestoreWizard(true)}
+                onBackupLibrary={(path) => void handleBackupLibrary(path)}
+                onRemoveLibrary={(path, deleteFolder) => handleRemoveLibrary(path, deleteFolder)}
+                onOpenLibrarySettings={(path) => void handleOpenLibrarySettings(path)}
+                onCheckForUpdatesNow={() => void updateCheck.checkNow()}
+                onInstallUpdate={() => void updateCheck.installNow()}
+              />
+            ) : null}
+
+            {activeView === "library-settings" && settingsLibraryForMenu ? (
+              <LibrarySettingsView
+                library={settingsLibraryForMenu}
+                installDefaultUnit={settings?.defaultUnit ?? "in"}
+                expandLabelTemplates={expandLabelTemplates}
+                onOpenAdvancedSettings={() => setActiveView("library-advanced-settings")}
+                onLibraryUpdated={(library) => session.updateLibraryInSession(library)}
+                onRefreshLibrary={() => refreshLibraryMaterials(settingsLibraryForMenu.paths.root)}
+                onBackupLibrary={() => void handleBackupLibrary(settingsLibraryForMenu.paths.root)}
+              />
+            ) : null}
+
+            {activeView === "library-advanced-settings" && settingsLibraryForMenu ? (
+              <AdvancedLibrarySettingsView
+                library={settingsLibraryForMenu}
+                onLibraryUpdated={(library) => session.updateLibraryInSession(library)}
+              />
+            ) : null}
+          </AppShell>
+
+          <CreateLibraryWizard
+            open={showCreateWizard}
+            busy={busy}
+            onClose={() => setShowCreateWizard(false)}
+            onCreate={async (parentDir, options) => {
+              await handleCreateLibrary(parentDir, options);
+              setShowCreateWizard(false);
+            }}
           />
-        ) : null}
-
-        {activeView === "settings" && settings ? (
-          <SettingsView
-            theme={settings.theme}
-            resolvedTheme={resolvedTheme}
-            checkForUpdates={settings.checkForUpdates}
-            includeArchivedMaterialsInSearch={settings.includeArchivedMaterialsInSearch}
-            defaultUnit={settings.defaultUnit}
-            defaultLibraryOnLaunch={settings.defaultLibraryOnLaunch}
-            recentLibraries={librariesForSettings}
-            checkingForUpdates={updateCheck.checking}
-            installingUpdate={updateCheck.installing}
-            updateAvailable={Boolean(updateCheck.updateInfo)}
-            canInstallInApp={updateCheck.canInstallInApp}
-            updateError={updateCheck.error}
-            hasCheckedForUpdates={updateCheck.hasChecked}
-            removingLibrary={removingLibrary}
-            onThemeChange={(theme) => void setTheme(theme)}
-            onCheckForUpdatesChange={(value) => void updateSettings({ checkForUpdates: value })}
-            onIncludeArchivedMaterialsInSearchChange={(value) =>
-              void updateSettings({ includeArchivedMaterialsInSearch: value })
-            }
-            onDefaultUnitChange={(value) => void updateSettings({ defaultUnit: value })}
-            onDefaultLibraryChange={(value) =>
-              void updateSettings({ defaultLibraryOnLaunch: value })
-            }
-            onAddLibrary={() => void handleAddLibraryFromSettings()}
-            onCreateLibrary={() => setShowCreateWizard(true)}
-            onRestoreLibrary={() => setShowRestoreWizard(true)}
-            onBackupLibrary={(path) => void handleBackupLibrary(path)}
-            onRemoveLibrary={(path, deleteFolder) => handleRemoveLibrary(path, deleteFolder)}
-            onOpenLibrarySettings={(path) => void handleOpenLibrarySettings(path)}
-            onCheckForUpdatesNow={() => void updateCheck.checkNow()}
-            onInstallUpdate={() => void updateCheck.installNow()}
+          <RestoreLibraryWizard
+            open={showRestoreWizard}
+            busy={archiveRunning}
+            onClose={() => setShowRestoreWizard(false)}
+            onRestore={handleRestoreLibrary}
           />
-        ) : null}
-
-        {activeView === "library-settings" && settingsLibraryForMenu ? (
-          <LibrarySettingsView
-            library={settingsLibraryForMenu}
-            installDefaultUnit={settings?.defaultUnit ?? "in"}
-            expandLabelTemplates={expandLabelTemplates}
-            onOpenAdvancedSettings={() => setActiveView("library-advanced-settings")}
-            onLibraryUpdated={(library) => session.updateLibraryInSession(library)}
-            onRefreshLibrary={() => refreshLibraryMaterials(settingsLibraryForMenu.paths.root)}
-            onBackupLibrary={() => void handleBackupLibrary(settingsLibraryForMenu.paths.root)}
+          <LibraryArchiveProgressDialog
+            open={archiveRunning}
+            progress={archiveProgress}
+            cancelling={archiveCancelling}
+            onCancel={() => void handleCancelArchive()}
           />
-        ) : null}
 
-        {activeView === "library-advanced-settings" && settingsLibraryForMenu ? (
-          <AdvancedLibrarySettingsView
-            library={settingsLibraryForMenu}
-            onLibraryUpdated={(library) => session.updateLibraryInSession(library)}
-          />
-        ) : null}
-      </AppShell>
-
-      <CreateLibraryWizard
-        open={showCreateWizard}
-        busy={busy}
-        onClose={() => setShowCreateWizard(false)}
-        onCreate={async (parentDir, options) => {
-          await handleCreateLibrary(parentDir, options);
-          setShowCreateWizard(false);
-        }}
-      />
-      <RestoreLibraryWizard
-        open={showRestoreWizard}
-        busy={archiveRunning}
-        onClose={() => setShowRestoreWizard(false)}
-        onRestore={handleRestoreLibrary}
-      />
-      <LibraryArchiveProgressDialog
-        open={archiveRunning}
-        progress={archiveProgress}
-        cancelling={archiveCancelling}
-        onCancel={() => void handleCancelArchive()}
-      />
-
-      {updateCheck.updateInfo && updateCheck.canInstallInApp && !updateCheck.dismissed ? (
-        <UpdateAvailableDialog
-          updateInfo={updateCheck.updateInfo}
-          installing={updateCheck.installing}
-          installState={updateCheck.installState}
-          installError={updateCheck.error}
-          onDismiss={updateCheck.dismiss}
-          onInstall={() => void updateCheck.installNow()}
-        />
+          {updateCheck.updateInfo && updateCheck.canInstallInApp && !updateCheck.dismissed ? (
+            <UpdateAvailableDialog
+              updateInfo={updateCheck.updateInfo}
+              installing={updateCheck.installing}
+              installState={updateCheck.installState}
+              installError={updateCheck.error}
+              onDismiss={updateCheck.dismiss}
+              onInstall={() => void updateCheck.installNow()}
+            />
+          ) : null}
+        </PrinterSettingsProvider>
       ) : null}
     </ThemeProvider>
   );
