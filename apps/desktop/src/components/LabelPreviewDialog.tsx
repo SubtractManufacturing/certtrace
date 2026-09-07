@@ -58,7 +58,7 @@ export function LabelPreviewDialog({
   const [warnings, setWarnings] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [printerWasManuallyCleared, setPrinterWasManuallyCleared] = useState(false);
+  const [manuallyClearedTemplateId, setManuallyClearedTemplateId] = useState<string | null>(null);
   const assignmentInFlightRef = useRef(false);
 
   const selectedTemplate = resolveSelectedTemplate(
@@ -78,13 +78,9 @@ export function LabelPreviewDialog({
     }
     setSelectedTemplateId(library.config.defaultLabelTemplateId);
     setError(null);
-    setPrinterWasManuallyCleared(false);
+    setManuallyClearedTemplateId(null);
     void refreshQueues();
   }, [open, library.config.defaultLabelTemplateId, refreshQueues]);
-
-  useEffect(() => {
-    setPrinterWasManuallyCleared(false);
-  }, [selectedTemplateId]);
 
   useEffect(() => {
     if (!open || !selectedTemplate) {
@@ -207,10 +203,12 @@ export function LabelPreviewDialog({
                 }
                 const printerId = event.target.value || null;
                 if (printerId === null) {
-                  setPrinterWasManuallyCleared(true);
+                  setManuallyClearedTemplateId(selectedTemplate.id);
                 }
                 const printAfterAssignment =
-                  !canPrint && !printerWasManuallyCleared && printerId !== null;
+                  !canPrint &&
+                  manuallyClearedTemplateId !== selectedTemplate.id &&
+                  printerId !== null;
                 setError(null);
                 assignmentInFlightRef.current = true;
                 setBusy(true);
