@@ -73,8 +73,6 @@ fn print_pdf_platform(
             "-o",
             &format!("media={media}"),
             "-o",
-            "scaling=100",
-            "-o",
             "print-scaling=none",
         ])
         .arg(path_str)
