@@ -21,7 +21,12 @@ pub fn find_winprint_pdfium_dll(profile_dir: &Path) -> Option<PathBuf> {
             continue;
         }
         if let Some(dll) = find_named_file(&entry.path(), PDFIUM_DLL) {
-            matches.push(dll);
+            if fs::metadata(&dll)
+                .map(|meta| meta.len() > 0)
+                .unwrap_or(false)
+            {
+                matches.push(dll);
+            }
         }
     }
     matches.sort_by_key(|path| {

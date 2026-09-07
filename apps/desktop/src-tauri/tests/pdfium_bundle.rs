@@ -54,6 +54,16 @@ fn copies_pdfium_to_each_destination() {
 }
 
 #[test]
+fn ignores_empty_winprint_pdfium_dll() {
+    let tmp = tempfile::tempdir().unwrap();
+    let dll_dir = tmp.path().join("build").join("winprint-abc123").join("out");
+    fs::create_dir_all(&dll_dir).unwrap();
+    fs::write(dll_dir.join(pdfium::PDFIUM_DLL), b"").unwrap();
+
+    assert_eq!(pdfium::find_winprint_pdfium_dll(tmp.path()), None);
+}
+
+#[test]
 fn ignores_pdfium_from_other_crates() {
     let tmp = tempfile::tempdir().unwrap();
     let other = tmp.path().join("build").join("not-winprint").join("out");
