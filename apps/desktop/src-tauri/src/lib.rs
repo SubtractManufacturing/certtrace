@@ -6,7 +6,39 @@ mod watch;
 use library_archive::ArchiveState;
 use tauri::Manager;
 use tauri_plugin_fs::FsExt;
+use tauri_plugin_window_state::{StateFlags, WindowExt};
 use watch::{start_library_watch, stop_library_watch, sync_library_watch, WatchState};
+
+fn window_layout_flags() -> StateFlags {
+    StateFlags::SIZE | StateFlags::POSITION | StateFlags::MAXIMIZED | StateFlags::FULLSCREEN
+}
+
+fn restore_and_raise_main_window(app: &tauri::AppHandle) {
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+
+    let _ = window.restore_state(window_layout_flags());
+    let _ = window.unminimize();
+    let _ = window.show();
+    let _ = window.set_focus();
+
+    #[cfg(target_os = "macos")]
+    activate_macos_app();
+}
+
+#[cfg(target_os = "macos")]
+fn activate_macos_app() {
+    use objc2::MainThreadMarker;
+    use objc2_app_kit::NSApplication;
+
+    let Some(mtm) = MainThreadMarker::new() else {
+        return;
+    };
+    let app = NSApplication::sharedApplication(mtm);
+    #[allow(deprecated)]
+    app.activateIgnoringOtherApps(true);
+}
 
 #[tauri::command]
 fn allow_library_directory(
@@ -33,6 +65,12 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(window_layout_flags())
+                .skip_initial_state("main")
+                .build(),
+        )
         .manage(WatchState::new())
         .manage(ArchiveState::new())
         .setup(|app| {
@@ -41,6 +79,7 @@ pub fn run() {
             allow_app_directory(handle, app.path().app_cache_dir());
             allow_app_directory(handle, app.path().app_config_dir());
             allow_app_directory(handle, app.path().app_log_dir());
+            restore_and_raise_main_window(handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

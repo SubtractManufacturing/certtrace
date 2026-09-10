@@ -51,6 +51,8 @@ Verified 2026-07-31 on a maintainer test machine (in-app dialog, download, insta
 - [x] Install a published older build on a test machine
 - [x] Publish a newer release with signed updater artifacts and `latest.json` (`desktop-v0.0.1` → `desktop-v0.0.3`)
 - [x] Confirm in-app update downloads, installs, and relaunches successfully
+- [ ] Confirm **Update now** reopens CertTrace in place (size, position, maximized/fullscreen) and in front on macOS and Windows
+- [ ] Confirm the same in-place, in-front reopen on Linux
 - [ ] Confirm library data and settings survive the update (not explicitly re-checked after last dry run)
 - [ ] Repeat on each target platform (macOS, Windows, Linux)
 

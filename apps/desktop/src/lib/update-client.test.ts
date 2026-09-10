@@ -1,9 +1,10 @@
 import type { Update } from "@tauri-apps/plugin-updater";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { checkMock, relaunchMock } = vi.hoisted(() => ({
+const { checkMock, relaunchMock, saveWindowStateMock } = vi.hoisted(() => ({
   checkMock: vi.fn(),
   relaunchMock: vi.fn(),
+  saveWindowStateMock: vi.fn(),
 }));
 
 vi.mock("@tauri-apps/plugin-updater", () => ({
@@ -12,6 +13,10 @@ vi.mock("@tauri-apps/plugin-updater", () => ({
 
 vi.mock("@tauri-apps/plugin-process", () => ({
   relaunch: relaunchMock,
+}));
+
+vi.mock("@tauri-apps/plugin-window-state", () => ({
+  saveWindowState: saveWindowStateMock,
 }));
 
 import {
@@ -97,14 +102,49 @@ describe("checkForAppUpdate", () => {
 });
 
 describe("installAvailableUpdate", () => {
-  it("downloads, installs, and relaunches", async () => {
-    const downloadAndInstall = vi.fn().mockResolvedValue(undefined);
+  beforeEach(() => {
+    relaunchMock.mockReset();
+    saveWindowStateMock.mockReset();
+    saveWindowStateMock.mockResolvedValue(undefined);
+    relaunchMock.mockResolvedValue(undefined);
+  });
+
+  it("persists window layout, then downloads and installs, then relaunches", async () => {
+    const order: string[] = [];
+    saveWindowStateMock.mockImplementation(async () => {
+      order.push("persist");
+    });
+    const downloadAndInstall = vi.fn().mockImplementation(async () => {
+      order.push("install");
+    });
+    relaunchMock.mockImplementation(async () => {
+      order.push("relaunch");
+    });
     const updater = { downloadAndInstall } as unknown as Update;
 
     await installAvailableUpdate(updater);
 
+    expect(order).toEqual(["persist", "install", "relaunch"]);
+  });
+
+  it("does not install or relaunch when persisting window layout fails", async () => {
+    saveWindowStateMock.mockRejectedValue(new Error("could not save window layout"));
+    const downloadAndInstall = vi.fn().mockResolvedValue(undefined);
+    const updater = { downloadAndInstall } as unknown as Update;
+
+    await expect(installAvailableUpdate(updater)).rejects.toThrow("could not save window layout");
+    expect(downloadAndInstall).not.toHaveBeenCalled();
+    expect(relaunchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not relaunch when download-and-install fails", async () => {
+    const downloadAndInstall = vi.fn().mockRejectedValue(new Error("download failed"));
+    const updater = { downloadAndInstall } as unknown as Update;
+
+    await expect(installAvailableUpdate(updater)).rejects.toThrow("download failed");
+    expect(saveWindowStateMock).toHaveBeenCalledOnce();
     expect(downloadAndInstall).toHaveBeenCalledOnce();
-    expect(relaunchMock).toHaveBeenCalledOnce();
+    expect(relaunchMock).not.toHaveBeenCalled();
   });
 });
 

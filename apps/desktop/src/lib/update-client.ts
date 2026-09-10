@@ -1,5 +1,6 @@
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
+import { saveWindowState } from "@tauri-apps/plugin-window-state";
 import type { UpdateInfo } from "./update-check";
 
 export type UpdateInstallState = "idle" | "downloading" | "installing";
@@ -58,6 +59,7 @@ export async function checkForAppUpdate(now: Date = new Date()): Promise<AppUpda
 }
 
 export async function installAvailableUpdate(update: Update): Promise<void> {
+  await saveWindowState();
   await update.downloadAndInstall();
   await relaunch();
 }
