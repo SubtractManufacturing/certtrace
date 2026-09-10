@@ -204,7 +204,8 @@ When another shippable app exists (for example `apps/web`), add it under both `.
 4. Launch the installed older app and trigger an update check (or wait for the launch check after the 30-minute release-ready window).
 5. Confirm the update dialog appears with the new version and release notes snippet.
 6. Choose **Update now** and confirm the app downloads, installs, and relaunches on the new version.
-7. Verify libraries, settings, and recent-library data remain intact.
+7. Confirm the new window comes back in place (same size, position, and maximized/fullscreen) and in front — including when the shop did not click another app during the download.
+8. Verify libraries, settings, and recent-library data remain intact.
 
 Maintainer verified steps 4–6 on 2026-07-31 across the `0.0.1` → `0.0.3` line. Repeat per platform before calling the ship path fully proven.
 
