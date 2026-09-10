@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.8](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.7...desktop-v0.0.8) (2026-09-10)
+
+
+### Bug Fixes
+
+* Reopen CertTrace in place and in front after Update now ([#139](https://github.com/SubtractManufacturing/certtrace/issues/139)) ([7f19566](https://github.com/SubtractManufacturing/certtrace/commit/7f195668ba30e1107b2f1064fe4e7c2c5dbeb808))
+
 ## [0.0.7](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.6...desktop-v0.0.7) (2026-09-07)
 
 
