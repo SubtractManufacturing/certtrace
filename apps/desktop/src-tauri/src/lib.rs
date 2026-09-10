@@ -13,7 +13,7 @@ fn window_layout_flags() -> StateFlags {
     StateFlags::SIZE | StateFlags::POSITION | StateFlags::MAXIMIZED | StateFlags::FULLSCREEN
 }
 
-fn raise_main_window(app: &tauri::AppHandle) {
+fn restore_and_raise_main_window(app: &tauri::AppHandle) {
     let Some(window) = app.get_webview_window("main") else {
         return;
     };
@@ -79,7 +79,7 @@ pub fn run() {
             allow_app_directory(handle, app.path().app_cache_dir());
             allow_app_directory(handle, app.path().app_config_dir());
             allow_app_directory(handle, app.path().app_log_dir());
-            raise_main_window(handle);
+            restore_and_raise_main_window(handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
