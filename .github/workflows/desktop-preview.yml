@@ -277,7 +277,7 @@ jobs:
           args: ${{ matrix.args }}
 
       - name: Upload installer artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: certtrace-${{ matrix.platform }}-${{ github.run_id }}
           path: |
