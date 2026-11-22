@@ -154,6 +154,36 @@ describe("MaterialDetailPanel attachments", () => {
       expect(deleteAttachment).toHaveBeenCalledWith(library, material.id, "cert.pdf"),
     );
   });
+
+  it("constrains long filenames inside the Attach files dialog", async () => {
+    const longFilename = "Confirmation for Your November 22nd Order with McMaster-Carr.PDF";
+    vi.mocked(pickAttachmentFiles).mockResolvedValue([`/incoming/${longFilename}`]);
+
+    render(
+      <MaterialDetailPanel
+        library={library}
+        material={material}
+        open
+        onOpenChange={() => undefined}
+        onMaterialUpdated={() => undefined}
+        onEditLabelTemplates={() => undefined}
+        onMaterialDeleted={() => undefined}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Add attachments/i }));
+
+    const filenameEl = await screen.findByText(longFilename);
+    const dialogEl = filenameEl.closest('[role="dialog"]');
+    const rowEl = filenameEl.closest("li");
+    const listEl = filenameEl.closest("ul");
+
+    expect(dialogEl?.className).toContain("grid-cols-[minmax(0,1fr)]");
+    expect(listEl?.className).toContain("min-w-0");
+    expect(rowEl?.className).toContain("min-w-0");
+    expect(filenameEl.className).toContain("truncate");
+    expect(filenameEl.getAttribute("title")).toBe(longFilename);
+  });
 });
 
 describe("MaterialDetailPanel job assignments", () => {

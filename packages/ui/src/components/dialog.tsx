@@ -145,7 +145,7 @@ export function DialogContent({ className, children, ...props }: HTMLAttributes<
         aria-describedby={descriptionId}
         data-state={overlayMotionState(visible)}
         className={cn(
-          "relative z-10 grid w-full max-w-lg gap-4 rounded-lg border border-slate-200 bg-white p-6 text-slate-900 shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
+          "relative z-10 grid w-full max-w-lg grid-cols-[minmax(0,1fr)] gap-4 rounded-lg border border-slate-200 bg-white p-6 text-slate-900 shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
           dialogPanelClassName,
           className,
         )}

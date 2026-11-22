@@ -749,32 +749,36 @@ export function MaterialDetailPanel({
             </DialogDescription>
           </DialogHeader>
 
-          <ul className="space-y-3">
+          <ul className="min-w-0 max-h-[60vh] space-y-3 overflow-y-auto">
             {pendingAttachments.map((entry) => {
               const filename = attachmentFilename(entry.sourcePath);
               return (
                 <li
                   key={entry.sourcePath}
-                  className="flex items-center gap-3 rounded-md border border-slate-200 px-3 py-2 dark:border-slate-700"
+                  className="flex min-w-0 items-center gap-3 rounded-md border border-slate-200 px-3 py-2 dark:border-slate-700"
                 >
                   <FileText className="h-4 w-4 shrink-0 text-slate-500" />
-                  <span className="min-w-0 flex-1 truncate text-sm">{filename}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm" title={filename}>
+                    {filename}
+                  </span>
                   {hasAttachmentKinds ? (
-                    <Select
-                      aria-label={`Type for ${filename}`}
-                      value={entry.kindKey}
-                      disabled={busy}
-                      className="w-36"
-                      onChange={(event) =>
-                        updatePendingAttachmentKind(entry.sourcePath, event.target.value)
-                      }
-                    >
-                      {library.fieldSchema.attachmentKinds.map((kind) => (
-                        <option key={kind.key} value={kind.key}>
-                          {kind.label}
-                        </option>
-                      ))}
-                    </Select>
+                    <div className="shrink-0">
+                      <Select
+                        aria-label={`Type for ${filename}`}
+                        value={entry.kindKey}
+                        disabled={busy}
+                        className="w-36"
+                        onChange={(event) =>
+                          updatePendingAttachmentKind(entry.sourcePath, event.target.value)
+                        }
+                      >
+                        {library.fieldSchema.attachmentKinds.map((kind) => (
+                          <option key={kind.key} value={kind.key}>
+                            {kind.label}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
                   ) : null}
                 </li>
               );
