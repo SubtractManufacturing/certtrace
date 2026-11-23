@@ -764,7 +764,7 @@ export function MaterialDetailPanel({
                       aria-label={`Type for ${filename}`}
                       value={entry.kindKey}
                       disabled={busy}
-                      className="w-36"
+                      className="w-36 shrink-0"
                       onChange={(event) =>
                         updatePendingAttachmentKind(entry.sourcePath, event.target.value)
                       }
