@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.8](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.7...desktop-v0.0.8) (2026-11-23)
+
+
+### Bug Fixes
+
+* Find winprint pdfium.dll under the rustc 1.100 build dir layout ([#161](https://github.com/SubtractManufacturing/certtrace/issues/161)) ([e87fbe9](https://github.com/SubtractManufacturing/certtrace/commit/e87fbe9fd23f65f28f807eacb441e9204bd5edc3))
+* Keep long attachment filenames inside the Attach files dialog ([#160](https://github.com/SubtractManufacturing/certtrace/issues/160)) ([f6c081c](https://github.com/SubtractManufacturing/certtrace/commit/f6c081c0792f14ccdce092ad8a162b1b26af4c8e))
+* Reopen CertTrace in place and in front after Update now ([#139](https://github.com/SubtractManufacturing/certtrace/issues/139)) ([7f19566](https://github.com/SubtractManufacturing/certtrace/commit/7f195668ba30e1107b2f1064fe4e7c2c5dbeb808))
+
 ## [0.0.7](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.6...desktop-v0.0.7) (2026-09-07)
 
 
