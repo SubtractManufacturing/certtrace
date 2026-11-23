@@ -1,18 +1,30 @@
 #Requires -Version 5.1
+param(
+    [string]$SearchRoot,
+    [string]$Destination
+)
 $ErrorActionPreference = 'Stop'
 
 $srcTauri = Split-Path -Parent $PSScriptRoot
-$staged = Join-Path $srcTauri 'pdfium.dll'
-$searchRoot = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { Join-Path $srcTauri 'target' }
+$staged = if ($Destination) { $Destination } else { Join-Path $srcTauri 'pdfium.dll' }
+$searchRoot = if ($SearchRoot) {
+    $SearchRoot
+} elseif ($env:CARGO_TARGET_DIR) {
+    $env:CARGO_TARGET_DIR
+} else {
+    Join-Path $srcTauri 'target'
+}
 
 function Find-WinprintPdfiumDll {
     param([string]$Root)
     if (-not (Test-Path -LiteralPath $Root)) {
         return $null
     }
+    # Cargo build dir layouts: build/winprint-<hash>/out (old) and
+    # build/winprint/<hash>/out (rustc 1.100+).
     Get-ChildItem -Path $Root -Recurse -Filter 'pdfium.dll' -File -ErrorAction SilentlyContinue |
         Where-Object {
-            $_.Length -gt 0 -and $_.FullName -match '[\\/]build[\\/]winprint-'
+            $_.Length -gt 0 -and $_.FullName -match '[\\/]build[\\/]winprint(-|[\\/])'
         } |
         Sort-Object LastWriteTimeUtc -Descending |
         Select-Object -First 1
