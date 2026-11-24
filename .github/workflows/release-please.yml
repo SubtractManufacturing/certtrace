@@ -47,11 +47,18 @@ jobs:
             const desktopVersion = tagName.replace(/^desktop-v/, '');
             const releaseName = `CertTrace Desktop: v${desktopVersion}`;
 
-            const { data: release } = await github.rest.repos.getReleaseByTag({
+            // Releases are created as drafts until release.yml verifies every
+            // platform's assets; getReleaseByTag cannot see drafts.
+            const releases = await github.paginate(github.rest.repos.listReleases, {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              tag: tagName,
+              per_page: 100,
             });
+            const release = releases.find((r) => r.tag_name === tagName);
+            if (!release) {
+              core.setFailed(`No release (draft or published) found for ${tagName}.`);
+              return;
+            }
 
             core.info(`Renaming ${tagName} release to ${releaseName}`);
 
