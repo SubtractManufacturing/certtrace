@@ -22,17 +22,27 @@ jobs:
     steps:
       - uses: actions/github-script@v9
         id: release
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
         with:
           script: |
-            const tagName = '${{ inputs.tag }}';
-            const { data: release } = await github.rest.repos.getReleaseByTag({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag: tagName,
-            });
+            const tagName = process.env.INPUT_TAG;
 
             if (!tagName.startsWith('desktop-v')) {
               core.setFailed(`Unsupported release tag: ${tagName}. Expected a desktop-v* tag.`);
+              return;
+            }
+
+            // Release Please creates releases as drafts (see release-please-config.json)
+            // and getReleaseByTag cannot see drafts, so list and match on the tag.
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            });
+            const release = releases.find((r) => r.tag_name === tagName);
+            if (!release) {
+              core.setFailed(`No release (draft or published) found for tag ${tagName}.`);
               return;
             }
 
@@ -112,8 +122,10 @@ jobs:
         if: matrix.platform == 'windows'
         shell: pwsh
         run: |
-          # sign is prerelease-only on NuGet.org today
-          dotnet tool install -g --prerelease sign
+          # sign is prerelease-only on NuGet.org today. Pinned: an unpinned install
+          # picked up 0.9.1-beta.26552.4 and Windows signing started failing in the
+          # v0.0.8 release. Bump deliberately, after a successful release.
+          dotnet tool install -g sign --version 0.9.1-beta.26431.1
           "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Prepare Windows Authenticode signing config
@@ -166,13 +178,120 @@ jobs:
           releaseName: ${{ needs.resolve-release.outputs.release_name }}
           releaseBody: ${{ needs.resolve-release.outputs.release_body }}
           releaseId: ${{ needs.resolve-release.outputs.release_id }}
-          includeUpdaterJson: true
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
 
+      # Tauri hides the signCommand's output; sign-windows.ps1 logs it to a file.
+      - name: Show Windows signing log
+        if: failure() && matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $log = Join-Path $env:RUNNER_TEMP 'sign-windows.log'
+          if (Test-Path $log) { Get-Content $log } else { Write-Host "No signing log at $log" }
+
+  # Release Please publishes releases as drafts. The release only goes public
+  # here, once every platform's installer and updater signature is attached
+  # and latest.json lists every platform. If any build fails this job is
+  # skipped and the release stays a draft, so users never see a partial one.
+  publish:
+    name: Verify assets and publish
+    needs: [resolve-release, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/github-script@v9
+        env:
+          TAG_NAME: ${{ needs.resolve-release.outputs.tag_name }}
+          RELEASE_ID: ${{ needs.resolve-release.outputs.release_id }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const tagName = process.env.TAG_NAME;
+            const releaseId = Number(process.env.RELEASE_ID);
+            const version = tagName.replace(/^desktop-v/, '');
+
+            const { data: release } = await github.rest.repos.getRelease({
+              owner,
+              repo,
+              release_id: releaseId,
+            });
+            const assets = new Map(release.assets.map((a) => [a.name, a]));
+
+            const installers = [
+              `CertTrace_${version}_universal.dmg`,
+              `CertTrace_${version}_x64-setup.exe`,
+              `CertTrace_${version}_x64_en-US.msi`,
+              `CertTrace_${version}_amd64.deb`,
+              `CertTrace-${version}-1.x86_64.rpm`,
+              `CertTrace_${version}_amd64.AppImage`,
+            ];
+            const updaterBundles = [
+              `CertTrace_${version}_universal.app.tar.gz`,
+              `CertTrace_${version}_x64-setup.exe`,
+              `CertTrace_${version}_x64_en-US.msi`,
+              `CertTrace_${version}_amd64.deb`,
+              `CertTrace-${version}-1.x86_64.rpm`,
+              `CertTrace_${version}_amd64.AppImage`,
+            ];
+            const required = [
+              ...installers,
+              ...updaterBundles,
+              ...updaterBundles.map((n) => `${n}.sig`),
+              'latest.json',
+            ];
+
+            const problems = [];
+            for (const name of new Set(required)) {
+              const asset = assets.get(name);
+              if (!asset) problems.push(`missing asset: ${name}`);
+              else if (asset.state !== 'uploaded' || asset.size === 0) {
+                problems.push(`asset not fully uploaded: ${name} (${asset.state}, ${asset.size} bytes)`);
+              }
+            }
+
+            const latestAsset = assets.get('latest.json');
+            if (latestAsset) {
+              const { data } = await github.request(
+                'GET /repos/{owner}/{repo}/releases/assets/{asset_id}',
+                { owner, repo, asset_id: latestAsset.id, headers: { accept: 'application/octet-stream' } },
+              );
+              const latest = JSON.parse(Buffer.from(data).toString('utf8'));
+              if (latest.version !== version) {
+                problems.push(`latest.json version is ${latest.version}, expected ${version}`);
+              }
+              for (const key of ['linux-x86_64', 'darwin-aarch64', 'darwin-x86_64', 'windows-x86_64']) {
+                const entry = latest.platforms?.[key];
+                if (!entry?.url || !entry?.signature) {
+                  problems.push(`latest.json is missing platform ${key}`);
+                }
+              }
+            }
+
+            if (problems.length > 0) {
+              core.setFailed(
+                `Release ${tagName} is incomplete; leaving it unpublished.\n` +
+                  problems.map((p) => `  - ${p}`).join('\n'),
+              );
+              return;
+            }
+
+            if (release.draft) {
+              await github.rest.repos.updateRelease({
+                owner,
+                repo,
+                release_id: releaseId,
+                draft: false,
+                make_latest: 'true',
+              });
+              core.info(`Published ${tagName}`);
+            } else {
+              core.info(`${tagName} was already published; all assets verified.`);
+            }
+
   notify-discord:
     name: Notify Discord
-    needs: [resolve-release, build]
+    needs: [resolve-release, publish]
     if: success()
     runs-on: ubuntu-latest
     permissions:

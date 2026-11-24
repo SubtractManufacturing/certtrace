@@ -3,6 +3,8 @@
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": true,
   "separate-pull-requests": true,
+  "draft": true,
+  "force-tag-creation": true,
   "pull-request-title-pattern": "chore: release ${component}-v${version}",
   "packages": {
     "apps/desktop": {
