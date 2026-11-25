@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.9](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.8...desktop-v0.0.9) (2026-11-25)
+
+
+### Bug Fixes
+
+* Open and reveal attachments safely on Windows ([#163](https://github.com/SubtractManufacturing/certtrace/issues/163)) ([6232689](https://github.com/SubtractManufacturing/certtrace/commit/6232689cffc1db5ebf6ee0e698004d57338a5f1c))
+
 ## [0.0.8](https://github.com/SubtractManufacturing/certtrace/compare/desktop-v0.0.7...desktop-v0.0.8) (2026-11-23)
 
 
