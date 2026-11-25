@@ -2,6 +2,7 @@ import {
   type DirectoryEntry,
   inferAttachmentKind,
   isNotFoundError,
+  sanitizeAttachmentName,
   uniqueAttachmentName,
 } from "@certtrace/file-storage";
 import type { AttachedFile, AttachedFileFormat } from "@certtrace/types";
@@ -152,7 +153,9 @@ export async function attachFiles(
 
   try {
     for (const source of sources) {
-      const baseName = source.filename ?? source.sourcePath.split(/[/\\]/).pop() ?? "attachment";
+      const baseName = sanitizeAttachmentName(
+        source.filename ?? source.sourcePath.split(/[/\\]/).pop() ?? "attachment",
+      );
       assertSafeAttachmentName(baseName);
       if (source.kindKey) {
         assertAttachmentKindExists(library, source.kindKey);
@@ -197,6 +200,12 @@ export async function renameMaterialAttachment(
 ): Promise<AttachedFile> {
   assertSafeAttachmentName(filename);
   assertSafeAttachmentName(nextFilename);
+  // Only the new name is held to this: existing files must stay renameable and deletable.
+  if (nextFilename !== filename && sanitizeAttachmentName(nextFilename) !== nextFilename) {
+    throw new LibraryError(
+      `Attachment name contains unsupported characters. Try: ${sanitizeAttachmentName(nextFilename)}`,
+    );
+  }
   const attachments = await listMaterialAttachments(library, materialId);
   const current = attachments.find((attachment) => attachment.name === filename);
   if (!current) {

@@ -14,6 +14,23 @@ export function inferAttachmentKind(filename: string): AttachmentKind {
   return EXTENSION_KIND[ext] ?? "other";
 }
 
+// Shell metacharacters, characters Windows forbids in filenames, control characters, and
+// bidirectional overrides (which can disguise a file's real extension).
+const UNSAFE_NAME_CHARACTERS = /[&|<>^%!"`$;:*?\p{Cc}\u200E\u200F\u202A-\u202E\u2066-\u2069]+/gu;
+const WINDOWS_DEVICE_NAME = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?=\.|$)/i;
+
+/**
+ * Replace characters that are unsafe in a stored attachment filename. Path separators are left
+ * alone so callers can reject them.
+ */
+export function sanitizeAttachmentName(filename: string): string {
+  return filename
+    .replace(UNSAFE_NAME_CHARACTERS, "_")
+    .trim()
+    .replace(/[. ]+$/, "")
+    .replace(WINDOWS_DEVICE_NAME, "_$&");
+}
+
 export function uniqueAttachmentName(filename: string, existing: ReadonlySet<string>): string {
   if (!existing.has(filename)) {
     return filename;
