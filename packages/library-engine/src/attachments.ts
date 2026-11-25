@@ -1,4 +1,5 @@
 import {
+  attachmentNameKey,
   type DirectoryEntry,
   inferAttachmentKind,
   isNotFoundError,
@@ -72,6 +73,25 @@ function assertSafeAttachmentName(filename: string): void {
     filename === ATTACHMENTS_METADATA_FILENAME
   ) {
     throw new LibraryError("Attachment name must be a filename without folder separators.");
+  }
+}
+
+/**
+ * Stricter rules for names being written. Existing files are only held to
+ * `assertSafeAttachmentName`, so they stay renameable and deletable.
+ */
+function assertNewAttachmentName(filename: string): void {
+  const key = attachmentNameKey(filename);
+  if (
+    key === attachmentNameKey(METADATA_FILENAME) ||
+    key === attachmentNameKey(ATTACHMENTS_METADATA_FILENAME)
+  ) {
+    throw new LibraryError(`Attachment name is reserved by CertTrace: ${filename}`);
+  }
+  assertSafeAttachmentName(filename);
+  const sanitized = sanitizeAttachmentName(filename);
+  if (sanitized !== filename) {
+    throw new LibraryError(`Attachment name contains unsupported characters. Try: ${sanitized}`);
   }
 }
 
@@ -156,7 +176,7 @@ export async function attachFiles(
       const baseName = sanitizeAttachmentName(
         source.filename ?? source.sourcePath.split(/[/\\]/).pop() ?? "attachment",
       );
-      assertSafeAttachmentName(baseName);
+      assertNewAttachmentName(baseName);
       if (source.kindKey) {
         assertAttachmentKindExists(library, source.kindKey);
       }
@@ -199,26 +219,25 @@ export async function renameMaterialAttachment(
   nextFilename: string,
 ): Promise<AttachedFile> {
   assertSafeAttachmentName(filename);
-  assertSafeAttachmentName(nextFilename);
-  // Only the new name is held to this: existing files must stay renameable and deletable.
-  if (nextFilename !== filename && sanitizeAttachmentName(nextFilename) !== nextFilename) {
-    throw new LibraryError(
-      `Attachment name contains unsupported characters. Try: ${sanitizeAttachmentName(nextFilename)}`,
-    );
+  if (nextFilename !== filename) {
+    assertNewAttachmentName(nextFilename);
   }
   const attachments = await listMaterialAttachments(library, materialId);
   const current = attachments.find((attachment) => attachment.name === filename);
   if (!current) {
     throw new LibraryError(`Attachment not found: ${filename}`);
   }
-  if (
-    filename !== nextFilename &&
-    attachments.some((attachment) => attachment.name === nextFilename)
-  ) {
-    throw new LibraryError(`Attachment already exists: ${nextFilename}`);
-  }
   if (filename === nextFilename) {
     return current;
+  }
+  // Skip the file itself so a case-only rename (cert.pdf to Cert.pdf) still works.
+  const conflict = attachments.find(
+    (attachment) =>
+      attachment !== current &&
+      attachmentNameKey(attachment.name) === attachmentNameKey(nextFilename),
+  );
+  if (conflict) {
+    throw new LibraryError(`Attachment already exists: ${conflict.name}`);
   }
 
   await library.fs.rename(

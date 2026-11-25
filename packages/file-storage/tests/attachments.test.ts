@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeAttachmentName } from "../src/index.js";
+import { sanitizeAttachmentName, uniqueAttachmentName } from "../src/index.js";
 
 describe("sanitizeAttachmentName", () => {
   it.each([
@@ -25,5 +25,17 @@ describe("sanitizeAttachmentName", () => {
 
   it("leaves folder separators for callers to reject", () => {
     expect(sanitizeAttachmentName("../a\\b.pdf")).toBe("../a\\b.pdf");
+  });
+});
+
+describe("uniqueAttachmentName", () => {
+  it.each([
+    ["cert.pdf", ["other.pdf"], "cert.pdf"],
+    ["CERT.pdf", ["cert.PDF"], "CERT-2.pdf"],
+    ["cert.pdf", ["Cert.pdf", "CERT-2.pdf"], "cert-3.pdf"],
+    // Composed and decomposed é name the same file on macOS.
+    ["é.pdf", ["é.pdf"], "é-2.pdf"],
+  ])("names %j alongside %j", (name, existing, expected) => {
+    expect(uniqueAttachmentName(name, existing)).toBe(expected);
   });
 });

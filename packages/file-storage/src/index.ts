@@ -1,4 +1,5 @@
 export {
+  attachmentNameKey,
   inferAttachmentKind,
   sanitizeAttachmentName,
   uniqueAttachmentName,
