@@ -22,6 +22,7 @@
 ### Task 1: Release-please config + root package
 
 **Files:**
+
 - Modify: `.github/release-please-config.json`
 - Modify: `.github/release-please-manifest.json`
 - Modify: `package.json`

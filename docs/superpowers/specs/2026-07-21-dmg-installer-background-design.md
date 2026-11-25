@@ -27,12 +27,12 @@ The macOS DMG window background currently places the horizontal CertTrace logo (
 
 ### Visual layout (660×400)
 
-| Region | Content |
-| --- | --- |
-| Background | Solid light slate `#F8FAFC` |
-| Top | Empty (no horizontal logo) |
-| Middle | Clear space for Finder-drawn CertTrace.app (left) and Applications alias (right); solid `#0C5390` arrow between them |
-| Bottom | `submark.svg` centered, large enough to read clearly without crowding icon labels |
+| Region     | Content                                                                                                              |
+| ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| Background | Solid light slate `#F8FAFC`                                                                                          |
+| Top        | Empty (no horizontal logo)                                                                                           |
+| Middle     | Clear space for Finder-drawn CertTrace.app (left) and Applications alias (right); solid `#0C5390` arrow between them |
+| Bottom     | `submark.svg` centered, large enough to read clearly without crowding icon labels                                    |
 
 Finder (via Tauri’s DMG bundler) still draws the interactive icons and labels. Only the static background PNG carries branding and the arrow.
 
