@@ -17,7 +17,7 @@ export function inferAttachmentKind(filename: string): AttachmentKind {
 // Shell metacharacters, characters Windows forbids in filenames, control characters, and
 // bidirectional overrides (which can disguise a file's real extension).
 const UNSAFE_NAME_CHARACTERS = /[&|<>^%!"`$;:*?\p{Cc}\u200E\u200F\u202A-\u202E\u2066-\u2069]+/gu;
-const WINDOWS_DEVICE_NAME = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?=\.|$)/i;
+const WINDOWS_DEVICE_NAME = /^(?:con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?=\.|$)/i;
 
 /**
  * Replace characters that are unsafe in a stored attachment filename. Path separators are left

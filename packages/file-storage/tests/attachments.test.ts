@@ -19,6 +19,10 @@ describe("sanitizeAttachmentName", () => {
     [" cert.pdf. . ", "cert.pdf"],
     ["CON.pdf", "_CON.pdf"],
     ["nul", "_nul"],
+    ["COM1.pdf", "_COM1.pdf"],
+    ["COM¹.pdf", "_COM¹.pdf"],
+    ["lpt².txt", "_lpt².txt"],
+    ["LPT³", "_LPT³"],
   ])("cleans %j", (name, expected) => {
     expect(sanitizeAttachmentName(name)).toBe(expected);
   });
