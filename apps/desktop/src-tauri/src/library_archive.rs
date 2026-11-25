@@ -256,7 +256,8 @@ pub fn unzip_library_dir_sync(
             if !entry.is_file() {
                 continue;
             }
-            let Some(relative) = strip_entry_prefix(entry.name(), strip_prefix) else {
+            let name = entry.name().map_err(|error| error.to_string())?;
+            let Some(relative) = strip_entry_prefix(&name, strip_prefix) else {
                 continue;
             };
             if !relative.is_empty() {
@@ -273,7 +274,8 @@ pub fn unzip_library_dir_sync(
             if !entry.is_file() {
                 continue;
             }
-            let Some(relative) = strip_entry_prefix(entry.name(), strip_prefix) else {
+            let name = entry.name().map_err(|error| error.to_string())?;
+            let Some(relative) = strip_entry_prefix(&name, strip_prefix) else {
                 continue;
             };
             if relative.is_empty() {
@@ -305,7 +307,8 @@ pub fn list_zip_file_entries(zip_path: &Path) -> Result<Vec<String>, String> {
     for index in 0..archive.len() {
         let entry = archive.by_index(index).map_err(|error| error.to_string())?;
         if entry.is_file() {
-            names.push(normalize_relative(entry.name()));
+            let name = entry.name().map_err(|error| error.to_string())?;
+            names.push(normalize_relative(&name));
         }
     }
     Ok(names)
