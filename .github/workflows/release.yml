@@ -14,6 +14,9 @@ jobs:
   resolve-release:
     name: Resolve release metadata
     runs-on: ubuntu-latest
+    # Draft releases are only listed for tokens with write access.
+    permissions:
+      contents: write
     outputs:
       tag_name: ${{ steps.release.outputs.tag_name }}
       release_id: ${{ steps.release.outputs.release_id }}
@@ -277,10 +280,12 @@ jobs:
             }
 
             if (release.draft) {
+              // Without tag_name, updating a draft resets its tag to "untagged-...".
               await github.rest.repos.updateRelease({
                 owner,
                 repo,
                 release_id: releaseId,
+                tag_name: tagName,
                 draft: false,
                 make_latest: 'true',
               });

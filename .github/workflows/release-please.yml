@@ -62,10 +62,13 @@ jobs:
 
             core.info(`Renaming ${tagName} release to ${releaseName}`);
 
+            // Always pass tag_name: updating a draft without it resets the tag to
+            // "untagged-...", and release.yml can no longer find the release.
             await github.rest.repos.updateRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: release.id,
+              tag_name: tagName,
               name: releaseName,
             });
 
