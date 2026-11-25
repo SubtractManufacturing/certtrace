@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createNodeFileSystem } from "@certtrace/file-storage/node";
@@ -7,6 +7,7 @@ import {
   attachFiles,
   createLibrary,
   createMaterial,
+  getMaterialAttachmentPath,
   listMaterialAttachments,
   openLibrary,
   removeMaterialAttachment,
@@ -101,6 +102,153 @@ describe("material attachments", () => {
     } finally {
       await rm(tempRoot, { recursive: true, force: true });
       await rm(sourceDir, { recursive: true, force: true });
+    }
+  });
+
+  it("sanitizes unsafe characters when attaching, keeping content, kind, and extension", async () => {
+    const fs = createNodeFileSystem();
+    const tempRoot = await mkdtemp(join(tmpdir(), "certtrace-attachments-unsafe-"));
+    const sourceDir = await mkdtemp(join(tmpdir(), "certtrace-source-unsafe-"));
+
+    try {
+      // `&` and `%` are legal on every platform, so the source can really be named this.
+      const sourcePath = join(sourceDir, "x&calc&%PATH%.pdf");
+      await writeFile(sourcePath, "pdf-content");
+      const library = await createLibrary(fs, tempRoot, "Unsafe Test");
+      const material = await createMaterial(library, { fields: { family: "aluminum" } });
+
+      const added = await attachFiles(library, material.id, [
+        { sourcePath, kindKey: "mtr" },
+        { sourcePath, filename: "x|calc|PATH;.pdf" },
+      ]);
+
+      expect(added.map((file) => file.name)).toEqual(["x_calc_PATH_.pdf", "x_calc_PATH_-2.pdf"]);
+      expect(await listMaterialAttachments(library, material.id)).toContainEqual({
+        name: "x_calc_PATH_.pdf",
+        format: "pdf",
+        kindKey: "mtr",
+      });
+      expect(
+        await readFile(getMaterialAttachmentPath(library, material.id, "x_calc_PATH_.pdf"), "utf8"),
+      ).toBe("pdf-content");
+
+      await expect(
+        attachFiles(library, material.id, [{ sourcePath, filename: "../cert.pdf" }]),
+      ).rejects.toThrow("without folder separators");
+      await expect(
+        attachFiles(library, material.id, [{ sourcePath, filename: "metadata.json." }]),
+      ).rejects.toThrow("reserved by CertTrace");
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true });
+      await rm(sourceDir, { recursive: true, force: true });
+    }
+  });
+
+  it.each(["Metadata.json", "METADATA.JSON", " metadata.json ", ".Attachments.json"])(
+    "never lets %j replace library metadata",
+    async (reserved) => {
+      const fs = createNodeFileSystem();
+      const tempRoot = await mkdtemp(join(tmpdir(), "certtrace-attachments-reserved-"));
+      const sourceDir = await mkdtemp(join(tmpdir(), "certtrace-source-reserved-"));
+
+      try {
+        const sourcePath = join(sourceDir, "cert.pdf");
+        await writeFile(sourcePath, "pdf-content");
+        const library = await createLibrary(fs, tempRoot, "Reserved Test");
+        const material = await createMaterial(library, { fields: { family: "aluminum" } });
+        await attachFiles(library, material.id, [{ sourcePath, kindKey: "mtr" }]);
+        const readStored = () =>
+          Promise.all(
+            ["metadata.json", ".attachments.json"].map((name) =>
+              readFile(getMaterialAttachmentPath(library, material.id, name), "utf8"),
+            ),
+          );
+        const before = await readStored();
+
+        await expect(
+          attachFiles(library, material.id, [{ sourcePath, filename: reserved }]),
+        ).rejects.toThrow("reserved by CertTrace");
+        await expect(
+          renameMaterialAttachment(library, material.id, "cert.pdf", reserved.trim()),
+        ).rejects.toThrow("reserved by CertTrace");
+
+        expect(await readStored()).toEqual(before);
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+        await rm(sourceDir, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it("keeps both files when names differ only by case", async () => {
+    const fs = createNodeFileSystem();
+    const tempRoot = await mkdtemp(join(tmpdir(), "certtrace-attachments-case-"));
+    const sourceDir = await mkdtemp(join(tmpdir(), "certtrace-source-case-"));
+
+    try {
+      const sources = ["a&b.pdf", "A%b.pdf", "a^B.pdf"].map((name) => join(sourceDir, name));
+      for (const [index, path] of sources.entries()) {
+        await writeFile(path, `content-${index}`);
+      }
+      const library = await createLibrary(fs, tempRoot, "Case Test");
+      const material = await createMaterial(library, { fields: { family: "aluminum" } });
+      const read = (name: string) =>
+        readFile(getMaterialAttachmentPath(library, material.id, name), "utf8");
+
+      const batch = await attachFiles(library, material.id, [
+        { sourcePath: sources[0]! },
+        { sourcePath: sources[1]! },
+      ]);
+      const later = await attachFiles(library, material.id, [{ sourcePath: sources[2]! }]);
+      expect([...batch, ...later].map((file) => file.name)).toEqual([
+        "a_b.pdf",
+        "A_b-2.pdf",
+        "a_B-3.pdf",
+      ]);
+      expect(await Promise.all([read("a_b.pdf"), read("A_b-2.pdf"), read("a_B-3.pdf")])).toEqual([
+        "content-0",
+        "content-1",
+        "content-2",
+      ]);
+
+      await expect(
+        renameMaterialAttachment(library, material.id, "a_b.pdf", "a_B-2.PDF"),
+      ).rejects.toThrow("Attachment already exists: A_b-2.pdf");
+      expect(await read("A_b-2.pdf")).toBe("content-1");
+
+      await renameMaterialAttachment(library, material.id, "a_b.pdf", "A_B.pdf");
+      const names = (await listMaterialAttachments(library, material.id)).map((file) => file.name);
+      expect(names).toContain("A_B.pdf");
+      expect(names).toHaveLength(3);
+      expect(await read("A_B.pdf")).toBe("content-0");
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true });
+      await rm(sourceDir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects unsafe new names but can rename and remove existing unsafe files", async () => {
+    const fs = createNodeFileSystem();
+    const tempRoot = await mkdtemp(join(tmpdir(), "certtrace-attachments-legacy-"));
+
+    try {
+      const library = await createLibrary(fs, tempRoot, "Legacy Test");
+      const material = await createMaterial(library, { fields: { family: "aluminum" } });
+      for (const name of ["A&B.pdf", "C&D.pdf"]) {
+        await writeFile(getMaterialAttachmentPath(library, material.id, name), "pdf-content");
+      }
+
+      await expect(
+        renameMaterialAttachment(library, material.id, "A&B.pdf", "E&F.pdf"),
+      ).rejects.toThrow("Try: E_F.pdf");
+      await renameMaterialAttachment(library, material.id, "A&B.pdf", "A and B.pdf");
+      await removeMaterialAttachment(library, material.id, "C&D.pdf");
+
+      expect(await listMaterialAttachments(library, material.id)).toEqual([
+        { name: "A and B.pdf", format: "pdf" },
+      ]);
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true });
     }
   });
 

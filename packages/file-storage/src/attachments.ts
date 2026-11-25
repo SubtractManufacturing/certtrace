@@ -14,8 +14,34 @@ export function inferAttachmentKind(filename: string): AttachmentKind {
   return EXTENSION_KIND[ext] ?? "other";
 }
 
-export function uniqueAttachmentName(filename: string, existing: ReadonlySet<string>): string {
-  if (!existing.has(filename)) {
+// Shell metacharacters, characters Windows forbids in filenames, control characters, and
+// bidirectional overrides (which can disguise a file's real extension).
+const UNSAFE_NAME_CHARACTERS = /[&|<>^%!"`$;:*?\p{Cc}\u200E\u200F\u202A-\u202E\u2066-\u2069]+/gu;
+const WINDOWS_DEVICE_NAME = /^(?:con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?=\.|$)/i;
+
+/**
+ * Replace characters that are unsafe in a stored attachment filename. Path separators are left
+ * alone so callers can reject them.
+ */
+export function sanitizeAttachmentName(filename: string): string {
+  return filename
+    .replace(UNSAFE_NAME_CHARACTERS, "_")
+    .trim()
+    .replace(/[. ]+$/, "")
+    .replace(WINDOWS_DEVICE_NAME, "_$&");
+}
+
+/**
+ * Key under which two names may refer to the same file. Windows and macOS ignore case, and macOS
+ * ignores Unicode normalization, so this applies everywhere: libraries move between platforms.
+ */
+export function attachmentNameKey(filename: string): string {
+  return filename.normalize("NFC").toUpperCase();
+}
+
+export function uniqueAttachmentName(filename: string, existing: Iterable<string>): string {
+  const taken = new Set(Array.from(existing, attachmentNameKey));
+  if (!taken.has(attachmentNameKey(filename))) {
     return filename;
   }
 
@@ -25,7 +51,7 @@ export function uniqueAttachmentName(filename: string, existing: ReadonlySet<str
 
   for (let index = 2; index < 1000; index += 1) {
     const candidate = `${base}-${index}${ext}`;
-    if (!existing.has(candidate)) {
+    if (!taken.has(attachmentNameKey(candidate))) {
       return candidate;
     }
   }
