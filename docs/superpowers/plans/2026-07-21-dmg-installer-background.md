@@ -22,12 +22,14 @@
 ### Task 1: Update DMG background generation
 
 **Files:**
+
 - Modify: `apps/desktop/branding/generate-installer-assets.mjs`
 - Modify: `apps/desktop/branding/installer/dmg-background.png` (regenerated output)
 - Test: run generator + inspect PNG dimensions/content
 - Reference: `docs/superpowers/specs/2026-07-21-dmg-installer-background-design.md`
 
 **Interfaces:**
+
 - Consumes: existing `renderSvg`, `createCanvas`, `fitWithin`, `readPng`, `BRAND_BLUE` / slate constants, Tauri default icon centers `(180,170)` and `(480,170)`
 - Produces: `createDmgBackground()` writing `dmg-background.png`; helper that renders a filled left-to-right arrow PNG via inline SVG + Resvg
 
@@ -57,7 +59,10 @@ function renderArrowPng(width, height) {
   <rect x="0" y="${cy - shaftH / 2}" width="${shaftW}" height="${shaftH}" fill="#0C5390"/>
   <polygon points="${shaftW},0 ${width},${cy} ${shaftW},${height}" fill="#0C5390"/>
 </svg>`;
-  const resvg = new Resvg(svg, { fitTo: { mode: "width", value: width }, background: "transparent" });
+  const resvg = new Resvg(svg, {
+    fitTo: { mode: "width", value: width },
+    background: "transparent",
+  });
   return resvg.render().asPng();
 }
 

@@ -78,13 +78,16 @@ describe("useUpdateCheck", () => {
     });
     expect(result.current.dismissed).toBe(true);
 
+    // shouldAdvanceTime also ticks the fake clock in real time, so leave a
+    // margin larger than any scheduling jitter on a slow CI runner.
+    const margin = 60 * 1000;
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(24 * 60 * 60 * 1000 - 1);
+      await vi.advanceTimersByTimeAsync(24 * 60 * 60 * 1000 - margin);
     });
     expect(result.current.dismissed).toBe(true);
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(1);
+      await vi.advanceTimersByTimeAsync(margin);
     });
     expect(result.current.dismissed).toBe(false);
   });
