@@ -68,7 +68,7 @@ jobs:
             args: '--target universal-apple-darwin --config {"bundle":{"createUpdaterArtifacts":true}}'
           - os: windows-latest
             platform: windows
-            args: '--config signing-config.windows.json'
+            args: "--config signing-config.windows.json"
           - os: ubuntu-latest
             platform: linux
             args: '--config {"bundle":{"createUpdaterArtifacts":true}}'
